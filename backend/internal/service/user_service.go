@@ -30,3 +30,16 @@ func (s *UserService) CreateUser(c context.Context, u *dto.RegisterInput) (*mode
 	}
 	return s.repo.Create(c, user)
 }
+
+func (s *UserService) Login(c context.Context, u *dto.LoginInput) (bool, error) {
+	user, err := s.repo.GetByEmail(c, u.Email)
+	if err != nil {
+		return false, err
+	}
+
+	if err = security.CheckPassword(u.Password, user.PasswordHash); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}

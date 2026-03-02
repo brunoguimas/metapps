@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/brunoguimas/metasapp/internal/service"
@@ -30,5 +29,26 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": fmt.Sprintf("user %d created", user.ID)})
+	c.JSON(http.StatusCreated, gin.H{"message": "User registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
+}
+
+func (h *UserHandler) Login(c *gin.Context) {
+	var u dto.LoginInput
+	if err := c.ShouldBindJSON(&u); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ok, err := h.service.Login(c.Request.Context(), &u)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }

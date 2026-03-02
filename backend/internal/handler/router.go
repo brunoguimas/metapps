@@ -11,6 +11,7 @@ func NewRouter(h *UserHandler) *gin.Engine {
 
 	r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "Hello, World"}) })
 	r.POST("/register", h.Register)
+	r.POST("/login", h.Login)
 
 	return r
 }
