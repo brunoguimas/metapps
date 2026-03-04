@@ -23,17 +23,46 @@ func Load() *Config {
 		log.Fatal(".env missing")
 	}
 
-	ttl, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
+	port := getEnv("PORT", "8080")
+	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")
+	issuer := getEnv("ISSUER", "metapps")
+	ttlStr := getEnv("TOKEN_TTL", "15m")
+
+	ttl, err := time.ParseDuration(ttlStr)
 	if err != nil {
-		ttl = time.Duration(15 * time.Minute)
+		log.Printf("invalid TOKEN_TTL=%q, using 15m", ttlStr)
+		ttl = 15 * time.Minute
 	}
+
+	jwtSecret := mustGetenv("JWT_SECRET")
+	dbURL := mustGetenv("DATABASE_URL")
+	dbDriver := mustGetenv("DATABASE_DRIVER")
+
 	return &Config{
-		Port:           os.Getenv("PORT"),
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		DatabaseDriver: os.Getenv("DATABASE_DRIVER"),
-		FrontendOrigin: os.Getenv("FRONTEND_ORIGIN"),
-		JWTSecret:      os.Getenv("JWT_SECRET"),
-		Issuer:         os.Getenv("ISSUER"),
-		TokenTTL:       ttl,
+		port,
+		dbDriver,
+		dbURL,
+		origin,
+		jwtSecret,
+		issuer,
+		ttl,
 	}
+}
+
+func getEnv(key, fallback string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+
+	return v
+}
+
+func mustGetenv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatal("missing required env: ", key)
+	}
+
+	return v
 }

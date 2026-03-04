@@ -1,4 +1,4 @@
-module github.com/brunoguimas/metasapp
+module github.com/brunoguimas/metapps/backend
 
 go 1.25.0
 

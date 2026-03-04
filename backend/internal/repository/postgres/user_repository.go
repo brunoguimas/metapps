@@ -3,9 +3,9 @@ package postgres
 import (
 	"context"
 
-	"github.com/brunoguimas/metasapp/internal/database/db"
-	"github.com/brunoguimas/metasapp/internal/models"
-	"github.com/brunoguimas/metasapp/internal/repository"
+	"github.com/brunoguimas/metapps/backend/internal/database/db"
+	"github.com/brunoguimas/metapps/backend/internal/models"
+	"github.com/brunoguimas/metapps/backend/internal/repository"
 )
 
 type userRepository struct {

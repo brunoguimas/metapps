@@ -5,13 +5,13 @@ import (
 
 	"time"
 
-	"github.com/brunoguimas/metasapp/config"
-	"github.com/brunoguimas/metasapp/internal/auth"
-	"github.com/brunoguimas/metasapp/internal/database"
-	"github.com/brunoguimas/metasapp/internal/database/db"
-	"github.com/brunoguimas/metasapp/internal/handler"
-	"github.com/brunoguimas/metasapp/internal/repository/postgres"
-	"github.com/brunoguimas/metasapp/internal/service"
+	"github.com/brunoguimas/metapps/backend/config"
+	"github.com/brunoguimas/metapps/backend/internal/auth"
+	"github.com/brunoguimas/metapps/backend/internal/database"
+	"github.com/brunoguimas/metapps/backend/internal/database/db"
+	"github.com/brunoguimas/metapps/backend/internal/handler"
+	"github.com/brunoguimas/metapps/backend/internal/repository/postgres"
+	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/gin-contrib/cors"
 )
 

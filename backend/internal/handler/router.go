@@ -1,7 +1,7 @@
 package handler
 
 import (
-	authpkg "github.com/brunoguimas/metasapp/internal/auth"
+	authpkg "github.com/brunoguimas/metapps/backend/internal/auth"
 	"github.com/gin-gonic/gin"
 )
 

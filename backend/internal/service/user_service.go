@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/brunoguimas/metasapp/internal/models"
-	"github.com/brunoguimas/metasapp/internal/repository"
-	"github.com/brunoguimas/metasapp/internal/security"
-	"github.com/brunoguimas/metasapp/internal/service/dto"
+	"github.com/brunoguimas/metapps/backend/internal/models"
+	"github.com/brunoguimas/metapps/backend/internal/repository"
+	"github.com/brunoguimas/metapps/backend/internal/security"
+	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 )
 
 type UserService interface {

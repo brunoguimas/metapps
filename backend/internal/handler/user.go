@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/brunoguimas/metasapp/internal/auth"
-	"github.com/brunoguimas/metasapp/internal/service"
-	"github.com/brunoguimas/metasapp/internal/service/dto"
+	"github.com/brunoguimas/metapps/backend/internal/auth"
+	"github.com/brunoguimas/metapps/backend/internal/service"
+	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/gin-gonic/gin"
 )
 

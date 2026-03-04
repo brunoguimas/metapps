@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/brunoguimas/metasapp/internal/models"
+	"github.com/brunoguimas/metapps/backend/internal/models"
 )
 
 type UserRepository interface {
