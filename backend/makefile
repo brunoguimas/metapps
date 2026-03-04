@@ -1,6 +1,8 @@
 include .env
 export
 
+run:
+	go run cmd/api/main.go
 create_migration:
 	migrate create -ext=sql -dir=internal/database/migrations -seq $(name)
 

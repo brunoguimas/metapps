@@ -3,21 +3,26 @@ package handler
 import (
 	"net/http"
 
+	"github.com/brunoguimas/metasapp/internal/auth"
 	"github.com/brunoguimas/metasapp/internal/service"
 	"github.com/brunoguimas/metasapp/internal/service/dto"
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	service *service.UserService
+	service    service.UserService
+	jwtService auth.JWTService
 }
 
-func NewUserHandler(s *service.UserService) *UserHandler {
-	return &UserHandler{s}
+func NewUserHandler(s service.UserService, j auth.JWTService) *UserHandler {
+	return &UserHandler{
+		service:    s,
+		jwtService: j,
+	}
 }
 
 func (h *UserHandler) Register(c *gin.Context) {
-	var u dto.RegisterInput
+	var u dto.RegisterRequest
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -33,22 +38,26 @@ func (h *UserHandler) Register(c *gin.Context) {
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
-	var u dto.LoginInput
+	var u dto.LoginRequest
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ok, err := h.service.Login(c.Request.Context(), &u)
+	user, err := h.service.Login(c.Request.Context(), &u)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	token, err := h.jwtService.GenerateToken(uint(user.ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Login successful",
+		"token":   token,
+	})
 }

@@ -1,17 +1,32 @@
 package handler
 
 import (
-	"net/http"
-
+	authpkg "github.com/brunoguimas/metasapp/internal/auth"
 	"github.com/gin-gonic/gin"
 )
 
 func NewRouter(h *UserHandler) *gin.Engine {
 	r := gin.Default()
 
-	r.GET("/hello", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"message": "Hello, World"}) })
-	r.POST("/register", h.Register)
-	r.POST("/login", h.Login)
+	r.GET("/hello", func(c *gin.Context) { c.Redirect(302, "https://i.imgur.com/9DggHXo.png") })
+
+	authGroup := r.Group("/auth")
+	{
+		authGroup.POST("/register", h.Register)
+		authGroup.POST("/login", h.Login)
+	}
+
+	protected := r.Group("/protected")
+	protected.Use(authpkg.AuthMiddleware(h.jwtService))
+	{
+		protected.GET("/home", func(c *gin.Context) {
+			userID, _ := c.Get("user_id")
+			c.JSON(200, gin.H{
+				"message": "Authorized",
+				"user_id": userID,
+			})
+		})
+	}
 
 	return r
 }

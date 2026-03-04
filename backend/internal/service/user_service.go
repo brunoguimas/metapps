@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/brunoguimas/metasapp/internal/models"
 	"github.com/brunoguimas/metasapp/internal/repository"
@@ -9,15 +10,20 @@ import (
 	"github.com/brunoguimas/metasapp/internal/service/dto"
 )
 
-type UserService struct {
+type UserService interface {
+	CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error)
+	Login(c context.Context, u *dto.LoginRequest) (*models.User, error)
+}
+
+type userService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
-	return &UserService{repo}
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{repo}
 }
 
-func (s *UserService) CreateUser(c context.Context, u *dto.RegisterInput) (*models.User, error) {
+func (s *userService) CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error) {
 	hash, err := security.HashPassword(u.Password)
 	if err != nil {
 		return nil, err
@@ -31,15 +37,15 @@ func (s *UserService) CreateUser(c context.Context, u *dto.RegisterInput) (*mode
 	return s.repo.Create(c, user)
 }
 
-func (s *UserService) Login(c context.Context, u *dto.LoginInput) (bool, error) {
+func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.User, error) {
 	user, err := s.repo.GetByEmail(c, u.Email)
 	if err != nil {
-		return false, err
+		return nil, errors.New("invalid email or password")
 	}
 
 	if err = security.CheckPassword(u.Password, user.PasswordHash); err != nil {
-		return false, nil
+		return nil, errors.New("invalid email or password")
 	}
 
-	return true, nil
+	return user, nil
 }
