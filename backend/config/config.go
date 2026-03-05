@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Port           string
-	DatabaseDriver string
-	DatabaseURL    string
-	FrontendOrigin string
-	JWTSecret      string
-	Issuer         string
-	TokenTTL       time.Duration
+	Port            string
+	DatabaseDriver  string
+	DatabaseURL     string
+	FrontendOrigin  string
+	JWTSecret       string
+	Issuer          string
+	AcessTokenTTL   time.Duration
+	RefreshTokenTTL time.Duration
 }
 
 func Load() *Config {
@@ -26,12 +27,18 @@ func Load() *Config {
 	port := getEnv("PORT", "8080")
 	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")
 	issuer := getEnv("ISSUER", "metapps")
-	ttlStr := getEnv("TOKEN_TTL", "15m")
+	accessTtlStr := getEnv("ACCESS_TOKEN_TTL", "5m")
+	refreshTtlStr := getEnv("REFRESH_TOKEN_TTL", "24h")
 
-	ttl, err := time.ParseDuration(ttlStr)
+	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
-		log.Printf("invalid TOKEN_TTL=%q, using 15m", ttlStr)
-		ttl = 15 * time.Minute
+		log.Printf("invalid TOKEN_TTL=%q, using 15m", accessTtlStr)
+		accessTtl = 15 * time.Minute
+	}
+	refreshTtl, err := time.ParseDuration(refreshTtlStr)
+	if err != nil {
+		log.Printf("invalid TOKEN_TTL=%q, using 24h", refreshTtlStr)
+		refreshTtl = 24 * time.Hour
 	}
 
 	jwtSecret := mustGetenv("JWT_SECRET")
@@ -45,7 +52,8 @@ func Load() *Config {
 		origin,
 		jwtSecret,
 		issuer,
-		ttl,
+		accessTtl,
+		refreshTtl,
 	}
 }
 

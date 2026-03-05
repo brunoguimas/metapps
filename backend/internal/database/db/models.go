@@ -6,7 +6,19 @@ package db
 
 import (
 	"database/sql"
+	"time"
+
+	"github.com/google/uuid"
 )
+
+type RefreshToken struct {
+	ID        uuid.UUID
+	UserID    int64
+	ExpiresAt time.Time
+	Revoked   bool
+	RevokedAt sql.NullTime
+	CreatedAt time.Time
+}
 
 type User struct {
 	ID           int64

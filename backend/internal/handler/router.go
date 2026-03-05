@@ -14,6 +14,7 @@ func NewRouter(h *UserHandler) *gin.Engine {
 	{
 		authGroup.POST("/register", h.Register)
 		authGroup.POST("/login", h.Login)
+		authGroup.POST("/refresh", h.Refresh)
 	}
 
 	protected := r.Group("/protected")

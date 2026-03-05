@@ -10,7 +10,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/database"
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/handler"
-	"github.com/brunoguimas/metapps/backend/internal/repository/postgres"
+	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/gin-contrib/cors"
 )
@@ -21,8 +21,9 @@ func main() {
 	conn := database.Connect(cfg)
 	queries := db.New(conn)
 
-	jwtService := auth.NewJWTService(cfg.JWTSecret, cfg.Issuer, cfg.TokenTTL)
-	userRepo := postgres.NewUserRepository(queries)
+	jwtRepo := auth.NewJWTRepository(queries)
+	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AcessTokenTTL, cfg.RefreshTokenTTL)
+	userRepo := repository.NewUserRepository(queries)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService, jwtService)
 
