@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/security"
@@ -26,7 +26,7 @@ func NewUserService(repo repository.UserRepository) UserService {
 func (s *userService) CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error) {
 	hash, err := security.HashPassword(u.Password)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid password", err)
 	}
 
 	user := &models.User{
@@ -40,11 +40,11 @@ func (s *userService) CreateUser(c context.Context, u *dto.RegisterRequest) (*mo
 func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.User, error) {
 	user, err := s.repo.GetByEmail(c, u.Email)
 	if err != nil {
-		return nil, errors.New("invalid email or password")
+		return nil, apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", err)
 	}
 
 	if err = security.CheckPassword(u.Password, user.PasswordHash); err != nil {
-		return nil, errors.New("invalid email or password")
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid password", err)
 	}
 
 	return user, nil

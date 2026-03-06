@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 )
 
@@ -29,7 +30,7 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 		PasswordHash: u.PasswordHash,
 	})
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
 	}
 
 	return &models.User{
@@ -43,7 +44,7 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 
 	return &models.User{

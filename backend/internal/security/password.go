@@ -1,13 +1,19 @@
 package security
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	"golang.org/x/crypto/bcrypt"
+)
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword(
 		[]byte(password),
 		bcrypt.DefaultCost,
 	)
-	return string(bytes), err
+	if err != nil {
+		return "", apperrors.NewAppError(apperrors.ErrInternal, "couldn't hash password", err)
+	}
+	return string(bytes), nil
 }
 
 func CheckPassword(password string, hash string) error {

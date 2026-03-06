@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -17,7 +18,7 @@ type JWTService interface {
 	ValidateAccessToken(tokenStr string) (*Claims, error)
 	ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error)
 	RevokeRefreshToken(c context.Context, tokenID uuid.UUID) error
-	GetRefreshToken(c context.Context, tokenID uuid.UUID) (*models.RefreshToken, error)
+	GetById(c context.Context, tokenID uuid.UUID) (*models.RefreshToken, error)
 	GetRefreshTokenTTL() time.Duration
 }
 
@@ -65,7 +66,7 @@ func (s *jwtService) ValidateAccessToken(tokenStr string) (*Claims, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token", err)
 	}
 
 	return claims, nil
@@ -95,7 +96,6 @@ func (s *jwtService) GenerateRefreshToken(c context.Context, userID uint) (strin
 	return t.SignedString([]byte(s.secretKey))
 }
 
-// TODO: remover os uuid.Max
 func (s *jwtService) ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error) {
 	claims := &Claims{}
 
@@ -107,21 +107,21 @@ func (s *jwtService) ValidateRefreshToken(c context.Context, tokenStr string) (u
 	})
 
 	if err != nil || !token.Valid {
-		return uuid.Max, errors.New("invalid token")
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token", err)
 	}
 
 	jtiStr := claims.RegisteredClaims.ID
 	jti, err := uuid.Parse(jtiStr)
 	if err != nil {
-		return uuid.Max, err
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't parse jti", err)
 	}
 
 	t, err := s.repo.GetRefreshToken(c, jti)
 	if err != nil {
-		return uuid.Max, err
+		return uuid.Nil, err
 	}
 	if t.ExpiresAt.Before(time.Now()) || t.Revoked {
-		return uuid.Max, errors.New("invalid token")
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token", err)
 	}
 
 	return jti, nil
@@ -131,11 +131,10 @@ func (s *jwtService) RevokeRefreshToken(c context.Context, tokenID uuid.UUID) er
 	return s.repo.RevokeRefreshToken(c, tokenID)
 }
 
-func (s *jwtService) GetRefreshToken(c context.Context, tokenID uuid.UUID) (*models.RefreshToken, error) {
+func (s *jwtService) GetById(c context.Context, tokenID uuid.UUID) (*models.RefreshToken, error) {
 	return s.repo.GetRefreshToken(c, tokenID)
 }
 
-// TODO: refatorar e retirar essa função
 func (s *jwtService) GetRefreshTokenTTL() time.Duration {
 	return s.refreshTokenTTL
 }

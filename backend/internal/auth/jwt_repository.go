@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/google/uuid"
 )
@@ -32,7 +33,7 @@ func (r *jwtRepository) CreateRefreshToken(ctx context.Context, tokenID uuid.UUI
 		ExpiresAt: tokenTTL,
 	})
 	if err != nil {
-		return err
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't create refresh token", err)
 	}
 
 	return nil
@@ -41,7 +42,7 @@ func (r *jwtRepository) CreateRefreshToken(ctx context.Context, tokenID uuid.UUI
 func (r *jwtRepository) GetRefreshToken(ctx context.Context, tokenID uuid.UUID) (*models.RefreshToken, error) {
 	token, err := r.queries.GetRefreshTokenById(ctx, tokenID)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get refresh token", err)
 	}
 
 	return &models.RefreshToken{
@@ -55,7 +56,7 @@ func (r *jwtRepository) GetRefreshToken(ctx context.Context, tokenID uuid.UUID) 
 func (r *jwtRepository) RevokeRefreshToken(ctx context.Context, tokenID uuid.UUID) error {
 	err := r.queries.RevokeRefreshTokenById(ctx, tokenID)
 	if err != nil {
-		return err
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't revoke token", err)
 	}
 
 	return nil
