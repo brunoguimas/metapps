@@ -25,7 +25,7 @@ func main() {
 	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AcessTokenTTL, cfg.RefreshTokenTTL)
 	userRepo := repository.NewUserRepository(queries)
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService, jwtService)
+	userHandler := handler.NewUserHandler(userService, jwtService, *cfg)
 
 	r := handler.NewRouter(userHandler)
 	r.Use(cors.New(cors.Config{

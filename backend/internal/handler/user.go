@@ -17,10 +17,11 @@ type UserHandler struct {
 	config     config.Config
 }
 
-func NewUserHandler(s service.UserService, j auth.JWTService) *UserHandler {
+func NewUserHandler(s service.UserService, j auth.JWTService, c config.Config) *UserHandler {
 	return &UserHandler{
 		service:    s,
 		jwtService: j,
+		config:     c,
 	}
 }
 
@@ -37,7 +38,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
+	c.JSON(http.StatusCreated, gin.H{"message": "user registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
@@ -119,6 +120,7 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 		return
 	}
 
+	// TODO: fazer opcoes virem do .env
 	c.SetCookie(
 		"refresh_token",
 		refreshToken,
@@ -130,7 +132,7 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 	)
 
 	httpx.OK(c, gin.H{
-		"message":      "Login successfull",
+		"message":      "login successfull",
 		"access_token": accessToken,
 	})
 
