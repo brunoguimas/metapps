@@ -17,6 +17,18 @@ type UserHandler struct {
 	config     config.Config
 }
 
+func (h *UserHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
+	c.SetCookie(
+		"refresh_token",
+		refreshToken,
+		int(h.jwtService.GetRefreshTokenTTL().Seconds()),
+		h.config.CookiePath,
+		h.config.CookieDomain,
+		h.config.CookieSecure,
+		true,
+	)
+}
+
 func NewUserHandler(s service.UserService, j auth.JWTService, c config.Config) *UserHandler {
 	return &UserHandler{
 		service:    s,
@@ -65,17 +77,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 67
-	// TODO: criar função que facilite isso
-	c.SetCookie(
-		"refresh_token",
-		refreshToken,
-		int(h.jwtService.GetRefreshTokenTTL().Seconds()),
-		"/auth/refresh",
-		"localhost",
-		false,
-		true,
-	)
+	h.setRefreshCookie(c, refreshToken)
 
 	httpx.OK(c, gin.H{
 		"message":      "login successful",
@@ -120,19 +122,10 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	// TODO: fazer opcoes virem do .env
-	c.SetCookie(
-		"refresh_token",
-		refreshToken,
-		int(h.jwtService.GetRefreshTokenTTL().Seconds()),
-		"/auth/refresh",
-		"localhost",
-		false,
-		true,
-	)
+	h.setRefreshCookie(c, refreshToken)
 
 	httpx.OK(c, gin.H{
-		"message":      "login successfull",
+		"message":      "token refreshed",
 		"access_token": accessToken,
 	})
 

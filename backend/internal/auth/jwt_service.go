@@ -121,7 +121,7 @@ func (s *jwtService) ValidateRefreshToken(c context.Context, tokenStr string) (u
 		return uuid.Nil, err
 	}
 	if t.ExpiresAt.Before(time.Now()) || t.Revoked {
-		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token", err)
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token", errors.New("token expired or revoked"))
 	}
 
 	return jti, nil

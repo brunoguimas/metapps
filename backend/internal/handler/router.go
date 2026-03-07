@@ -9,6 +9,7 @@ func NewRouter(h *UserHandler) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/hello", func(c *gin.Context) { c.Redirect(302, "https://i.imgur.com/9DggHXo.png") })
+	r.GET("/aura", func(c *gin.Context) { c.Redirect(302, "https://youtu.be/W4xiDERxHx4?si=SMEl16JnqrJ9PBKv") })
 
 	authGroup := r.Group("/auth")
 	{

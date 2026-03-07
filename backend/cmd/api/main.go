@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/database"
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/handler"
+	"github.com/brunoguimas/metapps/backend/internal/jobs"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/gin-contrib/cors"
@@ -22,7 +24,7 @@ func main() {
 	queries := db.New(conn)
 
 	jwtRepo := auth.NewJWTRepository(queries)
-	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AcessTokenTTL, cfg.RefreshTokenTTL)
+	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	userRepo := repository.NewUserRepository(queries)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService, jwtService, *cfg)
@@ -37,8 +39,14 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go jobs.RefreshTokensCleanup(ctx, *queries, cfg.CleanupInterval)
+
 	log.Println("\"Piroca pronta!!!\"")
 	log.Println("*Insiro no cu do Donald Trump*")
 
-	r.Run(cfg.Port)
+	if err := r.Run(cfg.Port); err != nil {
+		log.Fatal("couldn't run server")
+	}
 }
