@@ -11,6 +11,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type OauthAccount struct {
+	ID             int64
+	UserID         int64
+	Provider       string
+	ProviderUserID string
+	CreatedAt      time.Time
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserID    int64
@@ -24,6 +32,6 @@ type User struct {
 	ID           int64
 	Username     string
 	Email        string
-	PasswordHash string
+	PasswordHash sql.NullString
 	CreatedAt    sql.NullTime
 }

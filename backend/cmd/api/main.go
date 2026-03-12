@@ -26,8 +26,10 @@ func main() {
 	jwtRepo := auth.NewJWTRepository(queries)
 	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	userRepo := repository.NewUserRepository(queries)
+	oauthAccountRepo := repository.NewOAuthAccountRepository(queries)
+	oauthService := service.NewOAuthService(oauthAccountRepo, userRepo)
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService, jwtService, *cfg)
+	userHandler := handler.NewUserHandler(userService, oauthService, jwtService, *cfg)
 
 	r := handler.NewRouter(userHandler)
 	r.Use(cors.New(cors.Config{
@@ -42,9 +44,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go jobs.RefreshTokensCleanup(ctx, *queries, cfg.CleanupInterval)
-
-	log.Println("\"Piroca pronta!!!\"")
-	log.Println("*Insiro no cu do Donald Trump*")
 
 	if err := r.Run(cfg.Port); err != nil {
 		log.Fatal("couldn't run server")

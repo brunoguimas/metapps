@@ -12,4 +12,7 @@ migrate_up:
 migrate_down:
 	migrate -path=internal/database/migrations -database "${DATABASE_URL}" -verbose down 1
 
+migrate_force:
+	migrate -path=internal/database/migrations -database "${DATABASE_URL}" force $(version)
+
 .PHONY: create_migration migrate_up migrate_down

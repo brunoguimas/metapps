@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
@@ -27,7 +28,7 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 	user, err := r.queries.CreateOneUser(c, db.CreateOneUserParams{
 		Username:     u.Username,
 		Email:        u.Email,
-		PasswordHash: u.PasswordHash,
+		PasswordHash: sql.NullString{String: u.PasswordHash, Valid: true},
 	})
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
@@ -37,7 +38,7 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 		ID:           user.ID,
 		Username:     user.Username,
 		Email:        user.Email,
-		PasswordHash: user.PasswordHash,
+		PasswordHash: user.PasswordHash.String,
 		CreatedAt:    user.CreatedAt.Time,
 	}, nil
 }
@@ -51,7 +52,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		ID:           user.ID,
 		Username:     user.Username,
 		Email:        user.Email,
-		PasswordHash: user.PasswordHash,
+		PasswordHash: user.PasswordHash.String,
 		CreatedAt:    user.CreatedAt.Time,
 	}, nil
 }

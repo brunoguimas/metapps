@@ -13,6 +13,7 @@ import (
 type UserService interface {
 	CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error)
 	Login(c context.Context, u *dto.LoginRequest) (*models.User, error)
+	CheckUserExists(c context.Context, email string) error
 }
 
 type userService struct {
@@ -48,4 +49,13 @@ func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.Use
 	}
 
 	return user, nil
+}
+
+func (s *userService) CheckUserExists(c context.Context, email string) error {
+	_, err := s.repo.GetByEmail(c, email)
+	if err != nil {
+		return apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", nil)
+	}
+
+	return nil
 }

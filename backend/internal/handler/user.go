@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 
 	"github.com/brunoguimas/metapps/backend/config"
@@ -9,12 +11,20 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/api/idtoken"
+)
+
+const (
+	oauthState        = "oauth_state"
+	googleProvider    = "google"
+	microsoftProvider = "microsoft"
 )
 
 type UserHandler struct {
-	service    service.UserService
-	jwtService auth.JWTService
-	config     config.Config
+	service      service.UserService
+	oauthService service.OAuthAccountService
+	jwtService   auth.JWTService
+	config       config.Config
 }
 
 func (h *UserHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
@@ -23,17 +33,18 @@ func (h *UserHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
 		refreshToken,
 		int(h.jwtService.GetRefreshTokenTTL().Seconds()),
 		h.config.CookiePath,
-		h.config.CookieDomain,
+		h.config.CookieDomainRefresh,
 		h.config.CookieSecure,
 		true,
 	)
 }
 
-func NewUserHandler(s service.UserService, j auth.JWTService, c config.Config) *UserHandler {
+func NewUserHandler(s service.UserService, o service.OAuthAccountService, j auth.JWTService, c config.Config) *UserHandler {
 	return &UserHandler{
-		service:    s,
-		jwtService: j,
-		config:     c,
+		service:      s,
+		oauthService: o,
+		jwtService:   j,
+		config:       c,
 	}
 }
 
@@ -129,4 +140,98 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 		"access_token": accessToken,
 	})
 
+}
+
+func (h *UserHandler) GoogleLogin(c *gin.Context) {
+	state, err := generateState()
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, "state generation failed")
+		return
+	}
+	url := h.config.GoogleLogin.AuthCodeURL(state)
+
+	c.SetCookie(
+		oauthState,
+		state,
+		300,
+		h.config.CookiePath,
+		h.config.CookieDomainOAuthState,
+		h.config.CookieSecure,
+		true,
+	)
+
+	c.Redirect(http.StatusSeeOther, url)
+}
+
+func (h *UserHandler) GoogleCallback(c *gin.Context) {
+	state := c.Query("state")
+
+	cookie, err := c.Cookie(oauthState)
+	if err != nil || cookie != state {
+		httpx.Error(c, http.StatusBadRequest, "invalid oauth state")
+		return
+	}
+
+	c.SetCookie(
+		oauthState,
+		"",
+		-1,
+		h.config.CookiePath,
+		h.config.CookieDomainOAuthState,
+		h.config.CookieSecure,
+		true,
+	)
+
+	code := c.Query("code")
+
+	token, err := h.config.GoogleLogin.Exchange(c.Request.Context(), code)
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, "code-Token exchange failed")
+		return
+	}
+	rawIDToken, ok := token.Extra("id_token").(string)
+	if !ok || rawIDToken == "" {
+		httpx.Error(c, http.StatusUnauthorized, "missing id token")
+		return
+	}
+	payload, err := idtoken.Validate(c.Request.Context(), rawIDToken, h.config.GoogleLogin.ClientID)
+	if err != nil {
+		httpx.Error(c, http.StatusUnauthorized, "invalid id token")
+		return
+	}
+
+	account, err := h.oauthService.CreateAccount(c.Request.Context(), payload)
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	accessToken, err := h.jwtService.GenerateAccessToken(uint(account.UserID))
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	refreshToken, err := h.jwtService.GenerateRefreshToken(c.Request.Context(), uint(account.UserID))
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.setRefreshCookie(c, refreshToken)
+
+	httpx.OK(c, gin.H{
+		"message":      "login successful",
+		"access_token": accessToken,
+	})
+}
+
+func generateState() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
 }

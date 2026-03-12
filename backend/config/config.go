@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type Config struct {
@@ -14,7 +16,8 @@ type Config struct {
 	DatabaseDriver  string
 	DatabaseURL     string
 	FrontendOrigin  string
-	CookieDomain    string
+	CookieDomainRefresh    string
+	CookieDomainOAuthState string
 	CookiePath      string
 	CookieSecure    bool
 	JWTSecret       string
@@ -22,6 +25,9 @@ type Config struct {
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
 	CleanupInterval time.Duration
+	GoogleLogin     oauth2.Config
+	// MicrosoftLogin  oauth2.Config
+	// MicrosoftTenant string
 }
 
 func Load() *Config {
@@ -32,6 +38,8 @@ func Load() *Config {
 	port := getEnv("PORT", "8080")
 	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")
 	cookieDomain := getEnv("COOKIE_DOMAIN", "localhost")
+	cookieDomainRefresh := getEnv("COOKIE_DOMAIN_REFRESH", cookieDomain)
+	cookieDomainOAuthState := getEnv("COOKIE_DOMAIN_OAUTH_STATE", cookieDomain)
 	cookiePath := getEnv("COOKIE_PATH", "/auth/refresh")
 	cookieSecure := getEnvBool("COOKIE_SECURE", false)
 	issuer := getEnv("ISSUER", "metapps")
@@ -58,13 +66,33 @@ func Load() *Config {
 	jwtSecret := mustGetenv("JWT_SECRET")
 	dbURL := mustGetenv("DATABASE_URL")
 	dbDriver := mustGetenv("DATABASE_DRIVER")
+	googleRedirectUrl := mustGetenv("GOOGLE_REDIRECT_URL")
+	googleClientID := mustGetenv("GOOGLE_CLIENT_ID")
+	googleClientSecret := mustGetenv("GOOGLE_CLIENT_SECRET")
+	// microsoftRedirectUrl := mustGetenv("MICROSOFT_REDIRECT_URL")
+	// microsoftClientID := mustGetenv("MICROSOFT_CLIENT_ID")
+	// microsoftClientSecret := mustGetenv("MICROSOFT_CLIENT_SECRET")
+	// microsoftTenant := mustGetenv("MICROSOFT_TENANT")
+
+	googleLogin := oauth2.Config{
+		RedirectURL:  googleRedirectUrl,
+		ClientID:     googleClientID,
+		ClientSecret: googleClientSecret,
+		Scopes: []string{
+			"openid",
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
 
 	return &Config{
 		Port:            port,
 		DatabaseDriver:  dbDriver,
 		DatabaseURL:     dbURL,
 		FrontendOrigin:  origin,
-		CookieDomain:    cookieDomain,
+		CookieDomainRefresh:    cookieDomainRefresh,
+		CookieDomainOAuthState: cookieDomainOAuthState,
 		CookiePath:      cookiePath,
 		CookieSecure:    cookieSecure,
 		JWTSecret:       jwtSecret,
@@ -72,6 +100,9 @@ func Load() *Config {
 		AccessTokenTTL:  accessTtl,
 		RefreshTokenTTL: refreshTtl,
 		CleanupInterval: cleanupInterval,
+		GoogleLogin:     googleLogin,
+		// MicrosoftLogin:  microsoftLogin,
+		// MicrosoftTenant: microsoftTenant,
 	}
 }
 
