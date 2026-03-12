@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	oauthState        = "oauth_state"
-	googleProvider    = "google"
-	microsoftProvider = "microsoft"
+	oauthState     = "oauth_state"
+	googleProvider = "google"
 )
 
 type UserHandler struct {

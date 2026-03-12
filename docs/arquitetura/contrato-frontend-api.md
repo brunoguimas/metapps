@@ -44,7 +44,7 @@ Sucesso:
 
 ```json
 {
-  "message": "User registered with success",
+  "message": "user registered with success",
   "user": {
     "id": 1,
     "email": "bruno@email.com"
@@ -92,7 +92,76 @@ Falhas comuns:
 - `401 Unauthorized`
   - `invalid email or password`
 
-## 3) Refresh de sessão
+## 3) Login com Google (OAuth)
+
+- Método/rota: `GET /auth/google/login`
+- Auth: não
+- Comportamento: redireciona (`303 See Other`) para o consentimento do Google.
+
+Callback:
+
+- Método/rota: `GET /auth/google/callback`
+- Auth: não
+- Parâmetros esperados: `code`, `state`
+
+Sucesso:
+
+- Status: `200 OK`
+- Efeito colateral: define cookie HTTP-only `refresh_token`
+- Body:
+
+```json
+{
+  "message": "login successful",
+  "access_token": "<jwt_access_token>"
+}
+```
+
+Falhas comuns:
+
+- `401 Unauthorized`
+  - `invalid oauth state`
+  - `missing id token`
+  - `invalid id token`
+- `500 Internal Server Error`
+  - `code-Token exchange failed`
+
+## 4) Login com Microsoft (OAuth)
+
+- Método/rota: `GET /auth/microsoft/login`
+- Auth: não
+- Comportamento: redireciona (`303 See Other`) para o consentimento da Microsoft.
+
+Callback:
+
+- Método/rota: `GET /auth/microsoft/callback`
+- Auth: não
+- Parâmetros esperados: `code`, `state`
+
+Sucesso:
+
+- Status: `200 OK`
+- Efeito colateral: define cookie HTTP-only `refresh_token`
+- Body:
+
+```json
+{
+  "message": "login successful",
+  "access_token": "<jwt_access_token>"
+}
+```
+
+Falhas comuns:
+
+- `401 Unauthorized`
+  - `invalid oauth state`
+  - `missing id token`
+  - `invalid id token`
+- `500 Internal Server Error`
+  - `code-Token exchange failed`
+  - `oidc provider init failed`
+
+## 5) Refresh de sessão
 
 - Método/rota: `POST /auth/refresh`
 - Auth por header: não
@@ -107,7 +176,7 @@ Sucesso:
 
 ```json
 {
-  "message": "Login successfull",
+  "message": "token refreshed",
   "access_token": "<new_jwt_access_token>"
 }
 ```
@@ -120,7 +189,7 @@ Falhas comuns:
   - `invalid refresh token`
 - `500 Internal Server Error`
 
-## 4) Rota protegida de exemplo
+## 6) Rota protegida de exemplo
 
 - Método/rota: `GET /protected/home`
 - Auth: sim (`Authorization: Bearer <access_token>`)
@@ -224,4 +293,3 @@ export async function authFetch(input: string, init: RequestInit = {}) {
 - Envio de `Authorization` nas rotas protegidas.
 - Tratamento centralizado de `401` com tentativa única de refresh.
 - Logout limpando estado em memória do access token.
-

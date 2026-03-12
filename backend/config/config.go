@@ -12,22 +12,20 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DatabaseDriver  string
-	DatabaseURL     string
-	FrontendOrigin  string
+	Port                   string
+	DatabaseDriver         string
+	DatabaseURL            string
+	FrontendOrigin         string
 	CookieDomainRefresh    string
 	CookieDomainOAuthState string
-	CookiePath      string
-	CookieSecure    bool
-	JWTSecret       string
-	Issuer          string
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	CleanupInterval time.Duration
-	GoogleLogin     oauth2.Config
-	// MicrosoftLogin  oauth2.Config
-	// MicrosoftTenant string
+	CookiePath             string
+	CookieSecure           bool
+	JWTSecret              string
+	Issuer                 string
+	AccessTokenTTL         time.Duration
+	RefreshTokenTTL        time.Duration
+	CleanupInterval        time.Duration
+	GoogleLogin            oauth2.Config
 }
 
 func Load() *Config {
@@ -69,10 +67,6 @@ func Load() *Config {
 	googleRedirectUrl := mustGetenv("GOOGLE_REDIRECT_URL")
 	googleClientID := mustGetenv("GOOGLE_CLIENT_ID")
 	googleClientSecret := mustGetenv("GOOGLE_CLIENT_SECRET")
-	// microsoftRedirectUrl := mustGetenv("MICROSOFT_REDIRECT_URL")
-	// microsoftClientID := mustGetenv("MICROSOFT_CLIENT_ID")
-	// microsoftClientSecret := mustGetenv("MICROSOFT_CLIENT_SECRET")
-	// microsoftTenant := mustGetenv("MICROSOFT_TENANT")
 
 	googleLogin := oauth2.Config{
 		RedirectURL:  googleRedirectUrl,
@@ -87,22 +81,20 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:            port,
-		DatabaseDriver:  dbDriver,
-		DatabaseURL:     dbURL,
-		FrontendOrigin:  origin,
+		Port:                   port,
+		DatabaseDriver:         dbDriver,
+		DatabaseURL:            dbURL,
+		FrontendOrigin:         origin,
 		CookieDomainRefresh:    cookieDomainRefresh,
 		CookieDomainOAuthState: cookieDomainOAuthState,
-		CookiePath:      cookiePath,
-		CookieSecure:    cookieSecure,
-		JWTSecret:       jwtSecret,
-		Issuer:          issuer,
-		AccessTokenTTL:  accessTtl,
-		RefreshTokenTTL: refreshTtl,
-		CleanupInterval: cleanupInterval,
-		GoogleLogin:     googleLogin,
-		// MicrosoftLogin:  microsoftLogin,
-		// MicrosoftTenant: microsoftTenant,
+		CookiePath:             cookiePath,
+		CookieSecure:           cookieSecure,
+		JWTSecret:              jwtSecret,
+		Issuer:                 issuer,
+		AccessTokenTTL:         accessTtl,
+		RefreshTokenTTL:        refreshTtl,
+		CleanupInterval:        cleanupInterval,
+		GoogleLogin:            googleLogin,
 	}
 }
 
