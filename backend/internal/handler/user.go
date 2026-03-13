@@ -3,14 +3,17 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"net/http"
 
 	"github.com/brunoguimas/metapps/backend/config"
 	"github.com/brunoguimas/metapps/backend/internal/auth"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/handler/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
 )
 
@@ -50,13 +53,13 @@ func NewUserHandler(s service.UserService, o service.OAuthAccountService, j auth
 func (h *UserHandler) Register(c *gin.Context) {
 	u, err := httpx.BindJSON[dto.RegisterRequest](c)
 	if err != nil {
-		httpx.Error(c, http.StatusBadRequest, "invalid credentials")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request body", err))
 		return
 	}
 
 	user, err := h.service.CreateUser(c.Request.Context(), u)
 	if err != nil {
-		httpx.Error(c, http.StatusBadRequest, "couldn't create user")
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
@@ -66,24 +69,24 @@ func (h *UserHandler) Register(c *gin.Context) {
 func (h *UserHandler) Login(c *gin.Context) {
 	u, err := httpx.BindJSON[dto.LoginRequest](c)
 	if err != nil {
-		httpx.Error(c, http.StatusBadRequest, "invalid credentials")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request body", err))
 		return
 	}
 
 	user, err := h.service.Login(c.Request.Context(), u)
 	if err != nil {
-		httpx.Error(c, http.StatusUnauthorized, "invalid email or password")
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	accessToken, err := h.jwtService.GenerateAccessToken(uint(user.ID))
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 	refreshToken, err := h.jwtService.GenerateRefreshToken(c.Request.Context(), uint(user.ID))
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
@@ -98,37 +101,37 @@ func (h *UserHandler) Login(c *gin.Context) {
 func (h *UserHandler) Refresh(c *gin.Context) {
 	token, err := c.Cookie("refresh_token")
 	if err != nil {
-		httpx.Error(c, http.StatusBadRequest, "refresh token not found")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidToken, "refresh token not found", err))
 		return
 	}
 
 	jti, err := h.jwtService.ValidateRefreshToken(c.Request.Context(), token)
 	if err != nil {
-		httpx.Error(c, http.StatusUnauthorized, "invalid refresh token")
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	t, err := h.jwtService.GetById(c, jti)
 	if err != nil {
-		httpx.Error(c, http.StatusUnauthorized, "invalid refresh token")
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	accessToken, err := h.jwtService.GenerateAccessToken(uint(t.UserID))
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	refreshToken, err := h.jwtService.GenerateRefreshToken(c.Request.Context(), t.UserID)
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	err = h.jwtService.RevokeRefreshToken(c.Request.Context(), jti)
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
@@ -144,7 +147,7 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 func (h *UserHandler) GoogleLogin(c *gin.Context) {
 	state, err := generateState()
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, "state generation failed")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInternal, "state generation failed", err))
 		return
 	}
 	url := h.config.GoogleLogin.AuthCodeURL(state)
@@ -164,10 +167,14 @@ func (h *UserHandler) GoogleLogin(c *gin.Context) {
 
 func (h *UserHandler) GoogleCallback(c *gin.Context) {
 	state := c.Query("state")
+	if state == "" {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "missing oauth state", nil))
+		return
+	}
 
 	cookie, err := c.Cookie(oauthState)
 	if err != nil || cookie != state {
-		httpx.Error(c, http.StatusBadRequest, "invalid oauth state")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid oauth state", err))
 		return
 	}
 
@@ -182,37 +189,41 @@ func (h *UserHandler) GoogleCallback(c *gin.Context) {
 	)
 
 	code := c.Query("code")
+	if code == "" {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "missing oauth code", nil))
+		return
+	}
 
 	token, err := h.config.GoogleLogin.Exchange(c.Request.Context(), code)
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, "code-Token exchange failed")
+		httpx.ErrorFrom(c, mapOAuthExchangeError(err))
 		return
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok || rawIDToken == "" {
-		httpx.Error(c, http.StatusUnauthorized, "missing id token")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidToken, "missing id token", nil))
 		return
 	}
 	payload, err := idtoken.Validate(c.Request.Context(), rawIDToken, h.config.GoogleLogin.ClientID)
 	if err != nil {
-		httpx.Error(c, http.StatusUnauthorized, "invalid id token")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid id token", err))
 		return
 	}
 
 	account, err := h.oauthService.CreateAccount(c.Request.Context(), payload)
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	accessToken, err := h.jwtService.GenerateAccessToken(uint(account.UserID))
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 	refreshToken, err := h.jwtService.GenerateRefreshToken(c.Request.Context(), uint(account.UserID))
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, err.Error())
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
@@ -222,6 +233,17 @@ func (h *UserHandler) GoogleCallback(c *gin.Context) {
 		"message":      "login successful",
 		"access_token": accessToken,
 	})
+}
+
+func mapOAuthExchangeError(err error) error {
+	var retrieveErr *oauth2.RetrieveError
+	if errors.As(err, &retrieveErr) {
+		if retrieveErr.Response != nil && retrieveErr.Response.StatusCode >= 400 && retrieveErr.Response.StatusCode < 500 {
+			return apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid oauth code", err)
+		}
+	}
+
+	return apperrors.NewAppError(apperrors.ErrInternal, "oauth exchange failed", err)
 }
 
 func generateState() (string, error) {

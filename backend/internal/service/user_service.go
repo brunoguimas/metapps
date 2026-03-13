@@ -27,7 +27,10 @@ func NewUserService(repo repository.UserRepository) UserService {
 func (s *userService) CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error) {
 	hash, err := security.HashPassword(u.Password)
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid password", err)
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
 	}
 
 	user := &models.User{
@@ -41,11 +44,17 @@ func (s *userService) CreateUser(c context.Context, u *dto.RegisterRequest) (*mo
 func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.User, error) {
 	user, err := s.repo.GetByEmail(c, u.Email)
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", err)
+		if appErr, ok := apperrors.As(err); ok {
+			if appErr.Code() == apperrors.ErrUserNotFound {
+				return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid email or password", err)
+			}
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 
 	if err = security.CheckPassword(u.Password, user.PasswordHash); err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid password", err)
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid email or password", err)
 	}
 
 	return user, nil
@@ -54,7 +63,10 @@ func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.Use
 func (s *userService) CheckUserExists(c context.Context, email string) error {
 	_, err := s.repo.GetByEmail(c, email)
 	if err != nil {
-		return apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", nil)
+		if appErr, ok := apperrors.As(err); ok {
+			return appErr
+		}
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't check user", err)
 	}
 
 	return nil

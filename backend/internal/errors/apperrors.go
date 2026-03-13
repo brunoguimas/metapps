@@ -1,6 +1,7 @@
 package apperrors
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -21,6 +22,13 @@ type appError struct {
 	err     error
 }
 
+type AppError interface {
+	error
+	Code() Code
+	Status() int
+	Unwrap() error
+}
+
 func NewAppError(code Code, message string, err error) error {
 	return appError{
 		status:  StatusFromCode(code),
@@ -31,6 +39,27 @@ func NewAppError(code Code, message string, err error) error {
 }
 func (e appError) Error() string {
 	return e.message
+}
+
+func (e appError) Code() Code {
+	return e.code
+}
+
+func (e appError) Status() int {
+	return e.status
+}
+
+func (e appError) Unwrap() error {
+	return e.err
+}
+
+func As(err error) (AppError, bool) {
+	var appErr AppError
+	if errors.As(err, &appErr) {
+		return appErr, true
+	}
+
+	return nil, false
 }
 
 func StatusFromCode(code Code) int {

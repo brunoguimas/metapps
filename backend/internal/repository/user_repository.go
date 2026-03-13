@@ -45,6 +45,9 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", err)
+		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 

@@ -51,6 +51,10 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 
 	user, err := s.userRepo.GetByEmail(c, email)
 	if err != nil {
+		if appErr, ok := apperrors.As(err); !ok || appErr.Code() != apperrors.ErrUserNotFound {
+			return nil, err
+		}
+
 		user = &models.User{
 			Username: name,
 			Email:    email,

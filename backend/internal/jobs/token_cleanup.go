@@ -18,7 +18,7 @@ func RefreshTokensCleanup(c context.Context, q db.Queries, i time.Duration) {
 			return
 		case <-ticker.C:
 			if err := q.RefreshTokenCleanup(c); err != nil {
-				log.Println("token cleanup failed")
+				log.Printf("token cleanup failed: %v", err)
 			}
 		}
 	}

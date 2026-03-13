@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,6 +19,13 @@ func AuthMiddleware(s JWTService) gin.HandlerFunc {
 
 		claims, err := s.ValidateAccessToken(parts[1])
 		if err != nil {
+			if appErr, ok := apperrors.As(err); ok {
+				c.AbortWithStatusJSON(appErr.Status(), gin.H{
+					"error": appErr.Error(),
+					"code":  appErr.Code(),
+				})
+				return
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}

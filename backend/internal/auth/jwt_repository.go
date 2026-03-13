@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
@@ -42,6 +43,9 @@ func (r *jwtRepository) CreateRefreshToken(ctx context.Context, tokenID uuid.UUI
 func (r *jwtRepository) GetRefreshToken(ctx context.Context, tokenID uuid.UUID) (*models.RefreshToken, error) {
 	token, err := r.queries.GetRefreshTokenById(ctx, tokenID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "refresh token not found", err)
+		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get refresh token", err)
 	}
 
