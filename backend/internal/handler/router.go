@@ -5,24 +5,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(h *UserHandler) *gin.Engine {
+func NewRouter(a *AuthHandler, o *OAuthHandler) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/hello", func(c *gin.Context) { c.Redirect(302, "https://i.imgur.com/9DggHXo.png") })
 	r.GET("/aura", func(c *gin.Context) { c.Redirect(302, "https://youtu.be/W4xiDERxHx4?si=SMEl16JnqrJ9PBKv") })
 
-	authGroup := r.Group("/auth")
+	auth := r.Group("/auth")
 	{
-		authGroup.POST("/register", h.Register)
-		authGroup.POST("/login", h.Login)
-		authGroup.POST("/refresh", h.Refresh)
-		authGroup.GET("/google/login", h.GoogleLogin)
-		authGroup.GET("/google/callback", h.GoogleCallback)
-		authGroup.GET("/email/verify", h.EmailVerify)
+		auth.POST("/register", a.Register)
+		auth.POST("/login", a.Login)
+		auth.POST("/refresh", a.Refresh)
+		auth.GET("/google/login", o.GoogleLogin)
+		auth.GET("/google/callback", o.GoogleCallback)
+		auth.GET("/email/verify", a.EmailVerify)
 	}
 
 	protected := r.Group("/protected")
-	protected.Use(authpkg.AuthMiddleware(h.jwtService))
+	protected.Use(authpkg.AuthMiddleware(a.jwt))
 	{
 		protected.GET("/home", func(c *gin.Context) {
 			userID, _ := c.Get("user_id")

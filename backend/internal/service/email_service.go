@@ -68,7 +68,8 @@ func (s *emailService) GetToken(c context.Context, userID int64) (*models.EmailT
 
 func (s *emailService) SendEmail(c context.Context, userEmail, token string) error {
 	verifyURL := fmt.Sprintf(
-		"http://localhost:8080/auth/email/verify?token=%s",
+		"%s/auth/email/verify?token=%s",
+		s.config.FrontendOrigin,
 		token,
 	)
 

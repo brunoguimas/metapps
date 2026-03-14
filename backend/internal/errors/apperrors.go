@@ -12,9 +12,9 @@ const (
 	ErrInvalidInput          Code = "INVALID_INPUT"
 	ErrInvalidCredentials    Code = "INVALID_CREDENTIALS"
 	ErrUserNotFound          Code = "USER_NOT_FOUND"
-	ErrUserAlreadyExists     Code = "USER_ALREADY_EXISTS"
+	ErrEmailAlreadyInUse     Code = "EMAIL_ALREADY_IN_USE"
 	ErrInvalidToken          Code = "INVALID_TOKEN"
-	ErrInvalidOrExpiredToken Code = "INVALID_OR_EXPIRED_TOKEN"
+	ErrInvalidOrExpiredEmailToken Code = "INVALID_OR_EXPIRED_TOKEN"
 )
 
 type appError struct {
@@ -74,11 +74,11 @@ func StatusFromCode(code Code) int {
 		return http.StatusUnauthorized
 	case ErrUserNotFound:
 		return http.StatusNotFound
-	case ErrUserAlreadyExists:
+	case ErrEmailAlreadyInUse:
 		return http.StatusConflict
 	case ErrInvalidToken:
 		return http.StatusUnauthorized
-	case ErrInvalidOrExpiredToken:
+	case ErrInvalidOrExpiredEmailToken:
 		return http.StatusBadRequest
 	default:
 		return 500

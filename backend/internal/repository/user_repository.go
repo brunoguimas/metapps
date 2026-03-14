@@ -34,7 +34,7 @@ func (r *userRepository) Create(c context.Context, u *models.User) (*models.User
 	})
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
-			return nil, apperrors.NewAppError(apperrors.ErrUserAlreadyExists, "email already in use", err)
+			return nil, apperrors.NewAppError(apperrors.ErrEmailAlreadyInUse, "email already in use", err)
 		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
 	}

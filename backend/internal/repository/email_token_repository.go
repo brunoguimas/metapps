@@ -50,7 +50,7 @@ func (r *emailTokenRepository) GetToken(c context.Context, userID int64) (*model
 	token, err := r.queries.GetLatestTokenByUserID(c, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", err)
+			return nil, apperrors.NewAppError(apperrors.ErrInvalidOrExpiredEmailToken, "invalid or expired token", err)
 		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't find email token", err)
 	}
@@ -68,7 +68,7 @@ func (r *emailTokenRepository) GetToken(c context.Context, userID int64) (*model
 func (r *emailTokenRepository) VerifyToken(c context.Context, hash string) (*models.EmailToken, error) {
 	token, err := r.queries.VerifyTokenByHash(c, hash)
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidOrExpiredToken, "invalid or expired token", err)
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidOrExpiredEmailToken, "invalid or expired token", err)
 	}
 
 	return &models.EmailToken{

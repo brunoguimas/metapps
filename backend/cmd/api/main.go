@@ -36,9 +36,10 @@ func main() {
 	oauthService := service.NewOAuthService(oauthAccountRepo, userRepo)
 	userService := service.NewUserService(userRepo)
 	emailService := service.NewEmailService(emailRepo, cfg, mailer)
-	userHandler := handler.NewUserHandler(userService, emailService, oauthService, jwtService, *cfg)
+	authHandler := handler.NewAuthHandler(userService, jwtService, emailService, *cfg)
+	oauthHandler := handler.NewOAuthHandler(oauthService, jwtService, *cfg)
 
-	r := handler.NewRouter(userHandler)
+	r := handler.NewRouter(authHandler, oauthHandler)
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

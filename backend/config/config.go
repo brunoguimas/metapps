@@ -25,6 +25,7 @@ type Config struct {
 	AccessTokenTTL         time.Duration
 	RefreshTokenTTL        time.Duration
 	EmailVerificationTTL   time.Duration
+	OAuthStateTTL          time.Duration
 	CleanupInterval        time.Duration
 	EmailFrom              string
 	SMTPHost               string
@@ -50,6 +51,7 @@ func Load() *Config {
 	accessTtlStr := getEnv("ACCESS_TOKEN_TTL", "5m")
 	refreshTtlStr := getEnv("REFRESH_TOKEN_TTL", "24h")
 	emailVerificationTtlStr := getEnv("EMAIL_VERIFICATION_TTL", "24h")
+	oauthStateTtlStr := getEnv("OAUTH_STATE_TTL", "1m")
 	cleanupIntervalStr := getEnv("CLEANUP_INTERVAL", "30m")
 	emailFrom := getEnv("EMAIL_FROM", "")
 	smtpHost := getEnv("SMTP_HOST", "")
@@ -71,6 +73,11 @@ func Load() *Config {
 	if err != nil {
 		log.Printf("invalid EMAIL_VERIFICATION_TTL=%q, using 24h", emailVerificationTtlStr)
 		emailVerificationTtl = 24 * time.Hour
+	}
+	oauthStateTtl, err := time.ParseDuration(oauthStateTtlStr)
+	if err != nil {
+		log.Printf("invalid OAUTH_STATE_TTL=%q, using 1m", oauthStateTtlStr)
+		oauthStateTtl = 1 * time.Minute
 	}
 	cleanupInterval, err := time.ParseDuration(cleanupIntervalStr)
 	if err != nil {
@@ -111,6 +118,7 @@ func Load() *Config {
 		AccessTokenTTL:         accessTtl,
 		RefreshTokenTTL:        refreshTtl,
 		EmailVerificationTTL:   emailVerificationTtl,
+		OAuthStateTTL:          oauthStateTtl,
 		CleanupInterval:        cleanupInterval,
 		EmailFrom:              emailFrom,
 		SMTPHost:               smtpHost,
