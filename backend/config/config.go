@@ -24,7 +24,13 @@ type Config struct {
 	Issuer                 string
 	AccessTokenTTL         time.Duration
 	RefreshTokenTTL        time.Duration
+	EmailVerificationTTL   time.Duration
 	CleanupInterval        time.Duration
+	EmailFrom              string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPUser               string
+	SMTPPass               string
 	GoogleLogin            oauth2.Config
 }
 
@@ -43,17 +49,28 @@ func Load() *Config {
 	issuer := getEnv("ISSUER", "metapps")
 	accessTtlStr := getEnv("ACCESS_TOKEN_TTL", "5m")
 	refreshTtlStr := getEnv("REFRESH_TOKEN_TTL", "24h")
+	emailVerificationTtlStr := getEnv("EMAIL_VERIFICATION_TTL", "24h")
 	cleanupIntervalStr := getEnv("CLEANUP_INTERVAL", "30m")
+	emailFrom := getEnv("EMAIL_FROM", "")
+	smtpHost := getEnv("SMTP_HOST", "")
+	smtpPort := getEnvInt("SMTP_PORT", 0)
+	smtpUser := getEnv("SMTP_USER", "")
+	smtpPass := getEnv("SMTP_PASS", "")
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
-		log.Printf("invalid TOKEN_TTL=%q, using 15m", accessTtlStr)
+		log.Printf("invalid ACCESS_TOKEN_TTL=%q, using 15m", accessTtlStr)
 		accessTtl = 15 * time.Minute
 	}
 	refreshTtl, err := time.ParseDuration(refreshTtlStr)
 	if err != nil {
-		log.Printf("invalid TOKEN_TTL=%q, using 24h", refreshTtlStr)
+		log.Printf("invalid REFRESH_TOKEN_TTL=%q, using 24h", refreshTtlStr)
 		refreshTtl = 24 * time.Hour
+	}
+	emailVerificationTtl, err := time.ParseDuration(emailVerificationTtlStr)
+	if err != nil {
+		log.Printf("invalid EMAIL_VERIFICATION_TTL=%q, using 24h", emailVerificationTtlStr)
+		emailVerificationTtl = 24 * time.Hour
 	}
 	cleanupInterval, err := time.ParseDuration(cleanupIntervalStr)
 	if err != nil {
@@ -93,7 +110,13 @@ func Load() *Config {
 		Issuer:                 issuer,
 		AccessTokenTTL:         accessTtl,
 		RefreshTokenTTL:        refreshTtl,
+		EmailVerificationTTL:   emailVerificationTtl,
 		CleanupInterval:        cleanupInterval,
+		EmailFrom:              emailFrom,
+		SMTPHost:               smtpHost,
+		SMTPPort:               smtpPort,
+		SMTPUser:               smtpUser,
+		SMTPPass:               smtpPass,
 		GoogleLogin:            googleLogin,
 	}
 }
@@ -125,6 +148,21 @@ func getEnvBool(key string, fallback bool) bool {
 	parsed, err := strconv.ParseBool(v)
 	if err != nil {
 		log.Printf("invalid bool %s=%q, using %t", key, v, fallback)
+		return fallback
+	}
+
+	return parsed
+}
+
+func getEnvInt(key string, fallback int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.Atoi(v)
+	if err != nil {
+		log.Printf("invalid int %s=%q, using %d", key, v, fallback)
 		return fallback
 	}
 

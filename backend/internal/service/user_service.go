@@ -14,6 +14,7 @@ type UserService interface {
 	CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error)
 	Login(c context.Context, u *dto.LoginRequest) (*models.User, error)
 	CheckUserExists(c context.Context, email string) error
+	VerifyUser(c context.Context, userID int64) error
 }
 
 type userService struct {
@@ -67,6 +68,15 @@ func (s *userService) CheckUserExists(c context.Context, email string) error {
 			return appErr
 		}
 		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't check user", err)
+	}
+
+	return nil
+}
+
+func (s *userService) VerifyUser(c context.Context, userID int64) error {
+	err := s.repo.VerifyUser(c, userID)
+	if err != nil {
+		return err
 	}
 
 	return nil

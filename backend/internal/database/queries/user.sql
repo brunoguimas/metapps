@@ -1,14 +1,19 @@
 -- name: CreateOneUser :one
-INSERT INTO users (username, email, password_hash)
+INSERT INTO public.users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password_hash, created_at;
+RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, created_at
-FROM users
+SELECT *
+FROM public.users
 WHERE email = $1;
 
 -- name: DeleteUserByEmail :one
-DELETE FROM users
+DELETE FROM public.users
 WHERE email = $1
 RETURNING id;
+
+-- name: VerifyUserByID :exec
+UPDATE public.users
+SET verified = true
+WHERE id = $1;

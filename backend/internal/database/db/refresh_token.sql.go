@@ -13,7 +13,7 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :exec
-INSERT INTO refresh_tokens (id, user_id, expires_at)
+INSERT INTO public.refresh_tokens (id, user_id, expires_at)
 VALUES ($1, $2, $3)
 `
 
@@ -29,9 +29,9 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 }
 
 const getRefreshTokenById = `-- name: GetRefreshTokenById :one
-SELECT id, user_id, expires_at, revoked, revoked_at, created_at FROM refresh_tokens
+SELECT id, user_id, expires_at, revoked, revoked_at, created_at FROM public.refresh_tokens
 WHERE id = $1
-    AND expires_at > NOW()
+    AND expires_at > now()
     AND revoked = false
 `
 
@@ -50,8 +50,8 @@ func (q *Queries) GetRefreshTokenById(ctx context.Context, id uuid.UUID) (Refres
 }
 
 const refreshTokenCleanup = `-- name: RefreshTokenCleanup :exec
-DELETE FROM refresh_tokens
-WHERE expires_at < NOW() OR revoked = true
+DELETE FROM public.refresh_tokens
+WHERE expires_at < now() OR revoked = true
 `
 
 func (q *Queries) RefreshTokenCleanup(ctx context.Context) error {
@@ -60,9 +60,9 @@ func (q *Queries) RefreshTokenCleanup(ctx context.Context) error {
 }
 
 const revokeRefreshTokenById = `-- name: RevokeRefreshTokenById :exec
-UPDATE refresh_tokens
+UPDATE public.refresh_tokens
 SET revoked = true,
-    revoked_at = NOW()
+    revoked_at = now()
 WHERE id = $1
 `
 

@@ -10,6 +10,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/auth"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
 	"github.com/brunoguimas/metapps/backend/internal/handler/httpx"
+	"github.com/brunoguimas/metapps/backend/internal/security"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ const (
 
 type UserHandler struct {
 	service      service.UserService
+	emailService service.EmailService
 	oauthService service.OAuthAccountService
 	jwtService   auth.JWTService
 	config       config.Config
@@ -41,9 +43,10 @@ func (h *UserHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
 	)
 }
 
-func NewUserHandler(s service.UserService, o service.OAuthAccountService, j auth.JWTService, c config.Config) *UserHandler {
+func NewUserHandler(userService service.UserService, emailService service.EmailService, o service.OAuthAccountService, j auth.JWTService, c config.Config) *UserHandler {
 	return &UserHandler{
-		service:      s,
+		service:      userService,
+		emailService: emailService,
 		oauthService: o,
 		jwtService:   j,
 		config:       c,
@@ -62,6 +65,17 @@ func (h *UserHandler) Register(c *gin.Context) {
 		httpx.ErrorFrom(c, err)
 		return
 	}
+	emailToken, err := h.emailService.CreateEmailToken(c.Request.Context(), user.ID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.emailService.SendEmail(c.Request.Context(), user.Email, emailToken)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "user registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
 }
@@ -76,6 +90,10 @@ func (h *UserHandler) Login(c *gin.Context) {
 	user, err := h.service.Login(c.Request.Context(), u)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
+		return
+	}
+	if !user.Verified {
+		httpx.Error(c, http.StatusUnauthorized, "email not verified")
 		return
 	}
 
@@ -233,6 +251,20 @@ func (h *UserHandler) GoogleCallback(c *gin.Context) {
 		"message":      "login successful",
 		"access_token": accessToken,
 	})
+}
+
+func (h *UserHandler) EmailVerify(c *gin.Context) {
+	t := c.Query("token")
+
+	tokenHash := security.HashToken(t)
+
+	token, err := h.emailService.VerifyToken(c.Request.Context(), tokenHash)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.service.VerifyUser(c.Request.Context(), token.UserID)
 }
 
 func mapOAuthExchangeError(err error) error {

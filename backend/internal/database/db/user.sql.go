@@ -11,9 +11,9 @@ import (
 )
 
 const createOneUser = `-- name: CreateOneUser :one
-INSERT INTO users (username, email, password_hash)
+INSERT INTO public.users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password_hash, created_at
+RETURNING id, username, email, password_hash, created_at, verified
 `
 
 type CreateOneUserParams struct {
@@ -31,12 +31,13 @@ func (q *Queries) CreateOneUser(ctx context.Context, arg CreateOneUserParams) (U
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Verified,
 	)
 	return i, err
 }
 
 const deleteUserByEmail = `-- name: DeleteUserByEmail :one
-DELETE FROM users
+DELETE FROM public.users
 WHERE email = $1
 RETURNING id
 `
@@ -49,8 +50,8 @@ func (q *Queries) DeleteUserByEmail(ctx context.Context, email string) (int64, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, created_at
-FROM users
+SELECT id, username, email, password_hash, created_at, verified
+FROM public.users
 WHERE email = $1
 `
 
@@ -63,6 +64,18 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Verified,
 	)
 	return i, err
+}
+
+const verifyUserByID = `-- name: VerifyUserByID :exec
+UPDATE public.users
+SET verified = true
+WHERE id = $1
+`
+
+func (q *Queries) VerifyUserByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, verifyUserByID, id)
+	return err
 }

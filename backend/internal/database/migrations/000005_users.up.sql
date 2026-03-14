@@ -1,2 +1,2 @@
-ALTER TABLE users 
+ALTER TABLE public.users 
 ALTER COLUMN password_hash DROP NOT NULL;

@@ -11,6 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type EmailToken struct {
+	ID         int64
+	UserID     int64
+	TokenHash  string
+	ExpiresAt  time.Time
+	VerifiedAt sql.NullTime
+	CreatedAt  time.Time
+}
+
 type OauthAccount struct {
 	ID             int64
 	UserID         int64
@@ -34,4 +43,5 @@ type User struct {
 	Email        string
 	PasswordHash sql.NullString
 	CreatedAt    sql.NullTime
+	Verified     bool
 }

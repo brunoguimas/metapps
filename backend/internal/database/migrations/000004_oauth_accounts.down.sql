@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS oauth_accounts;
+DROP TABLE IF EXISTS public.oauth_accounts;

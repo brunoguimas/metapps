@@ -18,6 +18,7 @@ func NewRouter(h *UserHandler) *gin.Engine {
 		authGroup.POST("/refresh", h.Refresh)
 		authGroup.GET("/google/login", h.GoogleLogin)
 		authGroup.GET("/google/callback", h.GoogleCallback)
+		authGroup.GET("/email/verify", h.EmailVerify)
 	}
 
 	protected := r.Group("/protected")

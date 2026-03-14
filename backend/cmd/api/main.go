@@ -12,6 +12,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/handler"
 	"github.com/brunoguimas/metapps/backend/internal/jobs"
+	"github.com/brunoguimas/metapps/backend/internal/mail"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/gin-contrib/cors"
@@ -23,13 +24,19 @@ func main() {
 	conn := database.Connect(cfg)
 	queries := db.New(conn)
 
+	mailer, err := mail.NewMailer(*cfg)
+	if err != nil {
+		log.Fatal("couldn't setup mailer")
+	}
 	jwtRepo := auth.NewJWTRepository(queries)
 	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	userRepo := repository.NewUserRepository(queries)
+	emailRepo := repository.NewEmailTokenRepository(queries)
 	oauthAccountRepo := repository.NewOAuthAccountRepository(queries)
 	oauthService := service.NewOAuthService(oauthAccountRepo, userRepo)
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService, oauthService, jwtService, *cfg)
+	emailService := service.NewEmailService(emailRepo, cfg, mailer)
+	userHandler := handler.NewUserHandler(userService, emailService, oauthService, jwtService, *cfg)
 
 	r := handler.NewRouter(userHandler)
 	r.Use(cors.New(cors.Config{
