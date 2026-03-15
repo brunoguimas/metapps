@@ -4,8 +4,6 @@ import (
 	"context"
 	"log"
 
-	"time"
-
 	"github.com/brunoguimas/metapps/backend/config"
 	"github.com/brunoguimas/metapps/backend/internal/auth"
 	"github.com/brunoguimas/metapps/backend/internal/database"
@@ -15,7 +13,6 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/mail"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/service"
-	"github.com/gin-contrib/cors"
 )
 
 func main() {
@@ -39,15 +36,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(userService, jwtService, emailService, *cfg)
 	oauthHandler := handler.NewOAuthHandler(oauthService, jwtService, *cfg)
 
-	r := handler.NewRouter(authHandler, oauthHandler)
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.FrontendOrigin},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	r := handler.NewRouter(authHandler, oauthHandler, cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
