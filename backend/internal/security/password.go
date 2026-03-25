@@ -1,7 +1,7 @@
 package security
 
 import (
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 )
 
 func GenerateEmailToken() (string, error) {

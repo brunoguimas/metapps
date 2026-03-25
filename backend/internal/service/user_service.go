@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/security"
@@ -13,8 +13,10 @@ import (
 type UserService interface {
 	CreateUser(c context.Context, u *dto.RegisterRequest) (*models.User, error)
 	Login(c context.Context, u *dto.LoginRequest) (*models.User, error)
+	GetUserByEmail(c context.Context, email string) (*models.User, error)
 	CheckUserExists(c context.Context, email string) error
 	VerifyUser(c context.Context, userID int64) error
+	GetUserByID(c context.Context, userID int64) (*models.User, error)
 }
 
 type userService struct {
@@ -80,4 +82,21 @@ func (s *userService) VerifyUser(c context.Context, userID int64) error {
 	}
 
 	return nil
+}
+
+func (s *userService) GetUserByID(c context.Context, userID int64) (*models.User, error) {
+	user, err := s.repo.GetByID(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+func (s *userService) GetUserByEmail(c context.Context, email string) (*models.User, error) {
+	user, err := s.repo.GetByEmail(c, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

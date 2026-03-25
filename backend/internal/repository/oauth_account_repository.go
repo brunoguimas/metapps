@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 )
 

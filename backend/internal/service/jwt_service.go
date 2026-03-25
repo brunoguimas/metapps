@@ -1,4 +1,4 @@
-package auth
+package service
 
 import (
 	"context"
@@ -6,8 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
+	"github.com/brunoguimas/metapps/backend/internal/repository"
+	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -15,7 +17,7 @@ import (
 type JWTService interface {
 	GenerateAccessToken(userID uint) (string, error)
 	GenerateRefreshToken(c context.Context, userID uint) (string, error)
-	ValidateAccessToken(tokenStr string) (*Claims, error)
+	ValidateAccessToken(tokenStr string) (*dto.Claims, error)
 	ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error)
 	RevokeRefreshToken(c context.Context, tokenID uuid.UUID) error
 	GetById(c context.Context, tokenID uuid.UUID) (*models.RefreshToken, error)
@@ -23,14 +25,14 @@ type JWTService interface {
 }
 
 type jwtService struct {
-	repo            JWTRepository
+	repo            repository.JWTRepository
 	secretKey       string
 	issuer          string
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
 
-func NewJWTService(repo JWTRepository, secretKey, issuer string, accessTokenTTL, refreshTokenTTL time.Duration) JWTService {
+func NewJWTService(repo repository.JWTRepository, secretKey, issuer string, accessTokenTTL, refreshTokenTTL time.Duration) JWTService {
 	return &jwtService{
 		repo:            repo,
 		secretKey:       secretKey,
@@ -41,8 +43,7 @@ func NewJWTService(repo JWTRepository, secretKey, issuer string, accessTokenTTL,
 }
 
 func (s *jwtService) GenerateAccessToken(userID uint) (string, error) {
-	claims := &Claims{
-		ID: strconv.FormatUint(uint64(userID), 10),
+	claims := &dto.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			Subject:   strconv.FormatUint(uint64(userID), 10),
@@ -55,8 +56,8 @@ func (s *jwtService) GenerateAccessToken(userID uint) (string, error) {
 	return t.SignedString([]byte(s.secretKey))
 }
 
-func (s *jwtService) ValidateAccessToken(tokenStr string) (*Claims, error) {
-	claims := &Claims{}
+func (s *jwtService) ValidateAccessToken(tokenStr string) (*dto.Claims, error) {
+	claims := &dto.Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -76,8 +77,7 @@ func (s *jwtService) GenerateRefreshToken(c context.Context, userID uint) (strin
 	tokenId := uuid.New()
 	tokenTTL := time.Now().Add(s.refreshTokenTTL)
 
-	claims := &Claims{
-		ID: strconv.FormatUint(uint64(userID), 10),
+	claims := &dto.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenId.String(),
 			Issuer:    s.issuer,
@@ -97,7 +97,7 @@ func (s *jwtService) GenerateRefreshToken(c context.Context, userID uint) (strin
 }
 
 func (s *jwtService) ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error) {
-	claims := &Claims{}
+	claims := &dto.Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

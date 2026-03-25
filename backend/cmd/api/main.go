@@ -4,8 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/brunoguimas/metapps/backend/config"
-	"github.com/brunoguimas/metapps/backend/internal/auth"
+	"github.com/brunoguimas/metapps/backend/internal/config"
 	"github.com/brunoguimas/metapps/backend/internal/database"
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/handler"
@@ -25,8 +24,8 @@ func main() {
 	if err != nil {
 		log.Fatal("couldn't setup mailer")
 	}
-	jwtRepo := auth.NewJWTRepository(queries)
-	jwtService := auth.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
+	jwtRepo := repository.NewJWTRepository(queries)
+	jwtService := service.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	userRepo := repository.NewUserRepository(queries)
 	emailRepo := repository.NewEmailTokenRepository(queries)
 	oauthAccountRepo := repository.NewOAuthAccountRepository(queries)
@@ -43,6 +42,6 @@ func main() {
 	go jobs.RefreshTokensCleanup(ctx, *queries, cfg.CleanupInterval)
 
 	if err := r.Run(cfg.Port); err != nil {
-		log.Fatal("couldn't run server")
+		log.Fatal("couldn't run server: ", err.Error())
 	}
 }

@@ -5,10 +5,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
-	"github.com/brunoguimas/metapps/backend/config"
-	"github.com/brunoguimas/metapps/backend/internal/auth"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	"github.com/brunoguimas/metapps/backend/internal/config"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/handler/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/security"
 	"github.com/brunoguimas/metapps/backend/internal/service"
@@ -19,12 +21,12 @@ import (
 
 type AuthHandler struct {
 	users  service.UserService
-	jwt    auth.JWTService
+	jwt    service.JWTService
 	emails service.EmailService
 	cfg    config.Config
 }
 
-func NewAuthHandler(u service.UserService, j auth.JWTService, e service.EmailService, c config.Config) *AuthHandler {
+func NewAuthHandler(u service.UserService, j service.JWTService, e service.EmailService, c config.Config) *AuthHandler {
 	return &AuthHandler{
 		users:  u,
 		jwt:    j,
@@ -169,6 +171,90 @@ func (h *AuthHandler) EmailVerify(c *gin.Context) {
 	}
 
 	httpx.OK(c, gin.H{"message": "email verified with success"})
+}
+
+type emailResendRequest struct {
+	Email string `json:"email"`
+}
+
+func (h *AuthHandler) ResendEmailVerification(c *gin.Context) {
+	var req emailResendRequest
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	user, err := h.users.GetUserByEmail(c, req.Email)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	if user.Verified {
+		httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
+		return
+	}
+
+	emailToken, err := h.emails.CreateEmailToken(c.Request.Context(), user.ID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.emails.SendEmail(c.Request.Context(), user.Email, emailToken)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
+}
+
+func (h *AuthHandler) Me(c *gin.Context) {
+	t := c.GetHeader("Authorization")
+
+	parts := strings.SplitN(t, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" || parts[1] == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid authorization header"})
+		return
+	}
+
+	claims, err := h.jwt.ValidateAccessToken(parts[1])
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			c.AbortWithStatusJSON(appErr.Status(), gin.H{
+				"error": appErr.Error(),
+				"code":  appErr.Code(),
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		return
+	}
+
+	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	if err != nil {
+		httpx.Error(c, http.StatusInternalServerError, "couldn't parse user id")
+		return
+	}
+	u, err := h.users.GetUserByID(c, userID)
+	if err != nil {
+		httpx.Error(c, http.StatusNotFound, "user not found")
+		return
+	}
+
+	httpx.OK(c, gin.H{
+		"user": struct {
+			ID        int64     `json:"id"`
+			Email     string    `json:"email"`
+			CreatedAt time.Time `json:"created_at"`
+		}{
+			u.ID,
+			u.Email,
+			u.CreatedAt,
+		},
+	})
 }
 
 func mapOAuthExchangeError(err error) error {

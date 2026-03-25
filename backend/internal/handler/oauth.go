@@ -3,9 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/brunoguimas/metapps/backend/config"
-	"github.com/brunoguimas/metapps/backend/internal/auth"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	"github.com/brunoguimas/metapps/backend/internal/config"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/handler/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -14,11 +13,11 @@ import (
 
 type OAuthHandler struct {
 	oauth service.OAuthAccountService
-	jwt   auth.JWTService
+	jwt   service.JWTService
 	cfg   config.Config
 }
 
-func NewOAuthHandler(s service.OAuthAccountService, j auth.JWTService, c config.Config) *OAuthHandler {
+func NewOAuthHandler(s service.OAuthAccountService, j service.JWTService, c config.Config) *OAuthHandler {
 	return &OAuthHandler{
 		oauth: s,
 		jwt:   j,

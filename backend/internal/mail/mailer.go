@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/brunoguimas/metapps/backend/config"
+	"github.com/brunoguimas/metapps/backend/internal/config"
 	mail "github.com/wneessen/go-mail"
 )
 

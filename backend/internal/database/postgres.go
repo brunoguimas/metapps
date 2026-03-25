@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/brunoguimas/metapps/backend/config"
+	"github.com/brunoguimas/metapps/backend/internal/config"
 	_ "github.com/lib/pq"
 )
 

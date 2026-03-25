@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/lib/pq"
 )
@@ -14,6 +14,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	VerifyUser(c context.Context, userID int64) error
+	GetByID(c context.Context, userID int64) (*models.User, error)
 }
 
 type userRepository struct {
@@ -74,4 +75,20 @@ func (r *userRepository) VerifyUser(c context.Context, userID int64) error {
 	}
 
 	return nil
+}
+
+func (r *userRepository) GetByID(c context.Context, userID int64) (*models.User, error) {
+	user, err := r.queries.GetUserByID(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.User{
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		PasswordHash: user.PasswordHash.String,
+		Verified:     user.Verified,
+		CreatedAt:    user.CreatedAt.Time,
+	}, nil
 }

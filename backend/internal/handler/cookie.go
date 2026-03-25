@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/brunoguimas/metapps/backend/config"
+	"github.com/brunoguimas/metapps/backend/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

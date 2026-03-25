@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/gin-gonic/gin"
 )
 

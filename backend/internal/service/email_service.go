@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/brunoguimas/metapps/backend/config"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	"github.com/brunoguimas/metapps/backend/internal/config"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/mail"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/brunoguimas/metapps/backend/internal/repository"

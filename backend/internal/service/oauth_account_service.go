@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/errors"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"google.golang.org/api/idtoken"
