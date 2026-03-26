@@ -7,17 +7,23 @@ Defina via ambiente do frontend:
 - Desenvolvimento: `http://localhost:8080` (ajuste conforme `PORT` da API)
 - Produção: domínio da API
 
+Exemplo (.env do frontend):
+
+```
+VITE_API_BASE=http://localhost:8080
+```
+
 ## Regras Gerais
 
 - Formato de payload: `application/json`.
 - Access token: enviado em `Authorization: Bearer <token>`.
 - Refresh token: cookie HTTP-only (`refresh_token`), enviado com `credentials: 'include'`.
-- Em erro, a API retorna objeto com `error`.
+- Em erro, a API retorna objeto com `error` e, quando disponível, `code`.
 
 Exemplo de erro:
 
 ```json
-{ "error": "invalid email or password" }
+{ "error": "invalid email or password", "code": "INVALID_CREDENTIALS" }
 ```
 
 ## Endpoints
@@ -55,8 +61,12 @@ Sucesso:
 Falhas comuns:
 
 - `400 Bad Request`
-  - `invalid credentials`
-  - `couldn't create user`
+  - `invalid request body` (`INVALID_INPUT`)
+- `409 Conflict`
+  - `email já está em uso` (`USER_ALREADY_EXISTS`)
+
+Observação:
+- O registro envia email de verificação.
 
 ## 2) Login
 
@@ -88,9 +98,10 @@ Sucesso:
 Falhas comuns:
 
 - `400 Bad Request`
-  - `invalid credentials`
+  - `invalid request body` (`INVALID_INPUT`)
 - `401 Unauthorized`
-  - `invalid email or password`
+  - `invalid email or password` (`INVALID_CREDENTIALS`)
+  - `email not verified`
 
 ## 3) Login com Google (OAuth)
 
@@ -120,11 +131,11 @@ Sucesso:
 Falhas comuns:
 
 - `401 Unauthorized`
-  - `invalid oauth state`
-  - `missing id token`
-  - `invalid id token`
+  - `invalid oauth state` (`INVALID_INPUT`)
+  - `missing id token` (`INVALID_TOKEN`)
+  - `invalid id token` (`INVALID_TOKEN`)
 - `500 Internal Server Error`
-  - `code-Token exchange failed`
+  - `oauth exchange failed`
 
 ## 4) Login com Microsoft (OAuth)
 
@@ -184,9 +195,9 @@ Sucesso:
 Falhas comuns:
 
 - `400 Bad Request`
-  - `refresh token not found`
+  - `refresh token not found` (`INVALID_TOKEN`)
 - `401 Unauthorized`
-  - `invalid refresh token`
+  - `invalid refresh token` (`INVALID_TOKEN`)
 - `500 Internal Server Error`
 
 ## 6) Rota protegida de exemplo
@@ -211,6 +222,30 @@ Falhas comuns:
 - `401 Unauthorized`
   - `missing or invalid authorization header`
   - `invalid or expired token`
+
+## 7) Verificação de email
+
+- Método/rota: `GET /auth/email/verify`
+- Auth: não
+- Query params: `token`
+
+Sucesso:
+
+- Status: `200 OK`
+- Body:
+
+```json
+{
+  "message": "email verified"
+}
+```
+
+Falhas comuns:
+
+- `400 Bad Request`
+  - `missing token` (`INVALID_INPUT`)
+- `401 Unauthorized`
+  - `invalid or expired token` (`INVALID_OR_EXPIRED_TOKEN`)
 
 ## Fluxo recomendado no frontend
 
