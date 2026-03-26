@@ -8,16 +8,18 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createEmailToken = `-- name: CreateEmailToken :one
 INSERT INTO public.email_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)
-RETURNING id, user_id, token_hash, expires_at, verified_at, created_at
+RETURNING user_id, token_hash, expires_at, verified_at, created_at, id
 `
 
 type CreateEmailTokenParams struct {
-	UserID    int64
+	UserID    uuid.UUID
 	TokenHash string
 	ExpiresAt time.Time
 }
@@ -26,12 +28,12 @@ func (q *Queries) CreateEmailToken(ctx context.Context, arg CreateEmailTokenPara
 	row := q.db.QueryRowContext(ctx, createEmailToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
 	var i EmailToken
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.TokenHash,
 		&i.ExpiresAt,
 		&i.VerifiedAt,
 		&i.CreatedAt,
+		&i.ID,
 	)
 	return i, err
 }
@@ -47,23 +49,23 @@ func (q *Queries) EmailTokenCleanup(ctx context.Context) error {
 }
 
 const getLatestTokenByUserID = `-- name: GetLatestTokenByUserID :one
-SELECT id, user_id, token_hash, expires_at, verified_at, created_at FROM public.email_tokens
+SELECT user_id, token_hash, expires_at, verified_at, created_at, id FROM public.email_tokens
 WHERE user_id = $1
     AND expires_at > now()
 ORDER BY created_at DESC
 LIMIT 1
 `
 
-func (q *Queries) GetLatestTokenByUserID(ctx context.Context, userID int64) (EmailToken, error) {
+func (q *Queries) GetLatestTokenByUserID(ctx context.Context, userID uuid.UUID) (EmailToken, error) {
 	row := q.db.QueryRowContext(ctx, getLatestTokenByUserID, userID)
 	var i EmailToken
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.TokenHash,
 		&i.ExpiresAt,
 		&i.VerifiedAt,
 		&i.CreatedAt,
+		&i.ID,
 	)
 	return i, err
 }
@@ -74,19 +76,19 @@ SET verified_at = now()
 WHERE token_hash = $1
     AND expires_at > now()
     AND verified_at IS NULL
-    RETURNING id, user_id, token_hash, expires_at, verified_at, created_at
+    RETURNING user_id, token_hash, expires_at, verified_at, created_at, id
 `
 
 func (q *Queries) VerifyTokenByHash(ctx context.Context, tokenHash string) (EmailToken, error) {
 	row := q.db.QueryRowContext(ctx, verifyTokenByHash, tokenHash)
 	var i EmailToken
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.TokenHash,
 		&i.ExpiresAt,
 		&i.VerifiedAt,
 		&i.CreatedAt,
+		&i.ID,
 	)
 	return i, err
 }

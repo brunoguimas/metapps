@@ -1,2 +1,2 @@
 ALTER TABLE public.users
-DROP COLUMN IF EXISTS password_hash;
+ALTER COLUMN password_hash SET NOT NULL;

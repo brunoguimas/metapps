@@ -8,7 +8,7 @@ import (
 
 type RefreshToken struct {
 	ID        uuid.UUID
-	UserID    uint
+	UserID    uuid.UUID
 	ExpiresAt time.Time
 	Revoked   bool
 }

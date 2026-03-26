@@ -1,6 +1,7 @@
--- name: CreateRefreshToken :exec
-INSERT INTO public.refresh_tokens (id, user_id, expires_at)
-VALUES ($1, $2, $3);
+-- name: CreateRefreshToken :one
+INSERT INTO public.refresh_tokens (user_id, expires_at)
+VALUES ($1, $2)
+RETURNING id;
 
 -- name: GetRefreshTokenById :one
 SELECT * FROM public.refresh_tokens

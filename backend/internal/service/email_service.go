@@ -11,11 +11,12 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/models"
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/security"
+	"github.com/google/uuid"
 )
 
 type EmailService interface {
-	CreateEmailToken(c context.Context, userID int64) (string, error)
-	GetToken(c context.Context, userID int64) (*models.EmailToken, error)
+	CreateEmailToken(c context.Context, userID uuid.UUID) (string, error)
+	GetToken(c context.Context, userID uuid.UUID) (*models.EmailToken, error)
 	SendEmail(c context.Context, userEmail, token string) error
 	VerifyToken(c context.Context, hash string) (*models.EmailToken, error)
 }
@@ -34,7 +35,7 @@ func NewEmailService(r repository.EmailTokenRepository, c *config.Config, m *mai
 	}
 }
 
-func (s *emailService) CreateEmailToken(c context.Context, userID int64) (string, error) {
+func (s *emailService) CreateEmailToken(c context.Context, userID uuid.UUID) (string, error) {
 	token, err := security.GenerateEmailToken()
 	if err != nil {
 		return "", err
@@ -57,7 +58,7 @@ func (s *emailService) CreateEmailToken(c context.Context, userID int64) (string
 	return token, nil
 }
 
-func (s *emailService) GetToken(c context.Context, userID int64) (*models.EmailToken, error) {
+func (s *emailService) GetToken(c context.Context, userID uuid.UUID) (*models.EmailToken, error) {
 	token, err := s.repo.GetToken(c, userID)
 	if err != nil {
 		return nil, err

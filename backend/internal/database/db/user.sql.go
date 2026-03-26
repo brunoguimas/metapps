@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createOneUser = `-- name: CreateOneUser :one
@@ -42,9 +44,9 @@ WHERE email = $1
 RETURNING id
 `
 
-func (q *Queries) DeleteUserByEmail(ctx context.Context, email string) (int64, error) {
+func (q *Queries) DeleteUserByEmail(ctx context.Context, email string) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, deleteUserByEmail, email)
-	var id int64
+	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
@@ -75,7 +77,7 @@ FROM public.users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
@@ -95,7 +97,7 @@ SET verified = true
 WHERE id = $1
 `
 
-func (q *Queries) VerifyUserByID(ctx context.Context, id int64) error {
+func (q *Queries) VerifyUserByID(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, verifyUserByID, id)
 	return err
 }

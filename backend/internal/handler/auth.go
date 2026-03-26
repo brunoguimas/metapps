@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/service"
 	"github.com/brunoguimas/metapps/backend/internal/service/dto"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
 
@@ -88,12 +88,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(uint(user.ID))
+	accessToken, err := h.jwt.GenerateAccessToken(user.ID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
-	refreshToken, err := h.jwt.GenerateRefreshToken(c.Request.Context(), uint(user.ID))
+	refreshToken, err := h.jwt.GenerateRefreshToken(c.Request.Context(), user.ID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -126,7 +126,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(uint(t.UserID))
+	accessToken, err := h.jwt.GenerateAccessToken(t.UserID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -233,7 +233,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	userID, err := uuid.Parse(claims.Subject)
 	if err != nil {
 		httpx.Error(c, http.StatusInternalServerError, "couldn't parse user id")
 		return
@@ -246,7 +246,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	httpx.OK(c, gin.H{
 		"user": struct {
-			ID        int64     `json:"id"`
+			ID        uuid.UUID `json:"id"`
 			Email     string    `json:"email"`
 			CreatedAt time.Time `json:"created_at"`
 		}{

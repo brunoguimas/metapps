@@ -36,9 +36,7 @@ type Config struct {
 }
 
 func Load() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(".env missing")
-	}
+	godotenv.Load()
 
 	port := getEnv("PORT", "8080")
 	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")

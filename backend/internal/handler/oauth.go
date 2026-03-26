@@ -81,12 +81,12 @@ func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(uint(account.UserID))
+	accessToken, err := h.jwt.GenerateAccessToken(account.UserID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
-	refreshToken, err := h.jwt.GenerateRefreshToken(c.Request.Context(), uint(account.UserID))
+	refreshToken, err := h.jwt.GenerateRefreshToken(c.Request.Context(), account.UserID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return

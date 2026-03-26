@@ -12,20 +12,22 @@ import (
 	"github.com/google/uuid"
 )
 
-const createRefreshToken = `-- name: CreateRefreshToken :exec
-INSERT INTO public.refresh_tokens (id, user_id, expires_at)
-VALUES ($1, $2, $3)
+const createRefreshToken = `-- name: CreateRefreshToken :one
+INSERT INTO public.refresh_tokens (user_id, expires_at)
+VALUES ($1, $2)
+RETURNING id
 `
 
 type CreateRefreshTokenParams struct {
-	ID        uuid.UUID
-	UserID    int64
+	UserID    uuid.UUID
 	ExpiresAt time.Time
 }
 
-func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
-	_, err := q.db.ExecContext(ctx, createRefreshToken, arg.ID, arg.UserID, arg.ExpiresAt)
-	return err
+func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createRefreshToken, arg.UserID, arg.ExpiresAt)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getRefreshTokenById = `-- name: GetRefreshTokenById :one

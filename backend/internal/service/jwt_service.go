@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"strconv"
 	"time"
 
 	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
@@ -15,8 +14,8 @@ import (
 )
 
 type JWTService interface {
-	GenerateAccessToken(userID uint) (string, error)
-	GenerateRefreshToken(c context.Context, userID uint) (string, error)
+	GenerateAccessToken(userID uuid.UUID) (string, error)
+	GenerateRefreshToken(c context.Context, userID uuid.UUID) (string, error)
 	ValidateAccessToken(tokenStr string) (*dto.Claims, error)
 	ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error)
 	RevokeRefreshToken(c context.Context, tokenID uuid.UUID) error
@@ -42,11 +41,11 @@ func NewJWTService(repo repository.JWTRepository, secretKey, issuer string, acce
 	}
 }
 
-func (s *jwtService) GenerateAccessToken(userID uint) (string, error) {
+func (s *jwtService) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	claims := &dto.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   strconv.FormatUint(uint64(userID), 10),
+			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.accessTokenTTL)),
 		},
@@ -73,25 +72,24 @@ func (s *jwtService) ValidateAccessToken(tokenStr string) (*dto.Claims, error) {
 	return claims, nil
 }
 
-func (s *jwtService) GenerateRefreshToken(c context.Context, userID uint) (string, error) {
-	tokenId := uuid.New()
+func (s *jwtService) GenerateRefreshToken(c context.Context, userID uuid.UUID) (string, error) {
 	tokenTTL := time.Now().Add(s.refreshTokenTTL)
+
+	tokenId, err := s.repo.CreateRefreshToken(c, userID, tokenTTL)
+	if err != nil {
+		return "", err
+	}
 
 	claims := &dto.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenId.String(),
 			Issuer:    s.issuer,
-			Subject:   strconv.FormatUint(uint64(userID), 10),
+			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(tokenTTL),
 		},
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	err := s.repo.CreateRefreshToken(c, tokenId, userID, tokenTTL)
-	if err != nil {
-		return "", err
-	}
 
 	return t.SignedString([]byte(s.secretKey))
 }

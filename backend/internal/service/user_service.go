@@ -8,6 +8,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/repository"
 	"github.com/brunoguimas/metapps/backend/internal/security"
 	"github.com/brunoguimas/metapps/backend/internal/service/dto"
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -15,8 +16,8 @@ type UserService interface {
 	Login(c context.Context, u *dto.LoginRequest) (*models.User, error)
 	GetUserByEmail(c context.Context, email string) (*models.User, error)
 	CheckUserExists(c context.Context, email string) error
-	VerifyUser(c context.Context, userID int64) error
-	GetUserByID(c context.Context, userID int64) (*models.User, error)
+	VerifyUser(c context.Context, userID uuid.UUID) error
+	GetUserByID(c context.Context, userID uuid.UUID) (*models.User, error)
 }
 
 type userService struct {
@@ -75,7 +76,7 @@ func (s *userService) CheckUserExists(c context.Context, email string) error {
 	return nil
 }
 
-func (s *userService) VerifyUser(c context.Context, userID int64) error {
+func (s *userService) VerifyUser(c context.Context, userID uuid.UUID) error {
 	err := s.repo.VerifyUser(c, userID)
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func (s *userService) VerifyUser(c context.Context, userID int64) error {
 	return nil
 }
 
-func (s *userService) GetUserByID(c context.Context, userID int64) (*models.User, error) {
+func (s *userService) GetUserByID(c context.Context, userID uuid.UUID) (*models.User, error) {
 	user, err := s.repo.GetByID(c, userID)
 	if err != nil {
 		return nil, err

@@ -34,8 +34,10 @@ func main() {
 	emailService := service.NewEmailService(emailRepo, cfg, mailer)
 	authHandler := handler.NewAuthHandler(userService, jwtService, emailService, *cfg)
 	oauthHandler := handler.NewOAuthHandler(oauthService, jwtService, *cfg)
+	dbChecker := repository.NewChecker(queries)
+	healthHandler := handler.NewHealthHandler(dbChecker)
 
-	r := handler.NewRouter(authHandler, oauthHandler, cfg)
+	r := handler.NewRouter(authHandler, oauthHandler, healthHandler, cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

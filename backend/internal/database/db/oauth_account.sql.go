@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createOAuthAccount = `-- name: CreateOAuthAccount :one
@@ -16,7 +18,7 @@ RETURNING id, user_id, provider, provider_user_id, created_at
 `
 
 type CreateOAuthAccountParams struct {
-	UserID         int64
+	UserID         uuid.UUID
 	Provider       string
 	ProviderUserID string
 }

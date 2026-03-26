@@ -7,14 +7,15 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	VerifyUser(c context.Context, userID int64) error
-	GetByID(c context.Context, userID int64) (*models.User, error)
+	VerifyUser(c context.Context, userID uuid.UUID) error
+	GetByID(c context.Context, userID uuid.UUID) (*models.User, error)
 }
 
 type userRepository struct {
@@ -68,7 +69,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	}, nil
 }
 
-func (r *userRepository) VerifyUser(c context.Context, userID int64) error {
+func (r *userRepository) VerifyUser(c context.Context, userID uuid.UUID) error {
 	err := r.queries.VerifyUserByID(c, userID)
 	if err != nil {
 		return err
@@ -77,7 +78,7 @@ func (r *userRepository) VerifyUser(c context.Context, userID int64) error {
 	return nil
 }
 
-func (r *userRepository) GetByID(c context.Context, userID int64) (*models.User, error) {
+func (r *userRepository) GetByID(c context.Context, userID uuid.UUID) (*models.User, error) {
 	user, err := r.queries.GetUserByID(c, userID)
 	if err != nil {
 		return nil, err

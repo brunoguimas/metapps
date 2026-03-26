@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(a *AuthHandler, o *OAuthHandler, cfg *config.Config) *gin.Engine {
+func NewRouter(a *AuthHandler, o *OAuthHandler, h *HealthHandler, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
@@ -20,11 +20,10 @@ func NewRouter(a *AuthHandler, o *OAuthHandler, cfg *config.Config) *gin.Engine 
 		MaxAge:           12 * time.Hour,
 	}))
 
+	r.GET("/health", h.HealthCheck)
 	auth := r.Group("/auth")
 	auth.Use(middleware.RateLimitMiddleware())
 	{
-		auth.GET("/hello", func(c *gin.Context) { c.Redirect(302, "https://i.imgur.com/9DggHXo.png") })
-		auth.GET("/aura", func(c *gin.Context) { c.Redirect(302, "https://youtu.be/W4xiDERxHx4?si=SMEl16JnqrJ9PBKv") })
 		auth.POST("/register", a.Register)
 		auth.POST("/login", a.Login)
 		auth.POST("/refresh", a.Refresh)

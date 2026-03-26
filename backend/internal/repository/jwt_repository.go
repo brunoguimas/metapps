@@ -12,7 +12,7 @@ import (
 )
 
 type JWTRepository interface {
-	CreateRefreshToken(ctx context.Context, tokenID uuid.UUID, userID uint, tokenTTL time.Time) error
+	CreateRefreshToken(ctx context.Context, userID uuid.UUID, tokenTTL time.Time) (uuid.UUID, error)
 	GetRefreshToken(ctx context.Context, tokenID uuid.UUID) (*models.RefreshToken, error)
 	RevokeRefreshToken(ctx context.Context, tokenID uuid.UUID) error
 }
@@ -27,17 +27,16 @@ func NewJWTRepository(q *db.Queries) JWTRepository {
 	}
 }
 
-func (r *jwtRepository) CreateRefreshToken(ctx context.Context, tokenID uuid.UUID, userID uint, tokenTTL time.Time) error {
-	err := r.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
-		ID:        tokenID,
-		UserID:    int64(userID),
+func (r *jwtRepository) CreateRefreshToken(ctx context.Context, userID uuid.UUID, tokenTTL time.Time) (uuid.UUID, error) {
+	id, err := r.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+		UserID:    userID,
 		ExpiresAt: tokenTTL,
 	})
 	if err != nil {
-		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't create refresh token", err)
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create refresh token", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (r *jwtRepository) GetRefreshToken(ctx context.Context, tokenID uuid.UUID) (*models.RefreshToken, error) {
@@ -51,7 +50,7 @@ func (r *jwtRepository) GetRefreshToken(ctx context.Context, tokenID uuid.UUID) 
 
 	return &models.RefreshToken{
 		ID:        token.ID,
-		UserID:    uint(token.UserID),
+		UserID:    token.UserID,
 		ExpiresAt: token.ExpiresAt,
 		Revoked:   token.Revoked,
 	}, nil

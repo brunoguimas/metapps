@@ -2,11 +2,13 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type OAuthAccount struct {
-	ID             int64
-	UserID         int64
+	ID             uuid.UUID
+	UserID         uuid.UUID
 	Provider       string
 	ProviderUserID string
 	CreatedAt      time.Time

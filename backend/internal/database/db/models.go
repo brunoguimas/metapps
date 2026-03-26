@@ -12,17 +12,17 @@ import (
 )
 
 type EmailToken struct {
-	ID         int64
-	UserID     int64
+	UserID     uuid.UUID
 	TokenHash  string
 	ExpiresAt  time.Time
 	VerifiedAt sql.NullTime
 	CreatedAt  time.Time
+	ID         uuid.UUID
 }
 
 type OauthAccount struct {
-	ID             int64
-	UserID         int64
+	ID             uuid.UUID
+	UserID         uuid.UUID
 	Provider       string
 	ProviderUserID string
 	CreatedAt      time.Time
@@ -30,7 +30,7 @@ type OauthAccount struct {
 
 type RefreshToken struct {
 	ID        uuid.UUID
-	UserID    int64
+	UserID    uuid.UUID
 	ExpiresAt time.Time
 	Revoked   bool
 	RevokedAt sql.NullTime
@@ -38,7 +38,7 @@ type RefreshToken struct {
 }
 
 type User struct {
-	ID           int64
+	ID           uuid.UUID
 	Username     string
 	Email        string
 	PasswordHash sql.NullString

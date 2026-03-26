@@ -7,11 +7,12 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/database/db"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
 	"github.com/brunoguimas/metapps/backend/internal/models"
+	"github.com/google/uuid"
 )
 
 type EmailTokenRepository interface {
 	CreateEmailToken(c context.Context, t *models.EmailToken) (*models.EmailToken, error)
-	GetToken(c context.Context, userID int64) (*models.EmailToken, error)
+	GetToken(c context.Context, userID uuid.UUID) (*models.EmailToken, error)
 	VerifyToken(c context.Context, hash string) (*models.EmailToken, error)
 }
 
@@ -46,7 +47,7 @@ func (r *emailTokenRepository) CreateEmailToken(c context.Context, t *models.Ema
 	}, nil
 }
 
-func (r *emailTokenRepository) GetToken(c context.Context, userID int64) (*models.EmailToken, error) {
+func (r *emailTokenRepository) GetToken(c context.Context, userID uuid.UUID) (*models.EmailToken, error) {
 	token, err := r.queries.GetLatestTokenByUserID(c, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
