@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +19,14 @@ type EmailToken struct {
 	VerifiedAt sql.NullTime
 	CreatedAt  time.Time
 	ID         uuid.UUID
+}
+
+type Goal struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Title        string
+	Difficulties json.RawMessage
+	CreatedAt    sql.NullTime
 }
 
 type OauthAccount struct {

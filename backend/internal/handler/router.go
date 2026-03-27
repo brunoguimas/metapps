@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(a *AuthHandler, o *OAuthHandler, h *HealthHandler, cfg *config.Config) *gin.Engine {
+func NewRouter(a *AuthHandler, o *OAuthHandler, h *HealthHandler, g *GoalHandler, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
@@ -46,6 +46,15 @@ func NewRouter(a *AuthHandler, o *OAuthHandler, h *HealthHandler, cfg *config.Co
 				"user_id": userID,
 			})
 		})
+
+		goals := protected.Group("/goals")
+		{
+			goals.POST("", g.Create)
+			goals.GET("", g.List)
+			goals.GET("/:id", g.Get)
+			goals.PUT("/:id", g.Update)
+			goals.DELETE("/:id", g.Delete)
+		}
 	}
 
 	return r

@@ -7,3 +7,7 @@ sql:
       go:
         package: "db"
         out: "internal/database/db"
+        overrides:
+          - db_type: "jsonb"
+            nullable: true
+            go_type: "encoding/json.RawMessage"

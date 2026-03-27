@@ -1,10 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 ALTER TABLE public.email_tokens
-    ADD COLUMN id_uuid UUID DEFAULT uuid_generate_v4();
+    ADD COLUMN id_uuid UUID DEFAULT gen_random_uuid();
 
 UPDATE public.email_tokens
-SET id_uuid = uuid_generate_v4()
+SET id_uuid = gen_random_uuid()
 WHERE id_uuid IS NULL;
 
 ALTER TABLE public.email_tokens DROP CONSTRAINT IF EXISTS email_tokens_pkey;

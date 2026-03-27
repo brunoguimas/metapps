@@ -8,13 +8,15 @@ import (
 type Code string
 
 const (
-	ErrInternal              Code = "INTERNAL_ERROR"
-	ErrInvalidInput          Code = "INVALID_INPUT"
-	ErrInvalidCredentials    Code = "INVALID_CREDENTIALS"
-	ErrUserNotFound          Code = "USER_NOT_FOUND"
-	ErrEmailAlreadyInUse     Code = "EMAIL_ALREADY_IN_USE"
-	ErrInvalidToken          Code = "INVALID_TOKEN"
+	ErrInternal                   Code = "INTERNAL_ERROR"
+	ErrInvalidInput               Code = "INVALID_INPUT"
+	ErrInvalidCredentials         Code = "INVALID_CREDENTIALS"
+	ErrUserNotFound               Code = "USER_NOT_FOUND"
+	ErrEmailAlreadyInUse          Code = "EMAIL_ALREADY_IN_USE"
+	ErrInvalidToken               Code = "INVALID_TOKEN"
 	ErrInvalidOrExpiredEmailToken Code = "INVALID_OR_EXPIRED_TOKEN"
+	ErrGoalNotFound               Code = "GOAL_NOT_FOUND"
+	ErrGoalAlreadyExists          Code = "GOAL_ALREADY_EXISTS"
 )
 
 type appError struct {
@@ -80,6 +82,10 @@ func StatusFromCode(code Code) int {
 		return http.StatusUnauthorized
 	case ErrInvalidOrExpiredEmailToken:
 		return http.StatusBadRequest
+	case ErrGoalNotFound:
+		return http.StatusNotFound
+	case ErrGoalAlreadyExists:
+		return http.StatusConflict
 	default:
 		return 500
 	}
