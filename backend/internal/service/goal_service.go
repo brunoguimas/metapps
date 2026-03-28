@@ -40,15 +40,36 @@ func (s *goalService) Create(c context.Context, userID uuid.UUID, title string, 
 		Difficulties: difficulties,
 	}
 
-	return s.repo.Create(c, g)
+	goal, err := s.repo.Create(c, g)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create goal", err)
+	}
+	return goal, nil
 }
 
 func (s *goalService) List(c context.Context, userID uuid.UUID) ([]*models.Goal, error) {
-	return s.repo.ListByUserID(c, userID)
+	goals, err := s.repo.ListByUserID(c, userID)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't list goals", err)
+	}
+	return goals, nil
 }
 
 func (s *goalService) Get(c context.Context, userID, goalID uuid.UUID) (*models.Goal, error) {
-	return s.repo.GetByID(c, userID, goalID)
+	goal, err := s.repo.GetByID(c, userID, goalID)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get goal", err)
+	}
+	return goal, nil
 }
 
 func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, title string, difficulties json.RawMessage) error {
@@ -59,14 +80,27 @@ func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, title 
 		return apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid difficulties json", nil)
 	}
 
-	return s.repo.Update(c, &models.Goal{
+	if err := s.repo.Update(c, &models.Goal{
 		ID:           goalID,
 		UserID:       userID,
 		Title:        title,
 		Difficulties: difficulties,
-	})
+	}); err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return appErr
+		}
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't update goal", err)
+	}
+
+	return nil
 }
 
 func (s *goalService) Delete(c context.Context, userID, goalID uuid.UUID) error {
-	return s.repo.Delete(c, userID, goalID)
+	if err := s.repo.Delete(c, userID, goalID); err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return appErr
+		}
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't delete goal", err)
+	}
+	return nil
 }

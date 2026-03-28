@@ -2,6 +2,7 @@ package apperrors
 
 import (
 	"errors"
+	"log"
 	"net/http"
 )
 
@@ -17,6 +18,9 @@ const (
 	ErrInvalidOrExpiredEmailToken Code = "INVALID_OR_EXPIRED_TOKEN"
 	ErrGoalNotFound               Code = "GOAL_NOT_FOUND"
 	ErrGoalAlreadyExists          Code = "GOAL_ALREADY_EXISTS"
+	ErrTaskNotFound               Code = "TASK_NOT_FOUND"
+	ErrPasswordTooCommon          Code = "TOO_COMMON_PASSWORD"
+	ErrPasswordTooShort           Code = "PASSWORD_TOO_SHORT"
 )
 
 type appError struct {
@@ -34,6 +38,10 @@ type AppError interface {
 }
 
 func NewAppError(code Code, message string, err error) error {
+	log.Println("error: ", err.Error())
+	log.Println("message: ", message)
+	log.Println("code: ", code)
+
 	return appError{
 		status:  StatusFromCode(code),
 		code:    code,
@@ -58,6 +66,7 @@ func (e appError) Unwrap() error {
 }
 
 func As(err error) (AppError, bool) {
+
 	var appErr AppError
 	if errors.As(err, &appErr) {
 		return appErr, true
@@ -86,6 +95,12 @@ func StatusFromCode(code Code) int {
 		return http.StatusNotFound
 	case ErrGoalAlreadyExists:
 		return http.StatusConflict
+	case ErrTaskNotFound:
+		return http.StatusNotFound
+	case ErrPasswordTooCommon:
+		return http.StatusBadRequest
+	case ErrPasswordTooShort:
+		return http.StatusBadRequest
 	default:
 		return 500
 	}

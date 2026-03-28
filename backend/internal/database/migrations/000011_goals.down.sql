@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS goals;
+DROP TABLE IF EXISTS public.goals;

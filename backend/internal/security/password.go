@@ -16,9 +16,29 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func CheckPassword(password string, hash string) error {
+func CheckHashPassword(password string, hash string) error {
 	return bcrypt.CompareHashAndPassword(
 		[]byte(hash),
 		[]byte(password),
 	)
+}
+
+var commonPasswds = map[string]struct{}{
+	"123456":   {},
+	"password": {},
+	"qwerty":   {},
+	"admin":    {},
+}
+
+func ValidatePassword(p string) error {
+	if len(p) < 8 {
+		return apperrors.NewAppError(apperrors.ErrPasswordTooShort, "password too short", nil)
+	}
+
+	_, found := commonPasswds[p]
+	if found {
+		return apperrors.NewAppError(apperrors.ErrPasswordTooCommon, "password too common", nil)
+	}
+
+	return nil
 }

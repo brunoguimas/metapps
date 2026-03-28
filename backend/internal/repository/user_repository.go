@@ -72,7 +72,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 func (r *userRepository) VerifyUser(c context.Context, userID uuid.UUID) error {
 	err := r.queries.VerifyUserByID(c, userID)
 	if err != nil {
-		return err
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't verify user", err)
 	}
 
 	return nil

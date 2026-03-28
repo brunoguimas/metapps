@@ -46,6 +46,17 @@ type RefreshToken struct {
 	CreatedAt time.Time
 }
 
+type Task struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	GoalID    uuid.UUID
+	Content   json.RawMessage
+	Type      string
+	Done      bool
+	DoneAt    sql.NullTime
+	CreatedAt sql.NullTime
+}
+
 type User struct {
 	ID           uuid.UUID
 	Username     string

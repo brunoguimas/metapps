@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS goals (
+CREATE TABLE IF NOT EXISTS public.goals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     title text NOT NULL,

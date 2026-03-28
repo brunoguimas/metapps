@@ -38,7 +38,7 @@ func NewEmailService(r repository.EmailTokenRepository, c *config.Config, m *mai
 func (s *emailService) CreateEmailToken(c context.Context, userID uuid.UUID) (string, error) {
 	token, err := security.GenerateEmailToken()
 	if err != nil {
-		return "", err
+		return "", apperrors.NewAppError(apperrors.ErrInternal, "couldn't generate email token", err)
 	}
 
 	tokenHash := security.HashToken(token)
@@ -61,7 +61,10 @@ func (s *emailService) CreateEmailToken(c context.Context, userID uuid.UUID) (st
 func (s *emailService) GetToken(c context.Context, userID uuid.UUID) (*models.EmailToken, error) {
 	token, err := s.repo.GetToken(c, userID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get email token", err)
 	}
 
 	return token, nil
@@ -76,7 +79,7 @@ func (s *emailService) SendEmail(c context.Context, userEmail, token string) err
 
 	err := s.mailer.SendVerifyEmail(userEmail, verifyURL)
 	if err != nil {
-		return err
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't send email", err)
 	}
 
 	return nil
@@ -85,7 +88,10 @@ func (s *emailService) SendEmail(c context.Context, userEmail, token string) err
 func (s *emailService) VerifyToken(c context.Context, hash string) (*models.EmailToken, error) {
 	token, err := s.repo.VerifyToken(c, hash)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't verify email token", err)
 	}
 
 	return token, nil

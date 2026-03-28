@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	apperrors "github.com/brunoguimas/metapps/backend/internal/error"
@@ -21,12 +20,12 @@ func NewGoalHandler(s service.GoalService) *GoalHandler {
 }
 
 type goalRequest struct {
-	Title        string          `json:"title"`
-	Difficulties json.RawMessage `json:"difficulties"`
+	Title        string          `json:"title" binding:"required"`
+	Difficulties json.RawMessage `json:"difficulties" binding:"required"`
 }
 
 func (h *GoalHandler) Create(c *gin.Context) {
-	userID, err := userIDFromContext(c)
+	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -48,7 +47,7 @@ func (h *GoalHandler) Create(c *gin.Context) {
 }
 
 func (h *GoalHandler) List(c *gin.Context) {
-	userID, err := userIDFromContext(c)
+	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -64,7 +63,7 @@ func (h *GoalHandler) List(c *gin.Context) {
 }
 
 func (h *GoalHandler) Get(c *gin.Context) {
-	userID, err := userIDFromContext(c)
+	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -86,7 +85,7 @@ func (h *GoalHandler) Get(c *gin.Context) {
 }
 
 func (h *GoalHandler) Update(c *gin.Context) {
-	userID, err := userIDFromContext(c)
+	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -113,7 +112,7 @@ func (h *GoalHandler) Update(c *gin.Context) {
 }
 
 func (h *GoalHandler) Delete(c *gin.Context) {
-	userID, err := userIDFromContext(c)
+	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -131,23 +130,4 @@ func (h *GoalHandler) Delete(c *gin.Context) {
 	}
 
 	httpx.OK(c, gin.H{"message": "goal deleted"})
-}
-
-func userIDFromContext(c *gin.Context) (uuid.UUID, error) {
-	v, ok := c.Get("user_id")
-	if !ok {
-		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "missing user id", errors.New("missing user id"))
-	}
-
-	s, ok := v.(string)
-	if !ok {
-		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid user id", errors.New("invalid user id"))
-	}
-
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid user id", err)
-	}
-
-	return id, nil
 }

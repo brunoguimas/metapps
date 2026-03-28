@@ -57,7 +57,7 @@ func (s *userService) Login(c context.Context, u *dto.LoginRequest) (*models.Use
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 
-	if err = security.CheckPassword(u.Password, user.PasswordHash); err != nil {
+	if err = security.CheckHashPassword(u.Password, user.PasswordHash); err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid email or password", err)
 	}
 
@@ -79,7 +79,10 @@ func (s *userService) CheckUserExists(c context.Context, email string) error {
 func (s *userService) VerifyUser(c context.Context, userID uuid.UUID) error {
 	err := s.repo.VerifyUser(c, userID)
 	if err != nil {
-		return err
+		if appErr, ok := apperrors.As(err); ok {
+			return appErr
+		}
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't verify user", err)
 	}
 
 	return nil
@@ -88,7 +91,10 @@ func (s *userService) VerifyUser(c context.Context, userID uuid.UUID) error {
 func (s *userService) GetUserByID(c context.Context, userID uuid.UUID) (*models.User, error) {
 	user, err := s.repo.GetByID(c, userID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 
 	return user, nil
@@ -96,7 +102,10 @@ func (s *userService) GetUserByID(c context.Context, userID uuid.UUID) (*models.
 func (s *userService) GetUserByEmail(c context.Context, email string) (*models.User, error) {
 	user, err := s.repo.GetByEmail(c, email)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 	}
 
 	return user, nil

@@ -42,6 +42,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	err = security.ValidatePassword(u.Password)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
 	user, err := h.users.CreateUser(c.Request.Context(), u)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -174,14 +180,14 @@ func (h *AuthHandler) EmailVerify(c *gin.Context) {
 }
 
 type emailResendRequest struct {
-	Email string `json:"email"`
+	Email string `json:"email" binding:"required"`
 }
 
 func (h *AuthHandler) ResendEmailVerification(c *gin.Context) {
 	var req emailResendRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		httpx.ErrorFrom(c, err)
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
 	}
 

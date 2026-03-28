@@ -43,7 +43,10 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 	name, _ := p.Claims["name"].(string)
 	account, err := s.accountRepo.GetAccountByProviderID(c, "google", p.Subject)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get oauth account", err)
 	}
 	if account != nil {
 		return account, nil
@@ -52,7 +55,10 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 	user, err := s.userRepo.GetByEmail(c, email)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); !ok || appErr.Code() != apperrors.ErrUserNotFound {
-			return nil, err
+			if appErr, ok := apperrors.As(err); ok {
+				return nil, appErr
+			}
+			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
 		}
 
 		user = &models.User{
@@ -62,7 +68,10 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 
 		user, err = s.userRepo.Create(c, user)
 		if err != nil {
-			return nil, err
+			if appErr, ok := apperrors.As(err); ok {
+				return nil, appErr
+			}
+			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
 		}
 	}
 
@@ -72,5 +81,12 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 		ProviderUserID: p.Subject,
 	}
 
-	return s.accountRepo.CreateAccount(c, account)
+	created, err := s.accountRepo.CreateAccount(c, account)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create oauth account", err)
+	}
+	return created, nil
 }

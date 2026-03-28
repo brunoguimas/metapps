@@ -39,8 +39,11 @@ func main() {
 	goalHandler := handler.NewGoalHandler(goalService)
 	dbChecker := repository.NewChecker(queries)
 	healthHandler := handler.NewHealthHandler(dbChecker)
+	taskRepo := repository.NewTaskRepository(queries)
+	taskService := service.NewTaskService(taskRepo, cfg)
+	taskHandler := handler.NewTaskHandler(taskService, goalService, cfg)
 
-	r := handler.NewRouter(authHandler, oauthHandler, healthHandler, goalHandler, cfg)
+	r := handler.NewRouter(authHandler, oauthHandler, healthHandler, goalHandler, taskHandler, cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
