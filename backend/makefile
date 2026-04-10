@@ -1,8 +1,9 @@
 include .env
 export
 
-run:
-	go run cmd/api/main.go
+dev: 
+	reflex -s -r '\.go$$' -- go run cmd/api/main.go
+
 create_migration:
 	migrate create -ext=sql -dir=internal/database/migrations -seq $(name)
 
@@ -15,4 +16,4 @@ migrate_down:
 migrate_force:
 	migrate -path=internal/database/migrations -database "${DATABASE_URL}" force $(version)
 
-.PHONY: create_migration migrate_up migrate_down run
+.PHONY: create_migration migrate_up migrate_down dev

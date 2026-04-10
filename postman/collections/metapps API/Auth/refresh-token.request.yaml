@@ -1,0 +1,15 @@
+$kind: http-request
+name: Refresh Token
+method: POST
+url: '{{backendBaseUrl}}/auth/refresh'
+order: 3000
+description: |-
+  Refreshes the access token using the HttpOnly refresh token cookie set by the server after login.
+  The refresh token is sent automatically by the browser/client as a cookie.
+  If testing manually, set the Cookie header below with the value from your login response.
+headers:
+  - key: Accept
+    value: application/json
+  - key: Cookie
+    value: 'refreshToken={{refreshToken}}'
+    description: Set this to the refresh token cookie value received after login. In a browser context this is sent automatically.

@@ -4,14 +4,20 @@ import (
 	"context"
 	"log"
 
-	"github.com/brunoguimas/metapps/backend/internal/config"
-	"github.com/brunoguimas/metapps/backend/internal/database"
-	"github.com/brunoguimas/metapps/backend/internal/database/db"
-	"github.com/brunoguimas/metapps/backend/internal/handler"
-	"github.com/brunoguimas/metapps/backend/internal/jobs"
-	"github.com/brunoguimas/metapps/backend/internal/mail"
-	"github.com/brunoguimas/metapps/backend/internal/repository"
-	"github.com/brunoguimas/metapps/backend/internal/service"
+	"github.com/brunoguimas/metapps/backend/internal/ai"
+	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
+	"github.com/brunoguimas/metapps/backend/internal/modules/health"
+	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
+	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task"
+	"github.com/brunoguimas/metapps/backend/internal/modules/user"
+	"github.com/brunoguimas/metapps/backend/internal/platform/config"
+	"github.com/brunoguimas/metapps/backend/internal/platform/database"
+	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	"github.com/brunoguimas/metapps/backend/internal/platform/jobs"
+	"github.com/brunoguimas/metapps/backend/internal/router"
 )
 
 func main() {
@@ -20,27 +26,28 @@ func main() {
 	conn := database.Connect(cfg)
 	queries := db.New(conn)
 
-	mailer, err := mail.NewMailer(*cfg)
+	mailModule, err := mail.NewModule(queries, cfg)
 	if err != nil {
 		log.Fatal("couldn't setup mailer")
 	}
-	jwtRepo := repository.NewJWTRepository(queries)
-	jwtService := service.NewJWTService(jwtRepo, cfg.JWTSecret, cfg.Issuer, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
-	userRepo := repository.NewUserRepository(queries)
-	emailRepo := repository.NewEmailTokenRepository(queries)
-	oauthAccountRepo := repository.NewOAuthAccountRepository(queries)
-	goalRepo := repository.NewGoalRepository(queries)
-	oauthService := service.NewOAuthService(oauthAccountRepo, userRepo)
-	userService := service.NewUserService(userRepo)
-	emailService := service.NewEmailService(emailRepo, cfg, mailer)
-	goalService := service.NewGoalService(goalRepo)
-	authHandler := handler.NewAuthHandler(userService, jwtService, emailService, *cfg)
-	oauthHandler := handler.NewOAuthHandler(oauthService, jwtService, *cfg)
-	goalHandler := handler.NewGoalHandler(goalService)
-	dbChecker := repository.NewChecker(queries)
-	healthHandler := handler.NewHealthHandler(dbChecker)
+	jwtModule := jwt.NewModule(queries, cfg)
+	userModule := user.NewModule(queries)
+	goalModule := goal.NewModule(queries)
+	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
+	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
+	healthModule := health.NewModule(queries)
+	aiClient := ai.NewGroqClient()
+	taskModule := task.NewTaskModule(queries, aiClient, goalModule.Service, cfg)
 
-	r := handler.NewRouter(authHandler, oauthHandler, healthHandler, goalHandler, cfg)
+	r := router.NewRouter(
+		authModule.Handler,
+		oauthModule.Handler,
+		healthModule.Handler,
+		goalModule.Handler,
+		taskModule.Handler,
+		jwtModule.Service,
+		cfg,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

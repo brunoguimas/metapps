@@ -1,0 +1,16 @@
+$kind: http-request
+name: Register
+method: POST
+url: "{{backendBaseUrl}}/auth/register"
+order: 1000
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "exampleuser",
+      "email": "karina.silgui@gmail.com",
+      "password": "StrongPassword123!"
+    }

@@ -1,0 +1,43 @@
+{
+    "version": 1,
+    "id": "6fcd3ec0-6766-459b-8d0d-a23c8b434614",
+    "user_id": "59f0a9db-304f-4ff3-b0b3-4dfbe64c2020",
+    "goal_id": "de19b6d1-9b30-45ed-80fc-704b38b9e9d3",
+    "type": "quiz",
+    "content": {
+        "title": "Quiz comandos básicos POSTGRESQL",
+        "description": "Responda o quiz assinalando as alternativas corretas",
+        "expectation": "Compreender comandos simples para operar no banco de dados postgressql, o aluno deve ser capaz de compreender comandos simples para realizar operações CRUD em um banco de dados postgresql",
+        "questions": [
+            {
+                "material": "Bruno estava operando no banco de dados da empresa, quando se deparou com uma situação em que precisava cadastrar um usuário manualmente. Os usuários deste sistema contém 3 campos simples: Email e Senha. Bruno precisava cadastrar manualmente um usuário com as seguintes credenciais: jorge@gmail.com, senha1234",
+                "question": "Qual alternativa demonstra como inserir os valores mostrados na tabela de usuário?",
+                "type": "options",
+                "options": [
+                    "SELECT * FROM usuarios;",
+                    "INSERT usuarios jorge@gmail.com, senha1234",
+                    "INSERT INTO usuarios (email, senha) VALUES ('jorge@gmail.com', 'senha1234')"
+                ],
+                "answer": 2
+            },
+            {
+                "question": "Qual comando Bruno deve usar para vizualizar todos os usuários?",
+                "type": "options",
+                "options": [
+                    "SELECT * FROM usuarios",
+                    "DELETE FROM usuarios",
+                    "BEGIN TRAN"
+                ],
+                "answer": 0
+            },
+            {
+                "question": "Como deletar todas as linhas de uma coluna 'tarefas`?",
+                "type": "text",
+                "answer": "DELETE FROM tarefas;"
+            }
+        ]
+    },
+    "done": false,
+    "done_at": null,
+    "created_at": "2026-03-28T20:58:29.81381Z"
+}

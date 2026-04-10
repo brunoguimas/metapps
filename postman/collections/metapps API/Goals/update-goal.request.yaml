@@ -1,0 +1,29 @@
+$kind: http-request
+name: Update Goal
+method: PUT
+url: '{{backendBaseUrl}}/protected/goals/:id'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+pathVariables:
+  - key: id
+    value: '{{goalId}}'
+    description: UUID of the goal to update
+body:
+  type: json
+  content: |-
+    {
+      "title": "Learn algebra updated",
+      "difficulties": {
+        "fractions": "easy",
+        "equations": "medium"
+      }
+    }

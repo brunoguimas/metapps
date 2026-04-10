@@ -1,0 +1,16 @@
+$kind: http-request
+name: Google OAuth Callback
+method: GET
+url: '{{backendBaseUrl}}/auth/google/callback'
+order: 8000
+description: Google OAuth2 callback endpoint. Called by Google after the user grants consent. The state and code query parameters are provided by Google.
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: state
+    value: sample-state
+    description: OAuth2 state parameter returned by Google
+  - key: code
+    value: sample-auth-code
+    description: Authorization code returned by Google

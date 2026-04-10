@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/brunoguimas/metapps/backend/internal/handler/httpx"
+	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )

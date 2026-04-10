@@ -1,0 +1,13 @@
+$kind: http-request
+name: Home
+method: GET
+url: '{{backendBaseUrl}}/protected/home'
+order: 1000
+headers:
+  - key: Accept
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'

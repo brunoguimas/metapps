@@ -1,7 +1,0 @@
-ALTER TABLE public.users
-    ALTER COLUMN created_at TYPE TIMESTAMPTZ;
-
-ALTER TABLE public.refresh_tokens
-    ALTER COLUMN expires_at TYPE TIMESTAMPTZ,
-    ALTER COLUMN revoked_at TYPE TIMESTAMPTZ,
-    ALTER COLUMN created_at TYPE TIMESTAMPTZ;

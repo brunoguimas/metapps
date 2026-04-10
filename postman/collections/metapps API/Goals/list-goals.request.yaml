@@ -1,0 +1,13 @@
+$kind: http-request
+name: List Goals
+method: GET
+url: '{{backendBaseUrl}}/protected/goals'
+order: 2000
+headers:
+  - key: Accept
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'

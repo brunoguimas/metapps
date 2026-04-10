@@ -1,0 +1,29 @@
+{
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "essay"
+        },
+        "content": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "material": {
+                    "type": "string"
+                },
+                "expectation": {
+                    "type": "string"
+                },
+                "max_rows": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

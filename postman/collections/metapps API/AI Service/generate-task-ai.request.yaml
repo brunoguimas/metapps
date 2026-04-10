@@ -1,0 +1,19 @@
+$kind: http-request
+name: Generate Task (AI)
+method: POST
+url: '{{aiServiceBaseUrl}}/task/generate'
+order: 1000
+description: Internal AI service endpoint. Generates tasks based on a subject, difficulty map, and learner level.
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "subject": "Algebra",
+      "difficulties": "fractions: medium, equations: hard",
+      "level": "beginner"
+    }

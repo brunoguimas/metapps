@@ -1,0 +1,4 @@
+$kind: collection
+name: AI Service
+description: Internal AI service endpoints. Communicates directly with the AI microservice on {{aiServiceBaseUrl}}.
+order: 6000

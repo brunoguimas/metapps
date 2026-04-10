@@ -1,0 +1,25 @@
+$kind: http-request
+name: Create Goal
+method: POST
+url: '{{backendBaseUrl}}/protected/goals'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Learn algebra",
+      "difficulties": {
+        "fractions": "medium",
+        "equations": "hard"
+      }
+    }

@@ -1,0 +1,17 @@
+$kind: http-request
+name: Get Task by ID
+method: GET
+url: '{{backendBaseUrl}}/protected/tasks/:id'
+order: 3000
+headers:
+  - key: Accept
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+pathVariables:
+  - key: id
+    value: '{{taskId}}'
+    description: UUID of the task to retrieve

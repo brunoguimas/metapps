@@ -1,0 +1,12 @@
+$kind: http-request
+name: Verify Email
+method: GET
+url: '{{backendBaseUrl}}/auth/email/verify'
+order: 5000
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: token
+    value: sample-verification-token
+    description: Email verification token received in the verification email

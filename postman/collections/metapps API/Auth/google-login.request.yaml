@@ -1,0 +1,9 @@
+$kind: http-request
+name: Google Login
+method: GET
+url: '{{backendBaseUrl}}/auth/google/login'
+order: 7000
+description: Initiates the Google OAuth2 login flow. Open this URL in a browser to be redirected to Google's consent screen.
+headers:
+  - key: Accept
+    value: application/json

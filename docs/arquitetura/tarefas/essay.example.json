@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "id": "6fcd3ec0-6766-459b-8d0d-a23c8b434614",
+    "user_id": "59f0a9db-304f-4ff3-b0b3-4dfbe64c2020",
+    "goal_id": "de19b6d1-9b30-45ed-80fc-704b38b9e9d3",
+    "type": "essay",
+    "content": {
+        "title": "Simulado redação ENEM",
+        "description": "Redija uma redação dissertativa argumentativa sobre os desafios para o fim dos estigmas sobre a população moradora de rua no Brasil",
+        "expectation": "Compreender a estrutura de uma redação dissertativa argumentativa estilo enem",
+        "max_rows": 30
+    },
+    "done": false,
+    "done_at": null,
+    "created_at": "2026-03-28T20:58:29.81381Z"
+}
