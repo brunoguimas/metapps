@@ -1,58 +1,57 @@
-/* ── Reset ── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  background: #0d0d0d;
 }
 
-/* ── Design tokens ── */
 :root {
-  --form-bg:   #0f1524;
-  --accent:    #7b9fd4;
-  --blue:      #4f7edd;
-  --blue-h:    #3e6dcc;
-  --blue-dim:  rgba(79,126,221,0.13);
-  --blue-brd:  rgba(79,126,221,0.22);
+  --bg:      #0d0d0d;
+  --bg2:     #0e0e0e;
+  --form-bg: #111520;
+  /* Blue */
+  --blue:    #4f7edd;
+  --blue-h:  #3e6dcc;
+  --accent:  #7b9fd4;
+  /* Purple — new */
+  --purple:       #7b3fd4;
+  --purple-h:     #6a32bc;
+  --purple-dim:   rgba(123,63,212,0.15);
+  --purple-brd:   rgba(123,63,212,0.3);
+  /* Amber */
+  --amber:   #d4924a;
+  --amber-h: #c4823a;
+  /* Teal accent */
+  --teal:    #3fc4a0;
+  /* Text */
   --t1: #e8ecf2;
   --t2: #6e7a92;
   --t3: #2e3649;
+  /* Inputs */
   --ib:  rgba(255,255,255,0.1);
   --ibf: #6c8fd4;
   --irf: rgba(108,143,212,0.17);
   --ibg: rgba(255,255,255,0.048);
   --sep: rgba(255,255,255,0.06);
+  /* Errors */
   --err-bg:  rgba(220,60,60,0.09);
   --err-brd: rgba(220,60,60,0.2);
   --err-t:   #e08080;
   --r: 8px;
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease: cubic-bezier(0.16,1,0.3,1);
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+@media (max-width: 768px) { body { overflow: auto; } }
 
-/* ── Page-level scroll unlock for mobile ── */
-@media (max-width: 768px) {
-  body { overflow: auto; }
-}
-
-/* ── Shared animations ── */
 @keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes fadeUp  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes scaleIn { from { opacity: 0; transform: scale(0.92); }     to { opacity: 1; transform: scale(1); } }
-@keyframes blobA   { from { transform: translate(0,0) scale(1); }     to { transform: translate(52px,44px) scale(1.09); } }
-@keyframes blobB   { from { transform: translate(0,0); }              to { transform: translate(-42px,-32px); } }
-@keyframes blobC   { from { transform: translate(0,0) scale(1); }     to { transform: translate(-50px,46px) scale(1.08); } }
-@keyframes blobD   { from { transform: translate(0,0); }              to { transform: translate(46px,-34px); } }
-@keyframes lgIn    { from { opacity: 0; transform: scale(0.9); }      to { opacity: 1; transform: scale(1); } }
+@keyframes blobA   { from { transform: translate(0,0) scale(1); } to { transform: translate(52px,44px) scale(1.09); } }
+@keyframes blobB   { from { transform: translate(0,0); } to { transform: translate(-42px,-32px); } }
+@keyframes blobC   { from { transform: translate(0,0) scale(1); } to { transform: translate(-50px,46px) scale(1.08); } }
+@keyframes blobD   { from { transform: translate(0,0); } to { transform: translate(46px,-34px); } }
+@keyframes lgIn    { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
 @keyframes ftIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fIn     { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: translateY(0); } }
-@keyframes fOut    { from { opacity: 1; transform: translateY(0); }   to { opacity: 0; transform: translateY(-14px); } }
-@keyframes cIn     { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: translateY(0); } }
-@keyframes cOut    { from { opacity: 1; transform: translateY(0); }   to { opacity: 0; transform: translateY(-14px); } }
-@keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
-@keyframes popIn   { from { opacity: 0; transform: scale(0.9); }      to { opacity: 1; transform: scale(1); } }
+@keyframes fIn     { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fOut    { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
+@keyframes popIn   { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
