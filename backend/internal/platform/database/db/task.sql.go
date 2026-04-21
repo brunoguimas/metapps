@@ -108,3 +108,33 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Tas
 	}
 	return items, nil
 }
+
+const markTaskDone = `-- name: MarkTaskDone :one
+UPDATE public.tasks
+SET done = true,
+    done_at = now()
+WHERE id = $1
+    AND user_id = $2
+RETURNING id, user_id, goal_id, content, type, done, done_at, created_at
+`
+
+type MarkTaskDoneParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) MarkTaskDone(ctx context.Context, arg MarkTaskDoneParams) (Task, error) {
+	row := q.db.QueryRowContext(ctx, markTaskDone, arg.ID, arg.UserID)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GoalID,
+		&i.Content,
+		&i.Type,
+		&i.Done,
+		&i.DoneAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}

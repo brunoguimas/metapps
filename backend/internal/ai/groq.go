@@ -10,7 +10,7 @@ type GroqClient struct {
 }
 
 const (
-	GroqModel = "llama3-8b-8192"
+	GroqModel = "llama-3.3-70b-versatile"
 	UserRole  = "user"
 )
 
@@ -29,6 +29,9 @@ func (g *GroqClient) Generate(prompt string) (string, error) {
 				Role:    UserRole,
 				Content: prompt,
 			},
+		},
+		ResponseFormat: groq.ResponseFormat{
+			Type: "json_object",
 		},
 	})
 	if err != nil {

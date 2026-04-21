@@ -12,6 +12,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
+	"github.com/brunoguimas/metapps/backend/internal/modules/taskattempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database"
@@ -37,7 +38,8 @@ func main() {
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
 	healthModule := health.NewModule(queries)
 	aiClient := ai.NewGroqClient()
-	taskModule := task.NewTaskModule(queries, aiClient, goalModule.Service, cfg)
+	taskModule := task.NewTaskModule(queries, aiClient, goalModule, cfg)
+	taskAttemptModule := taskattempt.NewModule(queries, taskModule)
 
 	r := router.NewRouter(
 		authModule.Handler,
@@ -45,6 +47,7 @@ func main() {
 		healthModule.Handler,
 		goalModule.Handler,
 		taskModule.Handler,
+		taskAttemptModule.Handler,
 		jwtModule.Service,
 		cfg,
 	)

@@ -10,12 +10,13 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
+	"github.com/brunoguimas/metapps/backend/internal/modules/taskattempt"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandler, g *goal.GoalHandler, t *task.TaskHandler, jwtService jwt.JWTService, cfg *config.Config) *gin.Engine {
+func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandler, g *goal.GoalHandler, t *task.TaskHandler, ta *taskattempt.Handler, jwtService jwt.JWTService, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
@@ -66,7 +67,10 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 			tasks.POST("/generate", t.Generate)
 			tasks.GET("", t.List)
 			tasks.GET("/:id", t.Get)
+			tasks.POST("/:id/attempts", ta.Submit)
+			tasks.GET("/:id/attempts", ta.ListByTask)
 		}
+		protected.GET("/task-attempts", ta.ListByUser)
 	}
 
 	return r

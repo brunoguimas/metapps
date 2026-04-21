@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskAttemptContent",
+  "type": "object",
+  "required": ["type", "response"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["quiz", "essay"]
+    },
+    "response": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Resposta para essay"
+        },
+        {
+          "type": "array",
+          "description": "Respostas para quiz",
+          "items": {
+            "type": "object",
+            "required": ["question_index", "answer"],
+            "properties": {
+              "question_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "answer": {
+                "oneOf": [
+                  { "type": "integer" },
+                  { "type": "string" }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "time_spent_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempt_source": {
+          "type": "string",
+          "enum": ["web", "mobile", "api"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

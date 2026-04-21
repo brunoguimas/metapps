@@ -1,29 +1,34 @@
 {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "EssayTask",
     "type": "object",
+    "required": [
+        "title",
+        "type",
+        "description",
+        "expectation"
+    ],
     "properties": {
+        "title": {
+            "type": "string",
+            "minLength": 3
+        },
         "type": {
             "type": "string",
-            "const": "essay"
+            "const": "quiz"
         },
-        "content": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "material": {
-                    "type": "string"
-                },
-                "expectation": {
-                    "type": "string"
-                },
-                "max_rows": {
-                    "type": "integer"
-                }
-            }
+        "description": {
+            "type": "string",
+            "minLength": 10
+        },
+        "expectation": {
+            "type": "string"
+        },
+        "max_rows": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 60
         }
-    }
+    },
+    "additionalProperties": false
 }

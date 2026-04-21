@@ -10,3 +10,11 @@ WHERE user_id = $1;
 SELECT * FROM public.tasks 
 WHERE id = $1
     AND user_id = $2;
+
+-- name: MarkTaskDone :one
+UPDATE public.tasks
+SET done = true,
+    done_at = now()
+WHERE id = $1
+    AND user_id = $2
+RETURNING *;

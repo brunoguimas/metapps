@@ -57,6 +57,17 @@ type Task struct {
 	CreatedAt sql.NullTime
 }
 
+type TaskAttempt struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	TaskID         uuid.UUID
+	Content        json.RawMessage
+	Score          sql.NullString
+	Status         sql.NullString
+	TaskEvaluation json.RawMessage
+	CreatedAt      sql.NullTime
+}
+
 type User struct {
 	ID           uuid.UUID
 	Username     string

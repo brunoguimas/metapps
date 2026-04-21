@@ -42,6 +42,11 @@ type TaskMeta struct {
 	Expectations string `json:"expectations"`
 }
 
+type persistedTaskContent struct {
+	Meta    TaskMeta        `json:"meta"`
+	Content json.RawMessage `json:"content"`
+}
+
 type EssayContent struct {
 	Materials    []Material `json:"material"`
 	Instructions string     `json:"instructions"`

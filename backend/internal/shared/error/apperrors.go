@@ -19,12 +19,18 @@ const (
 	ErrGoalNotFound               Code = "GOAL_NOT_FOUND"
 	ErrGoalAlreadyExists          Code = "GOAL_ALREADY_EXISTS"
 	ErrTaskNotFound               Code = "TASK_NOT_FOUND"
+	ErrTaskAttemptNotFound        Code = "TASK_ATTEMPT_NOT_FOUND"
+	ErrTaskAttemptTypeMismatch    Code = "TASK_ATTEMPT_TYPE_MISMATCH"
+	ErrDuplicateQuestionAnswer    Code = "DUPLICATE_QUESTION_ANSWER"
+	ErrInvalidQuestionIndex       Code = "INVALID_QUESTION_INDEX"
+	ErrEmptyEssayResponse         Code = "EMPTY_ESSAY_RESPONSE"
 	ErrPasswordTooCommon          Code = "TOO_COMMON_PASSWORD"
 	ErrPasswordTooShort           Code = "PASSWORD_TOO_SHORT"
 	ErrQuestionTooShort           Code = "QUESTION_TOO_SHORT"
 	ErrInvalidAnswerIndex         Code = "INVALID ANSWER INDEX"
 	ErrUnknownTaskType            Code = "UNKNOWN TASK TYPE"
 	ErrUserAlreadyExists          Code = "USER_ALREADY_EXISTS"
+	ErrInvalidAIResponse          Code = "INVALID_AI_RESPONSE"
 )
 
 type appError struct {
@@ -42,7 +48,9 @@ type AppError interface {
 }
 
 func NewAppError(code Code, message string, err error) error {
-	log.Println("error: ", err.Error())
+	if err != nil {
+		log.Println("error: ", err.Error())
+	}
 	log.Println("message: ", message)
 	log.Println("code: ", code)
 
@@ -100,6 +108,16 @@ func StatusFromCode(code Code) int {
 		return http.StatusConflict
 	case ErrTaskNotFound:
 		return http.StatusNotFound
+	case ErrTaskAttemptNotFound:
+		return http.StatusNotFound
+	case ErrTaskAttemptTypeMismatch:
+		return http.StatusBadRequest
+	case ErrDuplicateQuestionAnswer:
+		return http.StatusBadRequest
+	case ErrInvalidQuestionIndex:
+		return http.StatusBadRequest
+	case ErrEmptyEssayResponse:
+		return http.StatusBadRequest
 	case ErrPasswordTooCommon:
 		return http.StatusBadRequest
 	case ErrPasswordTooShort:
@@ -109,6 +127,8 @@ func StatusFromCode(code Code) int {
 	case ErrInvalidAnswerIndex:
 		return http.StatusInternalServerError
 	case ErrUnknownTaskType:
+		return http.StatusInternalServerError
+	case ErrInvalidAIResponse:
 		return http.StatusInternalServerError
 	default:
 		return 500

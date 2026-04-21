@@ -1,0 +1,7 @@
+{
+  "type": "quiz",
+  "response": [
+    { "question_index": 0, "answer": 2 },
+    { "question_index": 1, "answer": "Polimorfismo permite..." }
+  ]
+}

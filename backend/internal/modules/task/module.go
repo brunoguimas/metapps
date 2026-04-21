@@ -13,10 +13,10 @@ type TaskModule struct {
 	Handler    *TaskHandler
 }
 
-func NewTaskModule(q *db.Queries, ai ai.Client, g goal.GoalService, c *config.Config) *TaskModule {
+func NewTaskModule(q *db.Queries, ai ai.Client, g *goal.Module, c *config.Config) *TaskModule {
 	r := NewTaskRepository(q)
-	s := NewTaskService(ai, r, c)
-	h := NewTaskHandler(s, g, c)
+	s := NewTaskService(ai, r, g.Repository, c)
+	h := NewTaskHandler(s, g.Service, c)
 
 	return &TaskModule{
 		Repository: r,
