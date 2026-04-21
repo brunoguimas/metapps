@@ -12,27 +12,28 @@ import (
 )
 
 type Config struct {
-	Port                   string
-	DatabaseDriver         string
-	DatabaseURL            string
-	FrontendOrigin         string
-	CookieDomainRefresh    string
-	CookieDomainOAuthState string
-	CookiePath             string
-	CookieSecure           bool
-	JWTSecret              string
-	Issuer                 string
-	AccessTokenTTL         time.Duration
-	RefreshTokenTTL        time.Duration
-	EmailVerificationTTL   time.Duration
-	OAuthStateTTL          time.Duration
-	CleanupInterval        time.Duration
-	EmailFrom              string
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUser               string
-	SMTPPass               string
-	GoogleLogin            oauth2.Config
+	Port                     string
+	DatabaseDriver           string
+	DatabaseURL              string
+	FrontendOrigin           string
+	CookieDomainRefresh      string
+	CookieDomainOAuthState   string
+	CookiePath               string
+	CookieSecure             bool
+	JWTSecret                string
+	Issuer                   string
+	AccessTokenTTL           time.Duration
+	RefreshTokenTTL          time.Duration
+	EmailVerificationTTL     time.Duration
+	OAuthStateTTL            time.Duration
+	CleanupInterval          time.Duration
+	EmailFrom                string
+	SMTPHost                 string
+	SMTPPort                 int
+	SMTPUser                 string
+	SMTPPass                 string
+	GoogleLogin              oauth2.Config
+	RequireEmailVerification bool
 }
 
 func Load() *Config {
@@ -56,6 +57,7 @@ func Load() *Config {
 	smtpPort := getEnvInt("SMTP_PORT", 0)
 	smtpUser := getEnv("SMTP_USER", "")
 	smtpPass := getEnv("SMTP_PASS", "")
+	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
@@ -103,27 +105,28 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:                   port,
-		DatabaseDriver:         dbDriver,
-		DatabaseURL:            dbURL,
-		FrontendOrigin:         origin,
-		CookieDomainRefresh:    cookieDomainRefresh,
-		CookieDomainOAuthState: cookieDomainOAuthState,
-		CookiePath:             cookiePath,
-		CookieSecure:           cookieSecure,
-		JWTSecret:              jwtSecret,
-		Issuer:                 issuer,
-		AccessTokenTTL:         accessTtl,
-		RefreshTokenTTL:        refreshTtl,
-		EmailVerificationTTL:   emailVerificationTtl,
-		OAuthStateTTL:          oauthStateTtl,
-		CleanupInterval:        cleanupInterval,
-		EmailFrom:              emailFrom,
-		SMTPHost:               smtpHost,
-		SMTPPort:               smtpPort,
-		SMTPUser:               smtpUser,
-		SMTPPass:               smtpPass,
-		GoogleLogin:            googleLogin,
+		Port:                     port,
+		DatabaseDriver:           dbDriver,
+		DatabaseURL:              dbURL,
+		FrontendOrigin:           origin,
+		CookieDomainRefresh:      cookieDomainRefresh,
+		CookieDomainOAuthState:   cookieDomainOAuthState,
+		CookiePath:               cookiePath,
+		CookieSecure:             cookieSecure,
+		JWTSecret:                jwtSecret,
+		Issuer:                   issuer,
+		AccessTokenTTL:           accessTtl,
+		RefreshTokenTTL:          refreshTtl,
+		EmailVerificationTTL:     emailVerificationTtl,
+		OAuthStateTTL:            oauthStateTtl,
+		CleanupInterval:          cleanupInterval,
+		EmailFrom:                emailFrom,
+		SMTPHost:                 smtpHost,
+		SMTPPort:                 smtpPort,
+		SMTPUser:                 smtpUser,
+		SMTPPass:                 smtpPass,
+		GoogleLogin:              googleLogin,
+		RequireEmailVerification: requireEmailVerification,
 	}
 }
 

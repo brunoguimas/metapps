@@ -84,7 +84,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		httpx.ErrorFrom(c, err)
 		return
 	}
-	if !user.Verified {
+	if !user.Verified && h.cfg.RequireEmailVerification {
 		_, err := h.emails.GetToken(c.Request.Context(), user.ID)
 		if err != nil {
 			if appErr, _ := apperrors.As(err); appErr.Code() == apperrors.ErrInvalidOrExpiredEmailToken {

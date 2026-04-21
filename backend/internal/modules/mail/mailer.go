@@ -33,7 +33,7 @@ func NewMailer(c config.Config) (*Mailer, error) {
 
 func (m *Mailer) SendVerifyEmail(to string, verifyURL string) error {
 
-	t, err := template.ParseFiles("internal/mail/templates/email_verify.html")
+	t, err := template.ParseFiles("internal/modules/mail/templates/email_verify.html")
 	if err != nil {
 		return err
 	}
