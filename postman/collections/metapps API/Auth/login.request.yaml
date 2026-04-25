@@ -1,26 +1,24 @@
 $kind: http-request
 name: Login
 method: POST
-url: '{{backendBaseUrl}}/auth/login'
+url: "{{backendBaseUrl}}/auth/login"
 order: 2000
 headers:
-  - key: Content-Type
-    value: application/json
-  - key: Accept
-    value: application/json
+  Content-Type: application/json
+  Accept: application/json
 body:
   type: json
   content: |-
     {
-      "email": "karina.silgui@gmail.com",
-      "password": "StrongPassword123!"
+      "email": "brunoguimaraes.guigui@gmail.com",
+      "password": "NewPassword123!!"
     }
 scripts:
   - type: afterResponse
-    language: text/javascript
     code: |-
       const json = pm.response.json();
-      
+
       if (json.access_token) {
         pm.collectionVariables.set("accessToken", json.access_token);
       }
+    language: text/javascript

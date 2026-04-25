@@ -1,0 +1,10 @@
+$kind: http-request
+name: List Attempts by User
+method: GET
+url: '{{backendBaseUrl}}/protected/task-attempts'
+order: 3000
+headers:
+  - key: Accept
+    value: application/json
+  - key: Authorization
+    value: 'Bearer {{accessToken}}'
