@@ -12,6 +12,7 @@ type UserService interface {
 	CheckUserExists(c context.Context, email string) error
 	VerifyUser(c context.Context, userID uuid.UUID) error
 	GetUserByID(c context.Context, userID uuid.UUID) (*User, error)
+	UpdatePassword(c context.Context, userID uuid.UUID, passwordHash string) error
 }
 
 type userService struct {
@@ -57,6 +58,19 @@ func (s *userService) GetUserByID(c context.Context, userID uuid.UUID) (*User, e
 
 	return user, nil
 }
+
+func (s *userService) UpdatePassword(c context.Context, userID uuid.UUID, passwordHash string) error {
+	err := s.repo.UpdatePassword(c, userID, passwordHash)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return appErr
+		}
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't update password", err)
+	}
+
+	return nil
+}
+
 func (s *userService) GetUserByEmail(c context.Context, email string) (*User, error) {
 	user, err := s.repo.GetByEmail(c, email)
 	if err != nil {

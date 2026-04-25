@@ -91,6 +91,22 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const updateUserPasswordByID = `-- name: UpdateUserPasswordByID :exec
+UPDATE public.users
+SET password_hash = $2
+WHERE id = $1
+`
+
+type UpdateUserPasswordByIDParams struct {
+	ID           uuid.UUID
+	PasswordHash sql.NullString
+}
+
+func (q *Queries) UpdateUserPasswordByID(ctx context.Context, arg UpdateUserPasswordByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPasswordByID, arg.ID, arg.PasswordHash)
+	return err
+}
+
 const verifyUserByID = `-- name: VerifyUserByID :exec
 UPDATE public.users
 SET verified = true

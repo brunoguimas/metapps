@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	VerifyUser(c context.Context, userID uuid.UUID) error
 	GetByID(c context.Context, userID uuid.UUID) (*User, error)
+	UpdatePassword(c context.Context, userID uuid.UUID, passwordHash string) error
 }
 
 type userRepository struct {
@@ -70,6 +71,18 @@ func (r *userRepository) GetByID(c context.Context, userID uuid.UUID) (*User, er
 	}
 
 	return mapUser(u), nil
+}
+
+func (r *userRepository) UpdatePassword(c context.Context, userID uuid.UUID, passwordHash string) error {
+	err := r.queries.UpdateUserPasswordByID(c, db.UpdateUserPasswordByIDParams{
+		ID:           userID,
+		PasswordHash: sql.NullString{String: passwordHash, Valid: true},
+	})
+	if err != nil {
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't update password", err)
+	}
+
+	return nil
 }
 
 func mapUser(u db.User) *User {

@@ -57,13 +57,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		httpx.ErrorFrom(c, err)
 		return
 	}
-	emailToken, err := h.emails.CreateEmailToken(c.Request.Context(), user.ID)
+	emailCode, err := h.emails.CreateEmailCode(c.Request.Context(), user.ID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
-	err = h.emails.SendEmail(c.Request.Context(), user.Email, emailToken)
+	err = h.emails.SendVerificationCode(c.Request.Context(), user.Email, user.Username, emailCode)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -85,15 +85,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	if !user.Verified && h.cfg.RequireEmailVerification {
-		_, err := h.emails.GetToken(c.Request.Context(), user.ID)
-		if err != nil {
-			if appErr, _ := apperrors.As(err); appErr.Code() == apperrors.ErrInvalidOrExpiredEmailToken {
-				c.Redirect(http.StatusFound, "/email-verified")
-				return
-			}
-			httpx.ErrorFrom(c, err)
-			return
-		}
 		httpx.Error(c, http.StatusUnauthorized, "email not verified")
 		return
 	}
@@ -164,17 +155,25 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 }
 
 func (h *AuthHandler) EmailVerify(c *gin.Context) {
-	t := c.Query("token")
-
-	tokenHash := security.HashToken(t)
-
-	token, err := h.emails.VerifyToken(c.Request.Context(), tokenHash)
+	req, err := httpx.BindJSON[dto.EmailVerifyRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
-	err = h.users.VerifyUser(c.Request.Context(), token.UserID)
+	u, err := h.users.GetUserByEmail(c.Request.Context(), req.Email)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.emails.VerifyEmailCode(c.Request.Context(), u.ID, req.Code)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.users.VerifyUser(c.Request.Context(), u.ID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -206,19 +205,88 @@ func (h *AuthHandler) ResendEmailVerification(c *gin.Context) {
 		return
 	}
 
-	emailToken, err := h.emails.CreateEmailToken(c.Request.Context(), user.ID)
+	emailCode, err := h.emails.CreateEmailCode(c.Request.Context(), user.ID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
-	err = h.emails.SendEmail(c.Request.Context(), user.Email, emailToken)
+	err = h.emails.SendVerificationCode(c.Request.Context(), user.Email, user.Username, emailCode)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
 	httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	req, err := httpx.BindJSON[dto.ForgotPasswordRequest](c)
+	if err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+
+	user, err := h.users.GetUserByEmail(c.Request.Context(), req.Email)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok && appErr.Code() == apperrors.ErrUserNotFound {
+			httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
+			return
+		}
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	code, err := h.emails.CreatePasswordResetCode(c.Request.Context(), user.ID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	err = h.emails.SendPasswordResetCode(c.Request.Context(), user.Email, user.Username, code)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	req, err := httpx.BindJSON[dto.ResetPasswordRequest](c)
+	if err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+
+	if err = security.ValidatePassword(req.NewPassword); err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	user, err := h.users.GetUserByEmail(c.Request.Context(), req.Email)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	if err = h.emails.VerifyPasswordResetCode(c.Request.Context(), user.ID, req.Code); err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	hash, err := security.HashPassword(req.NewPassword)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	if err = h.users.UpdatePassword(c.Request.Context(), user.ID, hash); err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{"message": "password reset with success"})
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {

@@ -22,3 +22,8 @@ RETURNING id;
 UPDATE public.users
 SET verified = true
 WHERE id = $1;
+
+-- name: UpdateUserPasswordByID :exec
+UPDATE public.users
+SET password_hash = $2
+WHERE id = $1;

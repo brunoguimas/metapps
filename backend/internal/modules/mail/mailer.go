@@ -31,18 +31,41 @@ func NewMailer(c config.Config) (*Mailer, error) {
 	}, nil
 }
 
-func (m *Mailer) SendVerifyEmail(to string, verifyURL string) error {
+func (m *Mailer) SendVerifyEmail(to string, username string, code string) error {
+	return m.sendTemplateEmail(
+		to,
+		"Verifique seu email",
+		"internal/modules/mail/templates/email_verify.html",
+		"Seu codigo de verificacao de email e: "+code,
+		map[string]string{
+			"Code":     code,
+			"Username": username,
+		},
+	)
+}
 
-	t, err := template.ParseFiles("internal/modules/mail/templates/email_verify.html")
+func (m *Mailer) SendPasswordResetEmail(to string, username string, code string) error {
+	return m.sendTemplateEmail(
+		to,
+		"Redefina sua senha",
+		"internal/modules/mail/templates/password_reset.html",
+		"Seu codigo para redefinicao de senha e: "+code,
+		map[string]string{
+			"Code":     code,
+			"Username": username,
+		},
+	)
+}
+
+func (m *Mailer) sendTemplateEmail(to, subject, templatePath, textBody string, data map[string]string) error {
+	t, err := template.ParseFiles(templatePath)
 	if err != nil {
 		return err
 	}
 
 	var body bytes.Buffer
 
-	err = t.Execute(&body, map[string]string{
-		"VerifyURL": verifyURL,
-	})
+	err = t.Execute(&body, data)
 	if err != nil {
 		return err
 	}
@@ -51,9 +74,9 @@ func (m *Mailer) SendVerifyEmail(to string, verifyURL string) error {
 
 	msg.From(m.from)
 	msg.To(to)
-	msg.Subject("Verifique seu email")
+	msg.Subject(subject)
 
-	msg.SetBodyString(mail.TypeTextPlain, "Verifique seu email: "+verifyURL)
+	msg.SetBodyString(mail.TypeTextPlain, textBody)
 	msg.AddAlternativeString(mail.TypeTextHTML, body.String())
 
 	return m.client.DialAndSend(msg)

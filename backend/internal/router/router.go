@@ -35,8 +35,10 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 		auth.POST("/login", a.Login)
 		auth.POST("/refresh", a.Refresh)
 		auth.GET("/me", a.Me)
-		auth.GET("/email/verify", a.EmailVerify)
+		auth.POST("/email/verify", a.EmailVerify)
 		auth.POST("/email/resend", a.ResendEmailVerification)
+		auth.POST("/password/forgot", a.ForgotPassword)
+		auth.POST("/password/reset", a.ResetPassword)
 		auth.GET("/google/login", o.GoogleLogin)
 		auth.GET("/google/callback", o.GoogleCallback)
 	}

@@ -9,28 +9,28 @@ import (
 type Code string
 
 const (
-	ErrInternal                   Code = "INTERNAL_ERROR"
-	ErrInvalidInput               Code = "INVALID_INPUT"
-	ErrInvalidCredentials         Code = "INVALID_CREDENTIALS"
-	ErrUserNotFound               Code = "USER_NOT_FOUND"
-	ErrEmailAlreadyInUse          Code = "EMAIL_ALREADY_IN_USE"
-	ErrInvalidToken               Code = "INVALID_TOKEN"
-	ErrInvalidOrExpiredEmailToken Code = "INVALID_OR_EXPIRED_TOKEN"
-	ErrGoalNotFound               Code = "GOAL_NOT_FOUND"
-	ErrGoalAlreadyExists          Code = "GOAL_ALREADY_EXISTS"
-	ErrTaskNotFound               Code = "TASK_NOT_FOUND"
-	ErrTaskAttemptNotFound        Code = "TASK_ATTEMPT_NOT_FOUND"
-	ErrTaskAttemptTypeMismatch    Code = "TASK_ATTEMPT_TYPE_MISMATCH"
-	ErrDuplicateQuestionAnswer    Code = "DUPLICATE_QUESTION_ANSWER"
-	ErrInvalidQuestionIndex       Code = "INVALID_QUESTION_INDEX"
-	ErrEmptyEssayResponse         Code = "EMPTY_ESSAY_RESPONSE"
-	ErrPasswordTooCommon          Code = "TOO_COMMON_PASSWORD"
-	ErrPasswordTooShort           Code = "PASSWORD_TOO_SHORT"
-	ErrQuestionTooShort           Code = "QUESTION_TOO_SHORT"
-	ErrInvalidAnswerIndex         Code = "INVALID ANSWER INDEX"
-	ErrUnknownTaskType            Code = "UNKNOWN TASK TYPE"
-	ErrUserAlreadyExists          Code = "USER_ALREADY_EXISTS"
-	ErrInvalidAIResponse          Code = "INVALID_AI_RESPONSE"
+	ErrInternal                  Code = "INTERNAL_ERROR"
+	ErrInvalidInput              Code = "INVALID_INPUT"
+	ErrInvalidCredentials        Code = "INVALID_CREDENTIALS"
+	ErrUserNotFound              Code = "USER_NOT_FOUND"
+	ErrEmailAlreadyInUse         Code = "EMAIL_ALREADY_IN_USE"
+	ErrInvalidToken              Code = "INVALID_TOKEN"
+	ErrInvalidOrExpiredEmailCode Code = "INVALID_OR_EXPIRED_EMAIL_CODE"
+	ErrGoalNotFound              Code = "GOAL_NOT_FOUND"
+	ErrGoalAlreadyExists         Code = "GOAL_ALREADY_EXISTS"
+	ErrTaskNotFound              Code = "TASK_NOT_FOUND"
+	ErrTaskAttemptNotFound       Code = "TASK_ATTEMPT_NOT_FOUND"
+	ErrTaskAttemptTypeMismatch   Code = "TASK_ATTEMPT_TYPE_MISMATCH"
+	ErrDuplicateQuestionAnswer   Code = "DUPLICATE_QUESTION_ANSWER"
+	ErrInvalidQuestionIndex      Code = "INVALID_QUESTION_INDEX"
+	ErrEmptyEssayResponse        Code = "EMPTY_ESSAY_RESPONSE"
+	ErrPasswordTooCommon         Code = "TOO_COMMON_PASSWORD"
+	ErrPasswordTooShort          Code = "PASSWORD_TOO_SHORT"
+	ErrQuestionTooShort          Code = "QUESTION_TOO_SHORT"
+	ErrInvalidAnswerIndex        Code = "INVALID ANSWER INDEX"
+	ErrUnknownTaskType           Code = "UNKNOWN TASK TYPE"
+	ErrUserAlreadyExists         Code = "USER_ALREADY_EXISTS"
+	ErrInvalidAIResponse         Code = "INVALID_AI_RESPONSE"
 )
 
 type appError struct {
@@ -100,7 +100,7 @@ func StatusFromCode(code Code) int {
 		return http.StatusConflict
 	case ErrInvalidToken:
 		return http.StatusUnauthorized
-	case ErrInvalidOrExpiredEmailToken:
+	case ErrInvalidOrExpiredEmailCode:
 		return http.StatusBadRequest
 	case ErrGoalNotFound:
 		return http.StatusNotFound

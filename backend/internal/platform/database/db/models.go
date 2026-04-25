@@ -12,13 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type EmailToken struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	TokenHash  string
-	ExpiresAt  time.Time
-	VerifiedAt sql.NullTime
-	CreatedAt  time.Time
+type EmailCode struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Type        string
+	CodeHash    string
+	Attempts    int32
+	MaxAttempts int32
+	ExpiresAt   time.Time
+	CreatedAt   time.Time
 }
 
 type Goal struct {

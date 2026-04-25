@@ -6,7 +6,7 @@ import (
 )
 
 type Module struct {
-	Repository EmailTokenRepository
+	Repository EmailRepository
 	Service    EmailService
 	Mailer     *Mailer
 }
@@ -17,7 +17,7 @@ func NewModule(q *db.Queries, c *config.Config) (*Module, error) {
 		return nil, err
 	}
 
-	r := NewEmailTokenRepository(q)
+	r := NewEmailRepository(q)
 	s := NewEmailService(r, c, mailer)
 
 	return &Module{
