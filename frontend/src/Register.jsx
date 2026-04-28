@@ -1,287 +1,221 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { register } from './Api.js'
+import { register } from './api'
 import logo from './assets/logo.png'
 
-const EyeOn = () => (
-  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-  </svg>
-)
-const EyeOff = () => (
-  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-    <line x1="1" y1="1" x2="23" y2="23" />
-  </svg>
-)
-const Spinner = () => (
-  <svg style={{ animation: 'spin .7s linear infinite' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4">
-    <circle cx="12" cy="12" r="10" strokeOpacity=".22" /><path d="M12 2a10 10 0 0 1 10 10" />
-  </svg>
-)
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+
+const EyeShow = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+const EyeHide = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+const Spin = () => <svg style={{ animation:'spin .7s linear infinite' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><circle cx="12" cy="12" r="10" strokeOpacity=".22"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
 
 function PwField({ value, onChange, placeholder, autoComplete, invalid }) {
   const [show, setShow] = useState(false)
   return (
-    <div style={{ position: 'relative' }}>
-      <input type={show ? 'text' : 'password'} value={value} onChange={onChange}
+    <div style={{ position:'relative' }}>
+      <input type={show?'text':'password'} value={value} onChange={onChange}
         placeholder={placeholder} autoComplete={autoComplete}
-        style={{ ...inp, paddingRight: 44, borderColor: invalid ? 'rgba(220,80,80,0.5)' : undefined }} />
-      <button type="button" onClick={() => setShow(v => !v)} style={eyeBtn} aria-label="Alternar senha">
-        {show ? <EyeOff /> : <EyeOn />}
+        style={{ ...inp, paddingRight:44, borderColor: invalid ? 'rgba(220,80,80,0.5)' : undefined }} />
+      <button type="button" onClick={() => setShow(v=>!v)} style={eyeBtn}>
+        {show ? <EyeHide /> : <EyeShow />}
       </button>
     </div>
   )
 }
 
-const STR_COLS = ['#e05555', '#e08c40', '#d4b840', '#6aaf6a']
-const STR_LBLS = ['Muito fraca', 'Fraca', 'Boa', 'Forte']
-function calcStr(v) {
-  let s = 0
-  if (v.length >= 8) s++; if (/[A-Z]/.test(v)) s++
-  if (/[0-9]/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++
-  return s
-}
-
-function StrBar({ pw }) {
-  if (!pw.length) return null
-  const s = calcStr(pw), col = STR_COLS[s - 1] || '#e05555'
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-      <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.07)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 99, width: `${(s / 4) * 100}%`, background: col, transition: 'width .28s, background .28s' }} />
-      </div>
-      <span style={{ fontSize: 11, color: col, minWidth: 42, textAlign: 'right' }}>{STR_LBLS[s - 1] || 'Muito fraca'}</span>
-    </div>
-  )
-}
-
 function Match({ pw, cpw }) {
-  if (!cpw.length) return <div style={{ height: 14 }} />
-  const ok = pw === cpw
-  return <div style={{ fontSize: 11, marginTop: 6, color: ok ? '#6aaf6a' : '#e08080' }}>{ok ? 'Senhas conferem' : 'Senhas não conferem'}</div>
+  if (!cpw.length) return <div style={{ height:12 }} />
+  return <div style={{ fontSize:11, marginTop:5, color: pw===cpw ? '#6aaf6a' : '#e08080' }}>
+    {pw===cpw ? 'Senhas conferem' : 'Senhas nao conferem'}
+  </div>
 }
 
-function Field({ label, children }) {
+function mapErr(m='') {
+  if (m.includes('failed to fetch')||m.includes('networkerror')||m.includes('load failed')) return 'Sem conexao com o servidor.'
+  if (m.includes("couldn't create")||m.includes('already')) return 'Este e-mail ja esta em uso.'
+  return m||'Algo deu errado.'
+}
+
+/* ── Verify email state (shown inside Register after success) ── */
+function VerifyPane({ email }) {
+  const navigate = useNavigate()
+  const [cd, setCd]     = useState(0)
+  const [sent, setSent] = useState(false)
+  const iv = useRef(null)
+  const rd = useRef(false)
+  useEffect(() => {
+    if (rd.current) return; rd.current = true
+    return () => {}
+  }, [navigate])
+  useEffect(() => () => { if (iv.current) clearInterval(iv.current) }, [])
+
+  async function resend() {
+    if (cd > 0) return
+    try { await fetch(`${API}/auth/resend-verification`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) }) } catch(_) {}
+    setSent(true); setTimeout(()=>setSent(false), 3000)
+    setCd(30)
+    iv.current = setInterval(() => setCd(x => { if (x<=1){clearInterval(iv.current);return 0} return x-1 }), 1000)
+  }
+
   return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--t2)', letterSpacing: '0.25px', marginBottom: 6 }}>{label}</label>
-      {children}
+    <div style={{ animation:'slideIn .5s cubic-bezier(0.16,1,0.3,1) both', textAlign:'center' }}>
+      <div style={{ width:56, height:56, margin:'0 auto 20px', background:'rgba(79,126,221,0.1)', border:'1px solid rgba(79,126,221,0.2)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <svg width="24" height="24" fill="none" stroke="#4f7edd" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 4l10 9 10-9" />
+        </svg>
+      </div>
+      <h2 style={{ fontSize:20, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.3px', marginBottom:10 }}>Verifique seu e-mail</h2>
+      <p style={{ fontSize:14, color:'rgba(226,232,240,0.5)', lineHeight:1.65, marginBottom:28 }}>
+        Enviamos um link para<br />
+        <strong style={{ color:'rgba(226,232,240,0.8)', fontWeight:600 }}>{email}</strong>.<br />
+        Clique no link para ativar sua conta.
+      </p>
+      <p style={{ fontSize:13, color:'rgba(226,232,240,0.3)' }}>
+        Nao recebeu?{' '}
+        <span onClick={cd>0?undefined:resend} style={{ color: cd>0?'rgba(226,232,240,0.2)':'#ec4899', fontWeight:600, cursor:cd>0?'default':'pointer' }}>
+          {cd>0?`Reenviar em ${cd}s`:'Reenviar e-mail'}
+        </span>
+      </p>
+      {sent && <p style={{ fontSize:12, color:'#6aaf6a', marginTop:8 }}>Reenviado!</p>}
     </div>
   )
 }
 
 export default function Register() {
   const navigate = useNavigate()
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
-  const [uname,   setUname]   = useState('')
-  const [email,   setEmail]   = useState('')
-  const [pw,      setPw]      = useState('')
-  const [cpw,     setCpw]     = useState('')
-  const [terms,   setTerms]   = useState(false)
-  const [error,   setError]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [leaving, setLeaving] = useState(false)
+  const [mob, setMob]     = useState(window.innerWidth<=768)
+  const [uname, setUname] = useState('')
+  const [email, setEmail] = useState('')
+  const [pw,    setPw]    = useState('')
+  const [cpw,   setCpw]   = useState('')
+  const [terms, setTerms] = useState(false)
+  const [err,   setErr]   = useState('')
+  const [load,  setLoad]  = useState(false)
+  const [out,   setOut]   = useState(false)
+  const [done,  setDone]  = useState(false)
 
   useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth <= 768)
-    window.addEventListener('resize', fn)
-    return () => window.removeEventListener('resize', fn)
-  }, [])
+    const fn = () => setMob(window.innerWidth<=768)
+    window.addEventListener('resize',fn); return () => window.removeEventListener('resize',fn)
+  },[])
 
-  function go(path) { setLeaving(true); setTimeout(() => navigate(path), 240) }
-  function clrErr() { setError('') }
+  function go(p) { setOut(true); setTimeout(()=>navigate(p),230) }
 
-  async function handleSubmit(e) {
-    e.preventDefault(); setError('')
-    if (!uname.trim() || !email.trim() || !pw || !cpw) { setError('Preencha todos os campos.'); return }
-    if (pw.length < 8) { setError('A senha deve ter pelo menos 8 caracteres.'); return }
-    if (pw !== cpw)    { setError('As senhas não conferem.'); return }
-    if (!terms)        { setError('Aceite os Termos de Serviço para continuar.'); return }
-    setLoading(true)
+  async function submit(e) {
+    e.preventDefault(); setErr('')
+    if (!uname.trim()||!email.trim()||!pw||!cpw) { setErr('Preencha todos os campos.'); return }
+    if (pw.length<8) { setErr('A senha deve ter pelo menos 8 caracteres.'); return }
+    if (pw!==cpw)    { setErr('As senhas nao conferem.'); return }
+    if (!terms)      { setErr('Aceite os Termos de Servico para continuar.'); return }
+    setLoad(true)
     try {
       await register(uname.trim(), email.trim(), pw)
-      go(`/verify-email?email=${encodeURIComponent(email.trim())}`)
-    } catch (err) {
-      const m = err.message || ''
-      setError(m.includes("couldn't create") || m.includes('already') || m.includes('invalid credentials')
-        ? 'Este e-mail já está em uso.' : m || 'Erro ao criar conta.')
-    } finally { setLoading(false) }
+      setDone(true)
+    } catch(er) { setErr(mapErr(er.message)) }
+    finally { setLoad(false) }
   }
 
-  const formAnim = { animation: leaving ? 'fOut 0.24s ease-in forwards' : 'fIn 0.6s var(--ease) both' }
+  const regForm = (
+    <>
+      <h1 style={title}>Criar conta</h1>
+      <p style={sub}>Comece a aprender com IA hoje.</p>
+      <form onSubmit={submit} noValidate>
+        <div style={field}><label style={lbl}>Nome de usuario</label>
+          <input type="text" placeholder="seunome" autoComplete="username"
+            style={inp} value={uname} onChange={e=>{setUname(e.target.value);setErr('')}} /></div>
+        <div style={field}><label style={lbl}>E-mail</label>
+          <input type="email" placeholder="voce@email.com" autoComplete="email"
+            style={inp} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} /></div>
+        <div style={field}><label style={lbl}>Senha</label>
+          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Minimo 8 caracteres" autoComplete="new-password" /></div>
+        <div style={field}><label style={lbl}>Confirmar senha</label>
+          <PwField value={cpw} onChange={e=>{setCpw(e.target.value);setErr('')}} placeholder="Repita a senha" autoComplete="new-password" invalid={cpw.length>0&&pw!==cpw} />
+          <Match pw={pw} cpw={cpw} /></div>
+        {err && <div style={errBox}>{err}</div>}
+        <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'6px 0 14px' }}>
+          <input type="checkbox" id="tc" checked={terms} onChange={e=>setTerms(e.target.checked)}
+            style={{ marginTop:2, flexShrink:0, width:15, height:15, accentColor:'#4f7edd', cursor:'pointer' }} />
+          <label htmlFor="tc" style={{ fontSize:12, color:'rgba(226,232,240,0.4)', lineHeight:1.55, cursor:'pointer' }}>
+            Li e concordo com os{' '}
+            <span onClick={()=>window.open('/src/pages/Termos.html','_blank')} style={{ color:'#ec4899', fontWeight:500, cursor:'pointer' }}>Termos de Servico</span>
+            {' '}e a{' '}
+            <span onClick={()=>window.open('/src/pages/Termos.html#privacidade','_blank')} style={{ color:'#ec4899', fontWeight:500, cursor:'pointer' }}>Politica de Privacidade</span>
+          </label>
+        </div>
+        <button type="submit" disabled={load} style={{ ...btnMain, opacity:load?.55:1 }}>
+          {load ? <><Spin /> Criando conta…</> : 'Criar conta'}
+        </button>
+      </form>
+      <p style={footTxt}>Ja tem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/login')}}>Entrar</a></p>
+    </>
+  )
+
+  const content = done ? <VerifyPane email={email} /> : regForm
+
+  if (mob) return (
+    <div style={mobPage}>
+      <div style={{ marginBottom:28, textAlign:'center', animation:'fIn .5s ease both' }}>
+        <img src={logo} alt="Metapps" style={{ height:48, width:'auto' }}
+          onError={e=>{e.target.style.display='none'}} />
+      </div>
+      <div style={{ ...mobCard, animation: out?'fOut .22s ease-in forwards':'fIn .5s ease both' }}>{content}</div>
+      <style>{ANIMS}</style>
+    </div>
+  )
 
   return (
     <div style={split}>
-
-      {/* LEFT PANEL (desktop only) */}
-      {!isMobile && (
-        <div style={leftPanel}>
-          <div style={grain} /><div style={sep} />
-          <div style={{ ...blobEl, width: 500, height: 500, background: '#c4844a', opacity: 0.14, top: -110, right: -90, animation: 'blobC 13s ease-in-out infinite alternate' }} />
-          <div style={{ ...blobEl, width: 460, height: 460, background: '#3060cc', opacity: 0.18, bottom: -100, left: -80, animation: 'blobD 15s ease-in-out infinite alternate' }} />
-          <div style={{ position: 'relative', zIndex: 2, animation: 'lgIn 1s var(--ease) both 0.1s' }}>
-            <img src={logo} alt="MetaPPS" style={logoDesktop}
-              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block' }} />
-            <div style={{ display: 'none', fontSize: 'clamp(52px,7vw,80px)', fontWeight: 800, letterSpacing: '-2px', color: 'var(--t1)' }}>
-              META<span style={{ color: 'var(--accent)' }}>PPS</span>
-            </div>
-          </div>
-          <div style={leftFoot}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(232,236,242,0.38)' }}>MetaPPS</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Defina, acompanhe e alcance</div>
-          </div>
+      {/* LEFT */}
+      <div style={leftPanel}>
+        <div style={lpGrain} />
+        <div style={{ ...lpBlob, width:600, height:600, background:'#4f7edd', top:-180, left:-160, opacity:0.12 }} />
+        <div style={{ ...lpBlob, width:380, height:380, background:'#ec4899', opacity:0.08, bottom:-80, right:-40 }} />
+        <div style={{ ...lpBlob, width:240, height:240, background:'#a855f7', opacity:0.06, top:'40%', right:'20%' }} />
+        <div style={{ position:'relative', zIndex:2, textAlign:'center', animation:'lgIn .9s ease both .1s' }}>
+          <img src={logo} alt="Metapps" style={{ width:'min(300px,38vw)', height:'auto', display:'block', margin:'0 auto', filter:'drop-shadow(0 20px 60px rgba(79,126,221,0.2))' }}
+            onError={e=>{e.target.style.display='none';e.target.insertAdjacentHTML('afterend','<div style="font-family:\'Playfair Display\',serif;font-size:clamp(42px,6vw,60px);font-weight:700;letter-spacing:-2px;color:#e8ecf2;background:linear-gradient(120deg,#4f7edd,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Metapps</div>')}} />
         </div>
-      )}
-
-      {/* RIGHT PANEL */}
-      <div style={isMobile ? mobilePage : rightPanel}>
-        {isMobile ? (
-          /* Mobile card */
-          <div style={mobileCard}>
-            <div style={{ ...fbox, ...formAnim, maxWidth: '100%' }}>
-              <FormFields uname={uname} setUname={setUname} email={email} setEmail={setEmail}
-                pw={pw} setPw={setPw} cpw={cpw} setCpw={setCpw}
-                terms={terms} setTerms={setTerms} error={error}
-                loading={loading} handleSubmit={handleSubmit} go={go} clrErr={clrErr} />
-            </div>
-          </div>
-        ) : (
-          /* Desktop form */
-          <div style={{ ...fbox, ...formAnim }}>
-            <FormFields uname={uname} setUname={setUname} email={email} setEmail={setEmail}
-              pw={pw} setPw={setPw} cpw={cpw} setCpw={setCpw}
-              terms={terms} setTerms={setTerms} error={error}
-              loading={loading} handleSubmit={handleSubmit} go={go} clrErr={clrErr} />
-          </div>
-        )}
+        <div style={lpSep} />
       </div>
+      {/* RIGHT */}
+      <div style={rightPanel}>
+        <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{content}</div>
+      </div>
+      <style>{ANIMS}</style>
     </div>
   )
 }
 
-function FormFields({ uname, setUname, email, setEmail, pw, setPw, cpw, setCpw, terms, setTerms, error, loading, handleSubmit, go, clrErr }) {
-  return (
-    <>
-      <h1 style={title}>Criar conta</h1>
-      <p style={sub}>Comece a acompanhar suas metas hoje.</p>
-      <form onSubmit={handleSubmit} noValidate>
-        <Field label="Nome de usuário">
-          <input type="text" placeholder="seunome" autoComplete="username"
-            style={inp} value={uname} onChange={e => { setUname(e.target.value); clrErr() }} />
-        </Field>
-        <Field label="E-mail">
-          <input type="email" placeholder="voce@email.com" autoComplete="email"
-            style={inp} value={email} onChange={e => { setEmail(e.target.value); clrErr() }} />
-        </Field>
-        <Field label="Senha">
-          <PwField value={pw} onChange={e => { setPw(e.target.value); clrErr() }}
-            placeholder="Mínimo 8 caracteres" autoComplete="new-password" />
-          <StrBar pw={pw} />
-        </Field>
-        <Field label="Confirmar senha">
-          <PwField value={cpw} onChange={e => { setCpw(e.target.value); clrErr() }}
-            placeholder="Repita a senha" autoComplete="new-password"
-            invalid={cpw.length > 0 && pw !== cpw} />
-          <Match pw={pw} cpw={cpw} />
-        </Field>
-        {error && <div style={errBox}>{error}</div>}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 0 16px' }}>
-          <input type="checkbox" id="tc" checked={terms} onChange={e => setTerms(e.target.checked)}
-            style={{ marginTop: 2, flexShrink: 0, width: 15, height: 15, accentColor: 'var(--blue)', cursor: 'pointer' }} />
-          <label htmlFor="tc" style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.55, cursor: 'pointer' }}>
-            Li e concordo com os{' '}
-            <a href="/termos.html" target="_blank" style={{ color: 'var(--blue)', fontWeight: 500, textDecoration: 'none' }}>Termos de Serviço</a>
-            {' '}e a{' '}
-            <a href="/termos.html#privacidade" target="_blank" style={{ color: 'var(--blue)', fontWeight: 500, textDecoration: 'none' }}>Política de Privacidade</a>
-          </label>
-        </div>
-        <button type="submit" disabled={loading} style={{ ...btnMain, opacity: loading ? 0.55 : 1 }}>
-          {loading ? <><Spinner /> Criando conta…</> : 'Criar conta'}
-        </button>
-      </form>
-      <p style={footNote}>
-        Já tem conta?{' '}
-        <a href="#" style={{ color: 'var(--blue)', fontWeight: 600, textDecoration: 'none' }}
-          onClick={e => { e.preventDefault(); go('/login') }}>Entrar</a>
-      </p>
-    </>
-  )
-}
+const ANIMS = `
+  @keyframes fIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes lgIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
+  @keyframes slideIn{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  input[type=password]::-ms-reveal,input[type=password]::-ms-clear{display:none}
+  input::-webkit-credentials-auto-fill-button,input::-webkit-contacts-auto-fill-button{visibility:hidden;pointer-events:none;width:0;height:0}
+  input:focus{border-color:#4f7edd!important;box-shadow:0 0 0 3px rgba(79,126,221,0.15)!important;outline:none}
+`
 
-/* ── Styles ── */
-const split     = { display: 'flex', height: '100vh', overflow: 'hidden' }
-const leftPanel = {
-  flex: '0 0 58%', position: 'relative', overflow: 'hidden',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: `
-    radial-gradient(ellipse 85% 65% at 72% 32%, rgba(212,146,74,0.2) 0%, transparent 58%),
-    radial-gradient(ellipse 80% 65% at 20% 72%, rgba(79,126,221,0.26) 0%, transparent 58%),
-    radial-gradient(ellipse 55% 50% at 52% 8%, rgba(108,143,212,0.12) 0%, transparent 48%),
-    linear-gradient(158deg, #06091a 0%, #0a1128 55%, #050718 100%)`,
-}
-const grain     = {
-  position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.76' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`,
-}
-const sep       = {
-  position: 'absolute', right: 0, top: 0, width: 1, height: '100%', zIndex: 3,
-  background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.038) 22%, rgba(255,255,255,0.038) 78%, transparent 100%)',
-}
-const blobEl    = { position: 'absolute', borderRadius: '50%', filter: 'blur(95px)', pointerEvents: 'none', zIndex: 0 }
-const logoDesktop = {
-  width: 'min(360px, 42vw)', height: 'auto', display: 'block',
-  filter: 'drop-shadow(0 20px 64px rgba(79,126,221,0.35)) drop-shadow(0 4px 14px rgba(0,0,0,0.45))',
-}
-const leftFoot  = { position: 'absolute', bottom: 30, left: 36, zIndex: 2, animation: 'ftIn 1.1s var(--ease) both 0.45s' }
-const rightPanel = {
-  flex: '0 0 42%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: '32px 56px', overflowY: 'auto', position: 'relative',
-  backgroundColor: 'var(--form-bg)',
-  backgroundImage: `repeating-linear-gradient(-55deg, transparent, transparent 28px, rgba(108,143,212,0.022) 28px, rgba(108,143,212,0.022) 29px)`,
-}
-const mobilePage = {
-  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  minHeight: '100vh', padding: '32px 20px', overflowY: 'auto',
-  background: `
-    radial-gradient(ellipse 85% 60% at 80% 10%, rgba(212,146,74,0.15) 0%, transparent 55%),
-    radial-gradient(ellipse 75% 55% at 15% 85%, rgba(79,126,221,0.2) 0%, transparent 52%),
-    linear-gradient(158deg, #06091a 0%, #0a1128 55%, #050718 100%)`,
-}
-const mobileCard = {
-  width: '100%', maxWidth: 400,
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.09)',
-  borderRadius: 14, padding: '36px 28px 32px',
-}
-const fbox      = { position: 'relative', zIndex: 1, width: '100%', maxWidth: 320 }
-const title     = { fontSize: 22, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-0.45px', marginBottom: 5 }
-const sub       = { fontSize: 13, color: 'var(--t2)', lineHeight: 1.55, marginBottom: 22 }
-const inp       = {
-  width: '100%', background: 'var(--ibg)', border: '1px solid var(--ib)',
-  borderRadius: 'var(--r)', color: 'var(--t1)',
-  fontFamily: "'Inter', -apple-system, sans-serif",
-  fontSize: 14, padding: '11px 14px', outline: 'none',
-  transition: 'border-color .15s, box-shadow .15s, background .15s',
-  WebkitAppearance: 'none', appearance: 'none',
-}
-const eyeBtn    = {
-  position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
-  background: 'none', border: 'none', cursor: 'pointer', padding: 5,
-  color: 'var(--t3)', display: 'flex', alignItems: 'center', borderRadius: 4, zIndex: 2,
-}
-const errBox    = {
-  background: 'var(--err-bg)', border: '1px solid var(--err-brd)',
-  borderRadius: 6, padding: '9px 13px', fontSize: 13, fontWeight: 500,
-  color: 'var(--err-t)', lineHeight: 1.45, marginBottom: 14,
-}
-const btnMain   = {
-  width: '100%', padding: 12, border: 'none', borderRadius: 'var(--r)',
-  fontFamily: "'Inter', -apple-system, sans-serif", fontSize: 14, fontWeight: 600,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-  background: 'var(--blue)', color: '#fff',
-  boxShadow: '0 1px 3px rgba(0,0,0,.5), 0 4px 18px rgba(79,126,221,.3)',
-  transition: 'background .15s',
-}
-const footNote  = { fontSize: 13, color: 'var(--t2)', textAlign: 'center', marginTop: 18 }
+const split     = { display:'flex', height:'100vh', overflow:'hidden', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
+const leftPanel = { flex:'0 0 58%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(158deg,#080c14 0%,#0c1220 55%,#080c14 100%)' }
+const lpGrain   = { position:'absolute', inset:0, pointerEvents:'none', zIndex:1, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.76' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")` }
+const lpBlob    = { position:'absolute', borderRadius:'50%', filter:'blur(100px)', pointerEvents:'none', zIndex:0, opacity:0.18 }
+const lpSep     = { position:'absolute', right:0, top:0, width:160, height:'100%', background:'linear-gradient(90deg, transparent 0%, rgba(8,12,20,0.8) 60%, #080c14 100%)', zIndex:3, pointerEvents:'none' }
+
+const rightPanel = { flex:'0 0 42%', display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 52px', overflowY:'auto', position:'relative', background:'linear-gradient(160deg,#0a0f1a 0%,#0c1220 40%,#0a0f1a 100%)' }
+
+const mobPage   = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', background:'linear-gradient(158deg,#080c14 0%,#0c1220 55%,#080c14 100%)', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
+const mobCard   = { width:'100%', maxWidth:400, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:16, padding:'32px 26px 28px' }
+const fbox      = { width:'100%', maxWidth:320 }
+
+const title     = { fontSize:21, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.4px', lineHeight:1.2, marginBottom:4 }
+const sub       = { fontSize:13, color:'rgba(226,232,240,0.5)', lineHeight:1.5, marginBottom:20 }
+const field     = { marginBottom:12 }
+const lbl       = { display:'block', fontSize:12, fontWeight:600, color:'rgba(226,232,240,0.5)', letterSpacing:'0.2px', marginBottom:6 }
+const inp       = { width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, color:'#e2e8f0', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'11px 13px', outline:'none', transition:'border-color .15s,box-shadow .15s', WebkitAppearance:'none', appearance:'none' }
+const eyeBtn    = { position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:5, color:'rgba(226,232,240,0.3)', display:'flex', alignItems:'center', borderRadius:4, zIndex:2 }
+const errBox    = { background:'rgba(220,60,60,0.08)', border:'1px solid rgba(220,60,60,0.15)', borderRadius:6, padding:'9px 13px', fontSize:13, fontWeight:500, color:'#e08080', lineHeight:1.45, marginBottom:13 }
+const btnMain   = { width:'100%', padding:12, border:'none', borderRadius:6, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#4f7edd', color:'#fff', transition:'all .15s' }
+const footTxt   = { fontSize:13, color:'rgba(226,232,240,0.4)', textAlign:'center', marginTop:18 }
+const footLnk   = { color:'#ec4899', fontWeight:600, textDecoration:'none' }
