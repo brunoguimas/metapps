@@ -47,9 +47,14 @@ export default function Login() {
     e.preventDefault(); setErr('')
     if (!email.trim()||!pw) { setErr('Preencha todos os campos.'); return }
     setLoad(true)
-    try { await login(email.trim(),pw); go('/criar') }
+    try { await login(email.trim(),pw); go('/splash') }  // era /criar
     catch(er) { setErr(mapErr(er.message)) }
     finally { setLoad(false) }
+  }
+
+  async function handleGoogle() {
+    try { await loginWithGoogle(); go('/splash') }
+    catch(er) { setErr(mapErr(er.message)) }
   }
 
   const form = (
@@ -73,7 +78,7 @@ export default function Login() {
         </button>
       </form>
       <div style={orRow}><span style={orLine}/><span style={{ fontSize:12, color:'rgba(255,255,255,0.2)', fontWeight:500 }}>ou</span><span style={orLine}/></div>
-      <button onClick={loginWithGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
+      <button onClick={handleGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
       <p style={footTxt}>Sem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/register')}}>Criar conta</a></p>
     </>
   )

@@ -4,26 +4,20 @@ import logo from './assets/logo.png'
 
 export default function Splash() {
   const navigate = useNavigate()
-  const done = useRef(false)
   const wrap = useRef(null)
 
   useEffect(() => {
-    if (done.current) return
-    done.current = true
-
     const t = setTimeout(() => {
       if (wrap.current) {
-        wrap.current.style.opacity = '0'
         wrap.current.style.transition = 'opacity 0.5s ease'
+        wrap.current.style.opacity = '0'
       }
       setTimeout(() => {
-        try { navigate('/home', { replace: true }) }
-        catch { window.location.replace('/home') }
+        navigate('/criar', { replace: true })
       }, 520)
-    }, 2200)
-
+    }, 5000)
     return () => clearTimeout(t)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [navigate])
 
   return (
     <div ref={wrap} style={s.wrap}>

@@ -83,3 +83,30 @@ export async function authFetch(input, init = {}) {
 export function logout() {
   accessToken = null
 }
+
+// POST /auth/email/verify
+export async function emailVerify(email, code) {
+  const res  = await fetch(`${API_URL}/auth/email/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, code }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Código inválido')
+  accessToken = data.access_token
+  return data
+}
+
+// POST /auth/email/resend
+export async function resendVerification(email) {
+  const res = await fetch(`${API_URL}/auth/email/resend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao reenviar')
+  return data
+}
