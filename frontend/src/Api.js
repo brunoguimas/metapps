@@ -98,6 +98,47 @@ export async function emailVerify(email, code) {
   return data
 }
 
+// GOALS
+export async function createGoal(title, difficulties) {
+  const res = await authFetch('/protected/goals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, difficulties }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao criar goal')
+  return data.goal
+}
+
+export async function listGoals() {
+  const res = await authFetch('/protected/goals')
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao listar goals')
+  return data.goals
+}
+
+export async function generateTask(goalId) {
+  const res = await authFetch('/protected/tasks/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ goal_id: goalId }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao gerar tarefa')
+  return data.task
+}
+
+export async function submitAttempt(taskId, type, response) {
+  const res = await authFetch(`/protected/tasks/${taskId}/attempts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, response, metadata: { attempt_source: 'web' } }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao submeter resposta')
+  return data
+}
+
 // POST /auth/email/resend
 export async function resendVerification(email) {
   const res = await fetch(`${API_URL}/auth/email/resend`, {
