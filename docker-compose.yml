@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - "6543:5432"
+    environment:
+      POSTGRES_USER: metapps
+      POSTGRES_DB: metapps
+      POSTGRES_PASSWORD: metapps
