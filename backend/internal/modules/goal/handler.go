@@ -2,7 +2,6 @@ package goal
 
 import (
 	"encoding/json"
-	"net/http"
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -42,7 +41,7 @@ func (h *GoalHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"goal": goal})
+	httpx.Created(c, gin.H{"goal": goal})
 }
 
 func (h *GoalHandler) List(c *gin.Context) {

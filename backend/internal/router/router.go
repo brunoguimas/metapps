@@ -3,6 +3,7 @@ package router
 import (
 	"time"
 
+	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/middleware"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
@@ -17,7 +18,8 @@ import (
 )
 
 func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandler, g *goal.GoalHandler, t *task.TaskHandler, ta *taskattempt.Handler, jwtService jwt.JWTService, cfg *config.Config) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -26,6 +28,7 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	r.Use(middleware.Log)
 
 	r.GET("/health", h.HealthCheck)
 	auth := r.Group("/auth")
@@ -50,7 +53,7 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 		// protected.POST("/password/update", a.PasswordUpdate)
 		protected.GET("/home", func(c *gin.Context) {
 			userID, _ := c.Get("user_id")
-			c.JSON(200, gin.H{
+			httpx.OK(c, gin.H{
 				"message": "Authorized",
 				"user_id": userID,
 			})

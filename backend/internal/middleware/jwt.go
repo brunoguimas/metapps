@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
@@ -14,20 +15,23 @@ func AuthMiddleware(s jwt.JWTService) gin.HandlerFunc {
 		h := c.GetHeader("Authorization")
 		parts := strings.SplitN(h, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" || parts[1] == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid authorization header"})
+			httpx.Error(c, http.StatusUnauthorized, "missing or invalid authorization header")
+			c.Abort()
 			return
 		}
 
 		claims, err := s.ValidateAccessToken(parts[1])
 		if err != nil {
 			if appErr, ok := apperrors.As(err); ok {
-				c.AbortWithStatusJSON(appErr.Status(), gin.H{
+				httpx.Status(c, appErr.Status(), gin.H{
 					"error": appErr.Error(),
 					"code":  appErr.Code(),
-				})
+				}, appErr.Error())
+				c.Abort()
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			httpx.Error(c, http.StatusUnauthorized, "invalid or expired token")
+			c.Abort()
 			return
 		}
 

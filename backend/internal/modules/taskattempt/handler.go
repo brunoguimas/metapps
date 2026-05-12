@@ -2,7 +2,6 @@ package taskattempt
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -49,7 +48,7 @@ func (h *Handler) Submit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	httpx.Created(c, gin.H{
 		"message":      "task attempt submitted",
 		"task_attempt": attempt,
 		"task":         updatedTask,

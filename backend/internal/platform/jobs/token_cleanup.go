@@ -2,10 +2,10 @@ package jobs
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 )
 
 func RefreshTokensCleanup(c context.Context, q db.Queries, i time.Duration) {
@@ -15,11 +15,15 @@ func RefreshTokensCleanup(c context.Context, q db.Queries, i time.Duration) {
 	for {
 		select {
 		case <-c.Done():
+			platformlogger.LogSystemInfo("refresh token cleanup stopped")
 			return
 		case <-ticker.C:
 			if err := q.RefreshTokenCleanup(c); err != nil {
-				log.Printf("token cleanup failed: %v", err)
+				platformlogger.LogSystemError("token cleanup failed", err)
+				continue
 			}
+
+			platformlogger.LogSystemInfo("token cleanup executed")
 		}
 	}
 }

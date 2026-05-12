@@ -69,7 +69,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "user registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
+	httpx.Created(c, gin.H{"message": "user registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -294,20 +294,20 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	parts := strings.SplitN(t, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" || parts[1] == "" {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid authorization header"})
+		httpx.Error(c, http.StatusUnauthorized, "missing or invalid authorization header")
 		return
 	}
 
 	claims, err := h.jwt.ValidateAccessToken(parts[1])
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
-			c.AbortWithStatusJSON(appErr.Status(), gin.H{
+			httpx.Status(c, appErr.Status(), gin.H{
 				"error": appErr.Error(),
 				"code":  appErr.Code(),
-			})
+			}, appErr.Error())
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		httpx.Error(c, http.StatusUnauthorized, "invalid or expired token")
 		return
 	}
 

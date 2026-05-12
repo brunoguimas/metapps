@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"time"
@@ -61,27 +61,27 @@ func Load() *Config {
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
-		log.Printf("invalid ACCESS_TOKEN_TTL=%q, using 15m", accessTtlStr)
+		slog.Warn("invalid duration config", "key", "ACCESS_TOKEN_TTL", "value", accessTtlStr, "fallback", "15m")
 		accessTtl = 15 * time.Minute
 	}
 	refreshTtl, err := time.ParseDuration(refreshTtlStr)
 	if err != nil {
-		log.Printf("invalid REFRESH_TOKEN_TTL=%q, using 24h", refreshTtlStr)
+		slog.Warn("invalid duration config", "key", "REFRESH_TOKEN_TTL", "value", refreshTtlStr, "fallback", "24h")
 		refreshTtl = 24 * time.Hour
 	}
 	emailVerificationTtl, err := time.ParseDuration(emailVerificationTtlStr)
 	if err != nil {
-		log.Printf("invalid EMAIL_VERIFICATION_TTL=%q, using 24h", emailVerificationTtlStr)
+		slog.Warn("invalid duration config", "key", "EMAIL_VERIFICATION_TTL", "value", emailVerificationTtlStr, "fallback", "24h")
 		emailVerificationTtl = 24 * time.Hour
 	}
 	oauthStateTtl, err := time.ParseDuration(oauthStateTtlStr)
 	if err != nil {
-		log.Printf("invalid OAUTH_STATE_TTL=%q, using 1m", oauthStateTtlStr)
+		slog.Warn("invalid duration config", "key", "OAUTH_STATE_TTL", "value", oauthStateTtlStr, "fallback", "1m")
 		oauthStateTtl = 1 * time.Minute
 	}
 	cleanupInterval, err := time.ParseDuration(cleanupIntervalStr)
 	if err != nil {
-		log.Printf("invalid CLEANUP_INTERVAL=%q, using 30m", cleanupIntervalStr)
+		slog.Warn("invalid duration config", "key", "CLEANUP_INTERVAL", "value", cleanupIntervalStr, "fallback", "30m")
 		cleanupInterval = 30 * time.Minute
 	}
 
@@ -142,7 +142,8 @@ func getEnv(key, fallback string) string {
 func mustGetenv(key string) string {
 	v := os.Getenv(key)
 	if v == "" {
-		log.Fatal("missing required env: ", key)
+		slog.Error("missing required env", "key", key)
+		os.Exit(1)
 	}
 
 	return v
@@ -156,7 +157,7 @@ func getEnvBool(key string, fallback bool) bool {
 
 	parsed, err := strconv.ParseBool(v)
 	if err != nil {
-		log.Printf("invalid bool %s=%q, using %t", key, v, fallback)
+		slog.Warn("invalid bool config", "key", key, "value", v, "fallback", fallback)
 		return fallback
 	}
 
@@ -171,7 +172,7 @@ func getEnvInt(key string, fallback int) int {
 
 	parsed, err := strconv.Atoi(v)
 	if err != nil {
-		log.Printf("invalid int %s=%q, using %d", key, v, fallback)
+		slog.Warn("invalid int config", "key", key, "value", v, "fallback", fallback)
 		return fallback
 	}
 

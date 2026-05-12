@@ -48,7 +48,7 @@ func (h *TaskHandler) Generate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	httpx.Created(c, gin.H{
 		"message": "task generated",
 		"task":    task,
 	})
@@ -67,7 +67,7 @@ func (h *TaskHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	httpx.OK(c, gin.H{
 		"tasks": tasks,
 	})
 }
@@ -91,7 +91,7 @@ func (h *TaskHandler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	httpx.OK(c, gin.H{
 		"task": task,
 	})
 }

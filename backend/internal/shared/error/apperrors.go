@@ -2,7 +2,6 @@ package apperrors
 
 import (
 	"errors"
-	"log"
 	"net/http"
 )
 
@@ -48,12 +47,6 @@ type AppError interface {
 }
 
 func NewAppError(code Code, message string, err error) error {
-	if err != nil {
-		log.Println("error: ", err.Error())
-	}
-	log.Println("message: ", message)
-	log.Println("code: ", code)
-
 	return appError{
 		status:  StatusFromCode(code),
 		code:    code,

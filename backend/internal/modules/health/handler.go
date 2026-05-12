@@ -3,6 +3,7 @@ package health
 import (
 	"net/http"
 
+	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,5 +31,5 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 		checks["database"] = "DOWN"
 	}
 
-	c.JSON(status, response)
+	httpx.Status(c, status, response, "health check completed")
 }

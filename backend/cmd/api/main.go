@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
@@ -18,19 +19,27 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/database"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/platform/jobs"
+	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 	"github.com/brunoguimas/metapps/backend/internal/router"
 )
 
 func main() {
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("service", "metapps")
+	slog.SetDefault(l)
+
 	cfg := config.Load()
+	platformlogger.LogSystemInfo("configuration loaded", "port", cfg.Port, "frontend_origin", cfg.FrontendOrigin)
 
 	conn := database.Connect(cfg)
 	queries := db.New(conn)
+	platformlogger.LogSystemInfo("database connection initialized")
 
 	mailModule, err := mail.NewModule(queries, cfg)
 	if err != nil {
-		log.Fatal("couldn't setup mailer")
+		platformlogger.LogSystemError("couldn't setup mailer", err)
+		os.Exit(1)
 	}
+
 	jwtModule := jwt.NewModule(queries, cfg)
 	userModule := user.NewModule(queries)
 	goalModule := goal.NewModule(queries)
@@ -40,6 +49,7 @@ func main() {
 	aiClient := ai.NewGroqClient()
 	taskModule := task.NewTaskModule(queries, aiClient, goalModule, cfg)
 	taskAttemptModule := taskattempt.NewModule(queries, taskModule)
+	platformlogger.LogSystemInfo("modules initialized")
 
 	r := router.NewRouter(
 		authModule.Handler,
@@ -55,8 +65,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go jobs.RefreshTokensCleanup(ctx, *queries, cfg.CleanupInterval)
+	platformlogger.LogSystemInfo("background jobs started", "cleanup_interval", cfg.CleanupInterval.String())
 
 	if err := r.Run(cfg.Port); err != nil {
-		log.Fatal("couldn't run server: ", err.Error())
+		platformlogger.LogSystemError("couldn't run server", err, "port", cfg.Port)
+		os.Exit(1)
 	}
 }
