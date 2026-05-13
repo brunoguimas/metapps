@@ -30,7 +30,8 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 	}))
 	r.Use(middleware.Log)
 
-	r.GET("/health", h.HealthCheck)
+	r.GET("/health/live", h.LiveCheck)
+	r.GET("/health/ready", h.ReadyCheck)
 	auth := r.Group("/auth")
 	auth.Use(middleware.RateLimitMiddleware())
 	{

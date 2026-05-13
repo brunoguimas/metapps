@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
@@ -22,6 +23,8 @@ import (
 	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 	"github.com/brunoguimas/metapps/backend/internal/router"
 )
+
+var startedAt = time.Now()
 
 func main() {
 	l := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("service", "metapps")
@@ -45,9 +48,9 @@ func main() {
 	goalModule := goal.NewModule(queries)
 	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
-	healthModule := health.NewModule(queries)
-	aiClient := ai.NewGroqClient()
-	taskModule := task.NewTaskModule(queries, aiClient, goalModule, cfg)
+	ai, client := ai.NewGroqClient()
+	healthModule := health.NewModule(queries, client, startedAt)
+	taskModule := task.NewTaskModule(queries, ai, goalModule, cfg)
 	taskAttemptModule := taskattempt.NewModule(queries, taskModule)
 	platformlogger.LogSystemInfo("modules initialized")
 

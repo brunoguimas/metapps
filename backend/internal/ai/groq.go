@@ -14,11 +14,12 @@ const (
 	UserRole  = "user"
 )
 
-func NewGroqClient() *GroqClient {
+func NewGroqClient() (*GroqClient, *groq.Client) {
+	client := groq.NewClient()
 	return &GroqClient{
-		client: groq.NewClient(),
+		client: client,
 		model:  GroqModel,
-	}
+	}, client
 }
 
 func (g *GroqClient) Generate(prompt string) (string, error) {
