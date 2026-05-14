@@ -21,6 +21,14 @@ func NewAIChecker(ai *groq.Client) AIChecker {
 }
 
 func (a *aiChecker) AIStatus() StatusService {
+	if a.client == nil {
+		return StatusService{
+			Status:    "down",
+			LatencyMS: 0,
+			Error:     "ai client is not configured",
+		}
+	}
+
 	start := time.Now()
 
 	_, err := a.client.CreateChatCompletion(groq.CompletionCreateParams{
@@ -47,15 +55,13 @@ func (a *aiChecker) AIStatus() StatusService {
 	}
 	if latency > 2000 {
 		return StatusService{
-			Status: "slow",
+			Status:    "slow",
 			LatencyMS: int64(latency),
-			Error: err.Error(),
 		}
 	}
 
 	return StatusService{
-		Status: "up",
+		Status:    "up",
 		LatencyMS: int64(latency),
-		Error: "",
 	}
 }

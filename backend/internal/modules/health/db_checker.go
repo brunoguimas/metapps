@@ -30,29 +30,27 @@ func (d *dbChecker) DBStatus(c context.Context) StatusService {
 
 	if err != nil {
 		return StatusService{
-			Status: "down",
+			Status:    "down",
 			LatencyMS: int64(latency),
-			Error: err.Error(),
+			Error:     err.Error(),
 		}
 	}
 	if n != 1 {
 		return StatusService{
-			Status: "down",
+			Status:    "down",
 			LatencyMS: int64(latency),
-			Error: err.Error(),
+			Error:     "database health query returned unexpected result",
 		}
 	}
 	if latency > 50 {
 		return StatusService{
-			Status: "slow",
+			Status:    "slow",
 			LatencyMS: int64(latency),
-			Error: err.Error(),
 		}
 	}
 
 	return StatusService{
-		Status: "up",
+		Status:    "up",
 		LatencyMS: int64(latency),
-		Error: "",
 	}
 }
