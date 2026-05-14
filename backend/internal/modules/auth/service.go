@@ -50,9 +50,6 @@ func (s *authService) Login(c context.Context, u *dto.LoginRequest) (*user.User,
 	user, err := s.userRepo.GetByEmail(c, u.Email)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
-			if appErr.Code() == apperrors.ErrUserNotFound {
-				return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid email or password", err)
-			}
 			return nil, appErr
 		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)
