@@ -2,28 +2,85 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"os"
 	"testing"
 
-	"github.com/brunoguimas/metapps/backend/internal/platform/config"
-	"github.com/brunoguimas/metapps/backend/internal/platform/database"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
-	"github.com/go-jose/go-jose/v4/testutils/assert"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCreateUser(t *testing.T) {
-	cfg := config.Load()
-	conn := database.Connect(cfg)
-	queries := db.New(conn)
-	repo := NewUserRepository(queries)
-
-	user := &User{
-		Username:     "betinhaplays30",
-		Email:        "emaillegal@gmail.com",
-		PasswordHash: "sigma",
+func setupTest(t *testing.T) *sql.DB {
+	t.Helper()
+	godotenv.Load()
+	dsn := os.Getenv("TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_URL not set")
 	}
 
-	result, err := repo.Create(context.Background(), user)
+	conn, err := sql.Open("postgres", dsn)
+	require.NoError(t, err)
 
-	assert.NoError(t, err)
-	assert.Equal(t, user.Email, result.Email)
+	err = conn.Ping()
+	if err != nil {
+		_ = conn.Close()
+		t.Skipf("test database unavailable: %v", err)
+	}
+
+	return conn
+}
+
+func cleanTables(t *testing.T, db *sql.DB) {
+	_, err := db.Exec(`
+		TRUNCATE TABLE users RESTART IDENTITY CASCADE;
+	`)
+	require.NoError(t, err)
+}
+
+
+func TestUserRepository_Create_Success(t *testing.T) {
+	conn := setupTest(t)
+	cleanTables(t, conn)
+	queries := db.New(conn)
+	r := NewUserRepository(queries)
+
+	user := &User{
+		Username: "bruno",
+		Email: "bruno@test.com",
+		PasswordHash: "hashdosixseven",
+	}
+
+	result, err := r.Create(context.Background(), user)
+	require.NoError(t, err)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, result.Email, user.Email)
+	assert.NotEqual(t, uuid.Nil, result.ID)
+}
+
+func TestUserRepository_Create_FailUserAlreadyExists(t *testing.T) {
+	conn := setupTest(t)
+	cleanTables(t, conn)
+	queries := db.New(conn)
+	r := NewUserRepository(queries)
+
+	user := &User{
+		Username: "bruno",
+		Email: "bruno@test.com",
+		PasswordHash: "hashdosixseven",
+	}
+
+	r.Create(context.Background(), user)
+
+	result, err := r.Create(context.Background(), user)
+	require.Error(t, err)
+	require.Nil(t, result)
+
+	appErr, ok := apperrors.As(err)
+	assert.Equal(t, appErr.Code(), apperrors.ErrEmailAlreadyInUse)
+	assert.True(t, ok)
 }

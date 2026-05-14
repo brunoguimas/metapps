@@ -40,7 +40,14 @@ func (s *authService) Register(c context.Context, u *dto.RegisterRequest) (*user
 	}
 	_, err = s.userRepo.GetByEmail(c, u.Email)
 	if err == nil {
-		return nil, apperrors.NewAppError(apperrors.ErrUserAlreadyExists, "user already exists", nil)
+		return nil, apperrors.NewAppError(apperrors.ErrEmailAlreadyInUse, "email already in use", nil)
+	}
+	if appErr, ok := apperrors.As(err); ok {
+		if appErr.Code() != apperrors.ErrUserNotFound {
+			return nil, appErr
+		}
+	} else {
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't check user", err)
 	}
 
 	return s.userRepo.Create(c, user)
@@ -50,6 +57,9 @@ func (s *authService) Login(c context.Context, u *dto.LoginRequest) (*user.User,
 	user, err := s.userRepo.GetByEmail(c, u.Email)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
+			if appErr.Code() == apperrors.ErrUserNotFound {
+				return nil, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "invalid email or password", err)
+			}
 			return nil, appErr
 		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get user", err)

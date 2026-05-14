@@ -104,15 +104,24 @@ func (s *taskService) Create(c context.Context, userID, goalID uuid.UUID) (*Task
 			)
 		}
 
-		for _, q := range quiz.Questions {
-			if err := q.Validate(); err != nil {
-				return nil, err
-			}
+		if err := quiz.Validate(); err != nil {
+			return nil, apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				"invalid quiz content",
+				err,
+			)
 		}
 
 	case TaskEssay:
 		var essay EssayContent
 		if err := json.Unmarshal(aiResp.Content, &essay); err != nil {
+			return nil, apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				"invalid essay content",
+				err,
+			)
+		}
+		if err := essay.Validate(); err != nil {
 			return nil, apperrors.NewAppError(
 				apperrors.ErrInvalidAIResponse,
 				"invalid essay content",

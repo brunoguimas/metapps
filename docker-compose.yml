@@ -1,10 +1,19 @@
 services:
   postgres:
-    image: postgres
-    restart: always
+    image: postgres:17
+    container_name: metapps-postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: metapps
+
     ports:
       - "6543:5432"
-    environment:
-      POSTGRES_USER: metapps
-      POSTGRES_DB: metapps
-      POSTGRES_PASSWORD: metapps
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:

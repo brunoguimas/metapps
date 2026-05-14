@@ -163,7 +163,7 @@ func TestAuthHandlerRegister_Fail(t *testing.T) {
 
 	authService := &fakeAuthService{
 		registerFn: func(context.Context, *dto.RegisterRequest) (*user.User, error) {
-			return nil, apperrors.NewAppError(apperrors.ErrUserAlreadyExists, "user already exists", nil)
+			return nil, apperrors.NewAppError(apperrors.ErrEmailAlreadyInUse, "email already in use", nil)
 		},
 	}
 
@@ -193,7 +193,7 @@ func TestAuthHandlerRegister_Fail(t *testing.T) {
 
 	handler.Register(ctx)
 
-	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.Equal(t, http.StatusConflict, rec.Code)
 
 	var resp struct {
 		Error string `json:"error"`
@@ -202,8 +202,8 @@ func TestAuthHandlerRegister_Fail(t *testing.T) {
 
 	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, err)
-	assert.Equal(t, "user already exists", resp.Error)
-	assert.Equal(t, string(apperrors.ErrUserAlreadyExists), resp.Code)
+	assert.Equal(t, "email already in use", resp.Error)
+	assert.Equal(t, string(apperrors.ErrEmailAlreadyInUse), resp.Code)
 }
 
 func TestAuthHandlerLogin_Success(t *testing.T) {

@@ -13,6 +13,7 @@ const (
 	ErrInvalidCredentials        Code = "INVALID_CREDENTIALS"
 	ErrUserNotFound              Code = "USER_NOT_FOUND"
 	ErrEmailAlreadyInUse         Code = "EMAIL_ALREADY_IN_USE"
+	ErrUserAlreadyExists         Code = ErrEmailAlreadyInUse
 	ErrInvalidToken              Code = "INVALID_TOKEN"
 	ErrInvalidOrExpiredEmailCode Code = "INVALID_OR_EXPIRED_EMAIL_CODE"
 	ErrGoalNotFound              Code = "GOAL_NOT_FOUND"
@@ -26,9 +27,8 @@ const (
 	ErrPasswordTooCommon         Code = "TOO_COMMON_PASSWORD"
 	ErrPasswordTooShort          Code = "PASSWORD_TOO_SHORT"
 	ErrQuestionTooShort          Code = "QUESTION_TOO_SHORT"
-	ErrInvalidAnswerIndex        Code = "INVALID ANSWER INDEX"
-	ErrUnknownTaskType           Code = "UNKNOWN TASK TYPE"
-	ErrUserAlreadyExists         Code = "USER_ALREADY_EXISTS"
+	ErrInvalidAnswerIndex        Code = "INVALID_ANSWER_INDEX"
+	ErrUnknownTaskType           Code = "UNKNOWN_TASK_TYPE"
 	ErrInvalidAIResponse         Code = "INVALID_AI_RESPONSE"
 )
 

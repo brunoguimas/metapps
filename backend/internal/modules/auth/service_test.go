@@ -82,7 +82,7 @@ func TestRegister_FailsUserDuplicate(t *testing.T) {
 
 	require.True(t, ok)
 
-	assert.Equal(t, apperrors.ErrUserAlreadyExists, appErr.Code())
+	assert.Equal(t, apperrors.ErrEmailAlreadyInUse, appErr.Code())
 }
 
 func TestLogin_Success(t *testing.T) {
@@ -125,5 +125,5 @@ func TestLogin_FailsUserDontExist(t *testing.T) {
 
 	appErr, ok := apperrors.As(err)
 	assert.True(t, ok)
-	assert.Equal(t, apperrors.ErrUserNotFound, appErr.Code())
+	assert.Equal(t, apperrors.ErrInvalidCredentials, appErr.Code())
 }

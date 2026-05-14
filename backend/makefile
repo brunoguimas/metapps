@@ -7,14 +7,14 @@ run:
 dev: 
 	reflex -s -r '\.go$$' -- go run cmd/api/main.go
 
-test:
-	go test ./...
-
 create_migration:
 	migrate create -ext=sql -dir=internal/platform/database/migrations -seq $(name)
 
 migrate_up:
 	migrate -path=internal/platform/database/migrations -database "${DATABASE_URL}" -verbose up
+
+migrate_test:
+	migrate -path=internal/platform/database/migrations -database "${TEST_DATABASE_URL}" up
 
 migrate_down:
 	migrate -path=internal/platform/database/migrations -database "${DATABASE_URL}" -verbose down 1

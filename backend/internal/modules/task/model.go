@@ -104,7 +104,7 @@ func (e EssayContent) Validate() error {
 
 func (q QuizQuestion) Validate() error {
 	if len(q.Alternatives) < 2 {
-		return apperrors.NewAppError(apperrors.ErrQuestionTooShort, fmt.Sprint("question too short: expected at least 3 alternatives but received ", len(q.Alternatives)), nil)
+		return apperrors.NewAppError(apperrors.ErrQuestionTooShort, fmt.Sprint("question too short: expected at least 2 alternatives but received ", len(q.Alternatives)), nil)
 	}
 	if q.Answer < 0 || q.Answer >= len(q.Alternatives) {
 		return apperrors.NewAppError(apperrors.ErrInvalidAnswerIndex, fmt.Sprint(
