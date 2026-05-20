@@ -1,8 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login, loginWithGoogle } from './api'
-import logo from './assets/logo.png'
+import logo from './assets/logo.svg'
 
+/* Ícones */
+const IconMail = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 4l10 9 10-9"/>
+  </svg>
+)
+const IconLock = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+)
 const EyeShow = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 const EyeHide = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
 const Spin = () => <svg style={{ animation:'spin .7s linear infinite' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><circle cx="12" cy="12" r="10" strokeOpacity=".22"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
@@ -12,8 +23,12 @@ function PwField({ value, onChange, placeholder, autoComplete }) {
   const [show, setShow] = useState(false)
   return (
     <div style={{ position:'relative' }}>
+      <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#a8a6c8', display:'flex', pointerEvents:'none' }}>
+        <IconLock />
+      </div>
       <input type={show?'text':'password'} value={value} onChange={onChange}
-        placeholder={placeholder} autoComplete={autoComplete} style={{ ...inp, paddingRight:44 }} />
+        placeholder={placeholder} autoComplete={autoComplete}
+        style={{ ...inp, paddingLeft:42, paddingRight:44 }} />
       <button type="button" onClick={() => setShow(v=>!v)} style={eyeBtn}>
         {show ? <EyeHide /> : <EyeShow />}
       </button>
@@ -47,7 +62,7 @@ export default function Login() {
     e.preventDefault(); setErr('')
     if (!email.trim()||!pw) { setErr('Preencha todos os campos.'); return }
     setLoad(true)
-    try { await login(email.trim(),pw); go('/splash') }  // era /criar
+    try { await login(email.trim(),pw); go('/splash') }
     catch(er) { setErr(mapErr(er.message)) }
     finally { setLoad(false) }
   }
@@ -62,9 +77,16 @@ export default function Login() {
       <h1 style={title}>Bem-vindo de volta</h1>
       <p style={sub}>Entre com sua conta para continuar.</p>
       <form onSubmit={submit} noValidate>
-        <div style={field}><label style={lbl}>E-mail</label>
-          <input type="email" placeholder="voce@email.com" autoComplete="email"
-            style={inp} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} /></div>
+        <div style={field}>
+          <label style={lbl}>E-mail</label>
+          <div style={{ position:'relative' }}>
+            <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#a8a6c8', display:'flex', pointerEvents:'none' }}>
+              <IconMail />
+            </div>
+            <input type="email" placeholder="voce@email.com" autoComplete="email"
+              style={{ ...inp, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
+          </div>
+        </div>
         <div style={field}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
             <label style={lbl}>Senha</label>
@@ -77,7 +99,7 @@ export default function Login() {
           {load ? <><Spin /> Entrando…</> : 'Entrar'}
         </button>
       </form>
-      <div style={orRow}><span style={orLine}/><span style={{ fontSize:12, color:'rgba(255,255,255,0.2)', fontWeight:500 }}>ou</span><span style={orLine}/></div>
+      <div style={orRow}><span style={orLine}/><span style={orText}>ou</span><span style={orLine}/></div>
       <button onClick={handleGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
       <p style={footTxt}>Sem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/register')}}>Criar conta</a></p>
     </>
@@ -96,18 +118,26 @@ export default function Login() {
 
   return (
     <div style={split}>
-      {/* LEFT */}
+      {/* LEFT – agora com efeito de vidro fosco */}
       <div style={leftPanel}>
-        <div style={lpGrain} />
-        <div style={{ ...lpBlob, width:640, height:640, background:'#4f7edd', top:-220, left:-180, opacity:0.12 }} />
-        <div style={{ ...lpBlob, width:400, height:400, background:'#ec4899', opacity:0.08, bottom:-100, right:-40 }} />
-        <div style={{ ...lpBlob, width:260, height:260, background:'#a855f7', opacity:0.06, top:'45%', right:'18%' }} />
-        <div style={{ position:'relative', zIndex:2, textAlign:'center', animation:'lgIn .9s ease both .1s' }}>
-          <img src={logo} alt="Metapps" style={{ width:'min(320px,40vw)', height:'auto', display:'block', margin:'0 auto', filter:'drop-shadow(0 20px 60px rgba(79,126,221,0.2))' }}
-            onError={e=>{e.target.style.display='none';e.target.insertAdjacentHTML('afterend','<div style="font-family:\'Playfair Display\',serif;font-size:clamp(42px,6vw,62px);font-weight:700;letter-spacing:-2px;color:#e8ecf2;background:linear-gradient(120deg,#4f7edd,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Metapps</div>')}} />
+        {/* Camada de fundo com blobs e grain (atrás do vidro) */}
+        <div style={leftBgLayer}>
+          <div style={lpGrain} />
+          <div style={{ ...lpBlob, width:640, height:640, background:'#5d6b8e', top:-220, left:-180, opacity:0.15 }} />
+          <div style={{ ...lpBlob, width:400, height:400, background:'#27187e', opacity:0.1, bottom:-100, right:-40 }} />
+          <div style={{ ...lpBlob, width:260, height:260, background:'#a8a6c8', opacity:0.08, top:'45%', right:'18%' }} />
         </div>
-        <div style={lpSep} />
+
+        {/* Camada de vidro fosco */}
+        <div style={glassOverlay} />
+
+        {/* Conteúdo nítido acima do vidro */}
+        <div style={{ position:'relative', zIndex:3, textAlign:'center', animation:'lgIn .9s ease both .1s' }}>
+          <img src={logo} alt="Metapps" style={{ width:'min(320px,40vw)', height:'auto', display:'block', margin:'0 auto', filter:'drop-shadow(0 20px 60px rgba(39,24,126,0.3))' }}
+            onError={e=>{e.target.style.display='none';e.target.insertAdjacentHTML('afterend','<div style="font-family:\'Playfair Display\',serif;font-size:clamp(42px,6vw,62px);font-weight:700;letter-spacing:-2px;color:#e8ecf2;background:linear-gradient(120deg,#5d6b8e,#27187e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Metapps</div>')}} />
+        </div>
       </div>
+
       {/* RIGHT */}
       <div style={rightPanel}>
         <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{form}</div>
@@ -117,6 +147,7 @@ export default function Login() {
   )
 }
 
+/* Animações */
 const ANIMS = `
   @keyframes fIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}
@@ -124,32 +155,105 @@ const ANIMS = `
   @keyframes lgIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
   input[type=password]::-ms-reveal,input[type=password]::-ms-clear{display:none}
   input::-webkit-credentials-auto-fill-button,input::-webkit-contacts-auto-fill-button{visibility:hidden;pointer-events:none;width:0;height:0}
-  input:focus{border-color:#4f7edd!important;box-shadow:0 0 0 3px rgba(79,126,221,0.15)!important;outline:none}
+  input:focus{border-color:#5d6b8e!important;box-shadow:0 0 0 3px rgba(93,107,142,0.2)!important;outline:none}
 `
 
-const split     = { display:'flex', height:'100vh', overflow:'hidden', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
-const leftPanel = { flex:'0 0 58%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(158deg,#080c14 0%,#0c1220 55%,#080c14 100%)' }
-const lpGrain   = { position:'absolute', inset:0, pointerEvents:'none', zIndex:1, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.76' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")` }
-const lpBlob    = { position:'absolute', borderRadius:'50%', filter:'blur(100px)', pointerEvents:'none', zIndex:0, opacity:0.18 }
-const lpSep     = { position:'absolute', right:0, top:0, width:160, height:'100%', background:'linear-gradient(90deg, transparent 0%, rgba(8,12,20,0.8) 60%, #080c14 100%)', zIndex:3, pointerEvents:'none' }
+/* Layout */
+const split      = { display:'flex', height:'100vh', overflow:'hidden', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
 
-const rightPanel = { flex:'0 0 42%', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 52px', overflowY:'auto', position:'relative', background:'linear-gradient(160deg,#0a0f1a 0%,#0c1220 40%,#0a0f1a 100%)' }
+/* Painel esquerdo com vidro fosco */
+const leftPanel = {
+  flex:'0 0 58%',
+  position:'relative',
+  overflow:'hidden',
+  display:'flex',
+  alignItems:'center',
+  justifyContent:'center',
+  background:'linear-gradient(158deg,#14182b 0%,#212842 55%,#14182b 100%)' /* fallback */
+}
 
-const mobPage   = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', background:'linear-gradient(158deg,#080c14 0%,#0c1220 55%,#080c14 100%)', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
-const mobCard   = { width:'100%', maxWidth:400, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:16, padding:'32px 26px 28px' }
-const fbox      = { width:'100%', maxWidth:320 }
+/* Camada de fundo (blobs + grain) */
+const leftBgLayer = {
+  position:'absolute',
+  inset:0,
+  zIndex:0,
+}
 
-const title     = { fontSize:21, fontWeight:700, color:'#f1f5f9', letterSpacing:'-0.4px', lineHeight:1.2, marginBottom:4 }
-const sub       = { fontSize:13, color:'rgba(226,232,240,0.5)', lineHeight:1.5, marginBottom:22 }
-const field     = { marginBottom:13 }
-const lbl       = { display:'block', fontSize:12, fontWeight:600, color:'rgba(226,232,240,0.5)', letterSpacing:'0.2px', marginBottom:6 }
-const forgotLnk = { fontSize:12, fontWeight:500, color:'#ec4899', textDecoration:'none' }
-const inp       = { width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, color:'#e2e8f0', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'11px 13px', outline:'none', transition:'border-color .15s,box-shadow .15s', WebkitAppearance:'none', appearance:'none' }
-const eyeBtn    = { position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:5, color:'rgba(226,232,240,0.3)', display:'flex', alignItems:'center', borderRadius:4, zIndex:2 }
-const errBox    = { background:'rgba(220,60,60,0.08)', border:'1px solid rgba(220,60,60,0.15)', borderRadius:6, padding:'9px 13px', fontSize:13, fontWeight:500, color:'#e08080', lineHeight:1.45, marginBottom:13 }
-const btnMain   = { width:'100%', padding:12, border:'none', borderRadius:6, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#4f7edd', color:'#fff', transition:'all .15s' }
-const btnGoogle = { width:'100%', padding:12, borderRadius:6, border:'1px solid rgba(236,72,153,0.2)', background:'rgba(255,255,255,0.02)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:13.5, fontWeight:600, color:'rgba(226,232,240,0.8)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .15s' }
-const orRow     = { display:'flex', alignItems:'center', gap:12, margin:'16px 0 14px' }
-const orLine    = { flex:1, height:1, background:'rgba(255,255,255,0.06)', display:'block' }
-const footTxt   = { fontSize:13, color:'rgba(226,232,240,0.4)', textAlign:'center', marginTop:18 }
-const footLnk   = { color:'#ec4899', fontWeight:600, textDecoration:'none' }
+/* Vidro fosco – cobre todo o painel esquerdo */
+const glassOverlay = {
+  position:'absolute',
+  inset:0,
+  zIndex:1,
+  backdropFilter:'blur(24px)',
+  WebkitBackdropFilter:'blur(24px)',
+  background:'rgba(33,40,66,0.25)',  /* tom da paleta com transparência */
+  borderRight:'1px solid rgba(168,166,200,0.08)',
+}
+
+/* Blobs e grain (mesmos de antes, apenas reposicionados dentro de leftBgLayer) */
+const lpGrain = {
+  position:'absolute',
+  inset:0,
+  pointerEvents:'none',
+  backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.76' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`,
+  zIndex:0,
+}
+const lpBlob = {
+  position:'absolute',
+  borderRadius:'50%',
+  filter:'blur(100px)',
+  pointerEvents:'none',
+  zIndex:0,
+}
+
+/* Painel direito (inalterado) */
+const rightPanel = { flex:'0 0 42%', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 52px', overflowY:'auto', position:'relative', background:'linear-gradient(160deg,#1a1e33 0%,#212842 40%,#1a1e33 100%)' }
+
+/* Mobile */
+const mobPage   = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', background:'linear-gradient(158deg,#14182b 0%,#212842 55%,#14182b 100%)', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
+const mobCard   = { width:'100%', maxWidth:400, background:'rgba(247,247,255,0.02)', border:'1px solid rgba(168,166,200,0.08)', borderRadius:16, padding:'32px 26px 28px' }
+const fbox      = { width:'100%', maxWidth:360 }
+
+/* Tipografia */
+const title     = { fontSize:22, fontWeight:700, color:'#f7f7ff', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
+const sub       = { fontSize:13.5, color:'#a8a6c8', lineHeight:1.5, marginBottom:24 }
+
+/* Campos */
+const field     = { marginBottom:16 }
+const lbl       = { display:'block', fontSize:12.5, fontWeight:600, color:'#a8a6c8', letterSpacing:'0.3px', marginBottom:6 }
+const inp       = {
+  width:'100%', background:'rgba(247,247,255,0.04)', border:'1.5px solid rgba(168,166,200,0.15)',
+  borderRadius:12, color:'#f7f7ff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14,
+  padding:'13px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s',
+  WebkitAppearance:'none', appearance:'none'
+}
+const eyeBtn    = { position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:6, color:'#a8a6c8', display:'flex', alignItems:'center', borderRadius:6, zIndex:2, transition:'color .15s' }
+
+/* Links */
+const forgotLnk = { fontSize:12.5, fontWeight:500, color:'#4f7edd', textDecoration:'none', transition:'color .15s' }
+const footLnk   = { color:'#4f7edd', fontWeight:600, textDecoration:'none' }
+
+/* Erro */
+const errBox    = { background:'rgba(220,60,60,0.08)', border:'1px solid rgba(220,60,60,0.15)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#e08080', lineHeight:1.45, marginBottom:14 }
+
+/* Botões */
+const btnMain   = {
+  width:'100%', padding:'13px', border:'none', borderRadius:12, fontFamily:"'Inter',-apple-system,sans-serif",
+  fontSize:14.5, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+  gap:8, background:'#4f7edd', color:'#fff', transition:'all .2s',
+  boxShadow:'0 4px 14px rgba(79,126,221,0.3)'
+}
+const btnGoogle = {
+  width:'100%', padding:'13px', borderRadius:12, border:'1.5px solid rgba(168,166,200,0.2)',
+  background:'rgba(247,247,255,0.02)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14,
+  fontWeight:600, color:'#f7f7ff', cursor:'pointer', display:'flex', alignItems:'center',
+  justifyContent:'center', gap:10, transition:'background .2s, border-color .2s'
+}
+
+/* Separador "ou" */
+const orRow     = { display:'flex', alignItems:'center', gap:14, margin:'20px 0 18px' }
+const orLine    = { flex:1, height:1, background:'rgba(168,166,200,0.15)' }
+const orText    = { fontSize:12, color:'#a8a6c8', fontWeight:500, textTransform:'uppercase', letterSpacing:'0.5px' }
+
+/* Rodapé */
+const footTxt   = { fontSize:13.5, color:'#a8a6c8', textAlign:'center', marginTop:20 }

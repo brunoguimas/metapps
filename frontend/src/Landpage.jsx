@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import icon from './assets/logo.png'
-import linePng from './assets/line.png'
+import icon from './assets/icon.svg'
+import linePng from './assets/logo.svg'
 
 /* ── Scroll reveal ── */
 function useReveal(threshold = 0.12) {
@@ -42,64 +42,44 @@ function Reveal({ children, delay = 0, style: custom }) {
   )
 }
 
-/* ── Interface simulada do Metapps (substitui o código Python) ── */
+/* ── Mock da interface com cores da nova paleta ── */
 function MockMetappsUI() {
   return (
     <div
       style={{
-        background: '#0f172a',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: '#212842',
+        border: '1px solid rgba(168,166,200,0.12)',
         borderRadius: 12,
         padding: '28px',
         fontFamily: "'Inter', sans-serif",
-        color: '#e2e8f0',
+        color: '#f7f7ff',
         maxWidth: 400,
       }}
     >
-      {/* Cabeçalho */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <span style={{ fontSize: 16, fontWeight: 600 }}>Suas atividades</span>
-        <span style={{ fontSize: 12, color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: 99 }}>Hoje</span>
+        <span style={{ fontSize: 12, color: '#a8a6c8', background: 'rgba(247,247,255,0.05)', padding: '4px 10px', borderRadius: 99 }}>Hoje</span>
       </div>
 
-      {/* Card de atividade 1 */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: '#4f7edd', fontWeight: 600 }}>Matemática</span>
-          <span style={{ fontSize: 12, color: '#22c55e' }}>80%</span>
+      {[
+        { subject: 'Matemática', progress: 80, color: '#4f7edd', desc: 'Equações do 2º grau' },
+        { subject: 'Inglês', progress: 45, color: '#5d6b8e', desc: 'Past perfect tense' },
+        { subject: 'Programação', progress: 100, color: '#27187e', desc: 'Busca binária em Python', done: true },
+      ].map(({ subject, progress, color, desc, done }) => (
+        <div key={subject} style={{ background: 'rgba(247,247,255,0.03)', borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color, fontWeight: 600 }}>{subject}</span>
+            <span style={{ fontSize: 12, color: progress === 100 ? '#6aaf6a' : '#f59e0b' }}>{progress}%</span>
+          </div>
+          <div style={{ fontSize: 14, marginBottom: 10, textDecoration: done ? 'line-through' : 'none', color: done ? '#a8a6c8' : '#f7f7ff' }}>{desc}</div>
+          <div style={{ height: 4, background: 'rgba(247,247,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: color, borderRadius: 99 }} />
+          </div>
         </div>
-        <div style={{ fontSize: 14, marginBottom: 10 }}>Equações do 2º grau</div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ width: '80%', height: '100%', background: '#4f7edd', borderRadius: 99 }} />
-        </div>
-      </div>
-
-      {/* Card de atividade 2 */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: '#ec4899', fontWeight: 600 }}>Inglês</span>
-          <span style={{ fontSize: 12, color: '#f59e0b' }}>45%</span>
-        </div>
-        <div style={{ fontSize: 14, marginBottom: 10 }}>Past perfect tense</div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ width: '45%', height: '100%', background: '#ec4899', borderRadius: 99 }} />
-        </div>
-      </div>
-
-      {/* Card de atividade 3 */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: '#a855f7', fontWeight: 600 }}>Programação</span>
-          <span style={{ fontSize: 12, color: '#22c55e' }}>100%</span>
-        </div>
-        <div style={{ fontSize: 14, marginBottom: 10, textDecoration: 'line-through', color: '#94a3b8' }}>Busca binária em Python</div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ width: '100%', height: '100%', background: '#a855f7', borderRadius: 99 }} />
-        </div>
-      </div>
+      ))}
 
       <div style={{ textAlign: 'center', marginTop: 16 }}>
-        <span style={{ fontSize: 12, color: '#64748b' }}>Atualizado agora pela IA</span>
+        <span style={{ fontSize: 12, color: '#5d6b8e' }}>Atualizado agora pela IA</span>
       </div>
     </div>
   )
@@ -114,7 +94,6 @@ export default function Landpage() {
   useEffect(() => {
     document.body.style.overflow = 'auto'
     document.body.style.height = 'auto'
-
     document.title = 'Metapps'
     const favicon = document.querySelector("link[rel*='icon']")
     if (favicon) favicon.href = icon
@@ -147,8 +126,8 @@ export default function Landpage() {
         width: '100%',
         fontFamily: "'Inter', -apple-system, sans-serif",
         WebkitFontSmoothing: 'antialiased',
-        background: '#080c14',
-        color: '#e2e8f0',
+        background: '#14182b',
+        color: '#f7f7ff',
         overflowX: 'hidden',
       }}
     >
@@ -162,9 +141,10 @@ export default function Landpage() {
           zIndex: 100,
           transform: scrolled ? 'translateY(0)' : 'translateY(-100%)',
           transition: 'transform 0.4s ease',
-          background: 'rgba(8,12,20,0.9)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(20,24,43,0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(168,166,200,0.06)',
         }}
       >
         <div
@@ -178,11 +158,10 @@ export default function Landpage() {
             justifyContent: 'space-between',
           }}
         >
-          {/* Logo com line.png ajustada (agora com altura 32px) */}
           <img
-            src={linePng}
+            src={icon}
             alt="Metapps"
-            style={{ height: 32, width: 'auto', opacity: 0.9, filter: 'brightness(0.95)' }}
+            style={{ height: 32, width: 'auto', opacity: 0.95 }}
             onClick={() => navigate('/home')}
             onError={(e) => (e.target.style.display = 'none')}
           />
@@ -190,14 +169,15 @@ export default function Landpage() {
             onClick={() => navigate('/register')}
             style={{
               padding: '8px 20px',
-              borderRadius: 6,
+              borderRadius: 8,
               border: 'none',
               background: '#4f7edd',
               color: '#fff',
               fontSize: 14,
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
               letterSpacing: '0.3px',
+              boxShadow: '0 2px 10px rgba(79,126,221,0.3)',
             }}
           >
             Começar agora
@@ -212,7 +192,7 @@ export default function Landpage() {
           display: 'flex',
           alignItems: 'center',
           padding: mob ? '120px 0 80px' : '140px 0 100px',
-          background: 'linear-gradient(170deg, #080c14 0%, #0c1220 50%, #080c14 100%)',
+          background: 'linear-gradient(170deg, #14182b 0%, #212842 50%, #14182b 100%)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -221,7 +201,7 @@ export default function Landpage() {
           style={{
             position: 'absolute',
             inset: 0,
-            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f7f7ff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -229,28 +209,26 @@ export default function Landpage() {
 
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px', width: '100%', position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', flexDirection: mob ? 'column' : 'row', alignItems: 'center', gap: mob ? 48 : 80 }}>
-            {/* Texto à esquerda */}
             <div style={{ flex: 1 }}>
-              <h1 style={{ fontSize: 'clamp(42px,7vw,72px)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 24, color: '#f8fafc' }}>
+              <h1 style={{ fontSize: 'clamp(42px,7vw,72px)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 24, color: '#f7f7ff' }}>
                 Estude do seu jeito,{' '}
-                <span style={{ background: 'linear-gradient(135deg, #4f7edd, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                <span style={{ background: 'linear-gradient(135deg, #5d6b8e, #27187e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   com IA.
                 </span>
               </h1>
-              <p style={{ fontSize: 18, color: 'rgba(226,232,240,0.55)', lineHeight: 1.7, marginBottom: 32, maxWidth: 500 }}>
+              <p style={{ fontSize: 18, color: '#a8a6c8', lineHeight: 1.7, marginBottom: 32, maxWidth: 500 }}>
                 O Metapps cria atividades personalizadas usando inteligência artificial — no seu ritmo, no seu nível, em qualquer assunto.
               </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <button onClick={() => navigate('/register')} style={{ padding: '12px 28px', borderRadius: 6, border: 'none', background: '#4f7edd', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
+                <button onClick={() => navigate('/register')} style={{ padding: '12px 28px', borderRadius: 8, border: 'none', background: '#4f7edd', color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,126,221,0.35)' }}>
                   Começar agora
                 </button>
-                <button onClick={() => navigate('/login')} style={{ padding: '12px 28px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#e2e8f0', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
+                <button onClick={() => navigate('/login')} style={{ padding: '12px 28px', borderRadius: 8, border: '1.5px solid rgba(168,166,200,0.2)', background: 'transparent', color: '#f7f7ff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
                   Já tenho conta
                 </button>
               </div>
             </div>
 
-            {/* Imagem à direita (agora sem borda nem borderRadius) */}
             {!mob && (
               <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                 <img
@@ -276,13 +254,13 @@ export default function Landpage() {
       </section>
 
       {/* ── COMO FUNCIONA ── */}
-      <section style={{ padding: mob ? '80px 0' : '120px 0', background: '#0a0f1a' }}>
+      <section style={{ padding: mob ? '80px 0' : '120px 0', background: '#1a1e33' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
           <Reveal>
             <div style={{ marginBottom: 64, textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#ec4899', marginBottom: 16 }}>Como funciona</div>
-              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f1f5f9', lineHeight: 1.1, marginBottom: 16 }}>Três passos simples</h2>
-              <p style={{ fontSize: 16, color: 'rgba(226,232,240,0.5)', maxWidth: 500, margin: '0 auto' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#27187e', marginBottom: 16 }}>Como funciona</div>
+              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 16 }}>Três passos simples</h2>
+              <p style={{ fontSize: 16, color: '#a8a6c8', maxWidth: 500, margin: '0 auto' }}>
                 Nossa IA entende o que você precisa aprender e cria atividades sob medida, como um professor particular.
               </p>
             </div>
@@ -291,14 +269,14 @@ export default function Landpage() {
           <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr 1fr', gap: 32 }}>
             {[
               { step: '01', title: 'Escolha o tema', desc: 'Diga para a IA o que quer aprender — qualquer assunto, do básico ao avançado.', color: '#4f7edd' },
-              { step: '02', title: 'IA gera atividades', desc: 'Exercícios e desafios são criados em tempo real, adaptados ao seu nível.', color: '#ec4899' },
-              { step: '03', title: 'Pratique e evolua', desc: 'Complete as tarefas, acompanhe seu progresso e mantenha suas conquistas diárias.', color: '#a855f7' },
+              { step: '02', title: 'IA gera atividades', desc: 'Exercícios e desafios são criados em tempo real, adaptados ao seu nível.', color: '#5d6b8e' },
+              { step: '03', title: 'Pratique e evolua', desc: 'Complete as tarefas, acompanhe seu progresso e mantenha suas conquistas diárias.', color: '#27187e' },
             ].map(({ step, title, desc, color }, i) => (
               <Reveal key={step} delay={i * 80}>
-                <div style={{ padding: '32px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', height: '100%' }}>
+                <div style={{ padding: '32px', borderRadius: 12, background: 'rgba(247,247,255,0.02)', border: '1px solid rgba(168,166,200,0.08)', height: '100%' }}>
                   <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 20 }}>{step}</div>
-                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#e2e8f0', marginBottom: 12 }}>{title}</h3>
-                  <p style={{ fontSize: 15, color: 'rgba(226,232,240,0.55)', lineHeight: 1.65 }}>{desc}</p>
+                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#f7f7ff', marginBottom: 12 }}>{title}</h3>
+                  <p style={{ fontSize: 15, color: '#a8a6c8', lineHeight: 1.65 }}>{desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -306,26 +284,26 @@ export default function Landpage() {
         </div>
       </section>
 
-      {/* ── PERSONALIZAÇÃO INTELIGENTE (agora com MockMetappsUI) ── */}
-      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(180deg, #080c14 0%, #0a0f1a 50%, #080c14 100%)' }}>
+      {/* ── PERSONALIZAÇÃO INTELIGENTE ── */}
+      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(180deg, #14182b 0%, #212842 50%, #14182b 100%)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
           <div style={{ display: 'flex', flexDirection: mob ? 'column' : 'row', gap: mob ? 40 : 80, alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#4f7edd', marginBottom: 16 }}>Personalização inteligente</div>
-              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f1f5f9', lineHeight: 1.1, marginBottom: 20 }}>A IA conhece você</h2>
-              <p style={{ fontSize: 16, color: 'rgba(226,232,240,0.55)', lineHeight: 1.7, marginBottom: 40 }}>
+              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 20 }}>A IA conhece você</h2>
+              <p style={{ fontSize: 16, color: '#a8a6c8', lineHeight: 1.7, marginBottom: 40 }}>
                 Adaptação contínua baseada no seu desempenho real — quanto mais você pratica, mais precisa se torna a geração de tarefas.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 {[
-                  { title: 'Questionário inicial', desc: 'Responda algumas perguntas sobre seus interesses e nível atual para calibrar a IA.' },
-                  { title: 'Geração sob medida', desc: 'Exercícios únicos criados com base no seu perfil, ajustando dificuldade automaticamente.' },
+                  { title: 'Questionário inicial', desc: 'Responda algumas perguntas sobre seus interesses e nível atual para calibrar a IA.', color: '#27187e' },
+                  { title: 'Geração sob medida', desc: 'Exercícios únicos criados com base no seu perfil, ajustando dificuldade automaticamente.', color: '#4f7edd' },
                 ].map((item, i) => (
                   <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: i === 0 ? '#ec4899' : '#4f7edd', marginTop: 8, flexShrink: 0 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, marginTop: 8, flexShrink: 0 }} />
                     <div>
-                      <h4 style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>{item.title}</h4>
-                      <p style={{ fontSize: 14, color: 'rgba(226,232,240,0.5)', lineHeight: 1.6 }}>{item.desc}</p>
+                      <h4 style={{ fontSize: 16, fontWeight: 600, color: '#f7f7ff', marginBottom: 6 }}>{item.title}</h4>
+                      <p style={{ fontSize: 14, color: '#a8a6c8', lineHeight: 1.6 }}>{item.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -338,31 +316,29 @@ export default function Landpage() {
         </div>
       </section>
 
-      {/* ── DEMONSTRAÇÃO (vídeo à esquerda, textos à direita) ── */}
-      <section style={{ padding: mob ? '80px 0' : '120px 0', background: '#0a0f1a' }}>
+      {/* ── DEMONSTRAÇÃO ── */}
+      <section style={{ padding: mob ? '80px 0' : '120px 0', background: '#1a1e33' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
           <div style={{ display: 'flex', flexDirection: mob ? 'column' : 'row', gap: 40, alignItems: 'center' }}>
-            {/* Player de vídeo à esquerda */}
             <div style={{ flex: 1 }}>
               <Reveal>
-                <div style={{ position: 'relative', width: '100%', borderRadius: 12, overflow: 'hidden', background: '#0f172a', border: '1px solid rgba(255,255,255,0.06)', aspectRatio: '16/9', cursor: 'pointer' }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0e1a2b, #0f172a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="24" height="24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
+                <div style={{ position: 'relative', width: '100%', borderRadius: 12, overflow: 'hidden', background: '#212842', border: '1px solid rgba(168,166,200,0.08)', aspectRatio: '16/9', cursor: 'pointer' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #1a1e33, #212842)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', border: '1px solid rgba(168,166,200,0.15)', background: 'rgba(247,247,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="24" height="24" fill="none" stroke="#f7f7ff" strokeWidth="1.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
                     </div>
                   </div>
                 </div>
               </Reveal>
             </div>
 
-            {/* Textos à direita */}
             <div style={{ flex: 1 }}>
               <Reveal delay={100}>
-                <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#ec4899', marginBottom: 16 }}>Demonstração</div>
-                <h2 style={{ fontSize: 'clamp(28px,4vw,40px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f1f5f9', lineHeight: 1.1, marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#27187e', marginBottom: 16 }}>Demonstração</div>
+                <h2 style={{ fontSize: 'clamp(28px,4vw,40px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 20 }}>
                   Veja o Metapps em ação
                 </h2>
-                <p style={{ fontSize: 16, color: 'rgba(226,232,240,0.55)', lineHeight: 1.7, marginBottom: 24 }}>
+                <p style={{ fontSize: 16, color: '#a8a6c8', lineHeight: 1.7, marginBottom: 24 }}>
                   Assista como a IA gera atividades personalizadas em segundos e entenda como nossa interface foi projetada para ser simples e produtiva.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -371,7 +347,7 @@ export default function Landpage() {
                       <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(79,126,221,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="12" height="12" fill="none" stroke="#4f7edd" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
                       </div>
-                      <span style={{ fontSize: 15, color: '#e2e8f0' }}>{item}</span>
+                      <span style={{ fontSize: 15, color: '#f7f7ff' }}>{item}</span>
                     </div>
                   ))}
                 </div>
@@ -381,16 +357,16 @@ export default function Landpage() {
         </div>
       </section>
 
-      {/* ── NOVA SEÇÃO: Recursos principais ── */}
-      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(180deg, #080c14 0%, #0a0f1a 100%)' }}>
+      {/* ── RECURSOS PRINCIPAIS ── */}
+      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(180deg, #14182b 0%, #212842 100%)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
           <Reveal>
             <div style={{ marginBottom: 64, textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#4f7edd', marginBottom: 16 }}>Recursos principais</div>
-              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f1f5f9', lineHeight: 1.1, marginBottom: 16 }}>
+              <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 16 }}>
                 Tudo que você precisa
               </h2>
-              <p style={{ fontSize: 16, color: 'rgba(226,232,240,0.5)', maxWidth: 500, margin: '0 auto' }}>
+              <p style={{ fontSize: 16, color: '#a8a6c8', maxWidth: 500, margin: '0 auto' }}>
                 Ferramentas completas para transformar seus estudos, sem limites de conteúdo.
               </p>
             </div>
@@ -399,16 +375,16 @@ export default function Landpage() {
           <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr 1fr', gap: 24 }}>
             {[
               { title: 'Assuntos ilimitados', desc: 'Matemática, inglês, programação, história — ou qualquer outro tema que você imaginar.' },
-             { title: 'Conquistas diárias', desc: 'Mantenha o foco com metas diárias e streaks que te motivam a nunca parar.' },
+              { title: 'Conquistas diárias', desc: 'Mantenha o foco com metas diárias e streaks que te motivam a nunca parar.' },
               { title: 'Métricas detalhadas', desc: 'Acompanhe seu progresso com gráficos claros e identifique onde precisa melhorar.' },
               { title: 'Disponível 24/7', desc: 'Acesse de qualquer lugar, a qualquer hora — no celular ou no computador.' },
               { title: 'Sem conteúdo fixo', desc: 'Nada de apostilas prontas. Cada atividade é única, gerada na hora pela IA.' },
               { title: 'Exportação fácil', desc: 'Baixe suas atividades em PDF, compartilhe com colegas ou estude offline.' },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 60}>
-                <div style={{ padding: '24px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', height: '100%' }}>
-                  <h4 style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', marginBottom: 8 }}>{item.title}</h4>
-                  <p style={{ fontSize: 14, color: 'rgba(226,232,240,0.55)', lineHeight: 1.6 }}>{item.desc}</p>
+                <div style={{ padding: '24px', borderRadius: 12, background: 'rgba(247,247,255,0.02)', border: '1px solid rgba(168,166,200,0.08)', height: '100%' }}>
+                  <h4 style={{ fontSize: 16, fontWeight: 600, color: '#f7f7ff', marginBottom: 8 }}>{item.title}</h4>
+                  <p style={{ fontSize: 14, color: '#a8a6c8', lineHeight: 1.6 }}>{item.desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -417,16 +393,16 @@ export default function Landpage() {
       </section>
 
       {/* ── CTA FINAL ── */}
-      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(160deg, #0a0f1a, #080c14)', textAlign: 'center' }}>
+      <section style={{ padding: mob ? '80px 0' : '120px 0', background: 'linear-gradient(160deg, #1a1e33, #14182b)', textAlign: 'center' }}>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 32px' }}>
           <Reveal>
-            <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f1f5f9', lineHeight: 1.1, marginBottom: 20 }}>
+            <h2 style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 20 }}>
               Pronto para começar?
             </h2>
-            <p style={{ fontSize: 16, color: 'rgba(226,232,240,0.5)', marginBottom: 40, lineHeight: 1.7 }}>
+            <p style={{ fontSize: 16, color: '#a8a6c8', marginBottom: 40, lineHeight: 1.7 }}>
               Crie sua conta agora e descubra como a inteligência artificial pode transformar seus estudos.
             </p>
-            <button onClick={() => navigate('/register')} style={{ padding: '14px 40px', borderRadius: 6, border: 'none', background: '#4f7edd', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/register')} style={{ padding: '14px 40px', borderRadius: 8, border: 'none', background: '#4f7edd', color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 16px rgba(79,126,221,0.4)' }}>
               Começar agora — é grátis
             </button>
           </Reveal>
@@ -434,12 +410,12 @@ export default function Landpage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: '#080c14', padding: '60px 0 30px', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+      <footer style={{ background: '#14182b', padding: '60px 0 30px', borderTop: '1px solid rgba(168,166,200,0.04)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr 1fr' : '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 50 }}>
             <div style={{ gridColumn: mob ? 'span 2' : 'auto' }}>
-              <img src={linePng} alt="Metapps" style={{ width: 100, height: 'auto', marginBottom: 16, opacity: 0.5 }} onError={(e) => (e.target.style.display = 'none')} />
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', lineHeight: 1.6, maxWidth: 240 }}>Aprendizado personalizado com IA — do seu jeito, no seu ritmo.</p>
+              <img src={icon} alt="Metapps" style={{ width: 100, height: 'auto', marginBottom: 16, opacity: 0.5 }} onError={(e) => (e.target.style.display = 'none')} />
+              <p style={{ fontSize: 13, color: '#a8a6c8', lineHeight: 1.6, maxWidth: 240 }}>Aprendizado personalizado com IA — do seu jeito, no seu ritmo.</p>
             </div>
             {[
               ['Produto', [['Como funciona', null], ['Criar conta', () => navigate('/register')], ['Entrar', () => navigate('/login')]]],
@@ -447,13 +423,13 @@ export default function Landpage() {
               ['Legal', [['Termos de uso', () => window.open('/src/pages/Termos.html', '_blank')], ['Privacidade', () => window.open('/src/pages/Termos.html#privacidade', '_blank')]]],
             ].map(([title, links]) => (
               <div key={title}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 16 }}>{title}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#a8a6c8', marginBottom: 16 }}>{title}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {links.map(([label, fn]) => (
-                    <span key={label} style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', cursor: fn ? 'pointer' : 'default', transition: 'color 0.2s' }}
+                    <span key={label} style={{ fontSize: 13, color: 'rgba(247,247,255,0.4)', cursor: fn ? 'pointer' : 'default', transition: 'color 0.2s' }}
                       onClick={() => fn && fn()}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#ec4899')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#4f7edd')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(247,247,255,0.4)')}>
                       {label}
                     </span>
                   ))}
@@ -461,7 +437,7 @@ export default function Landpage() {
               </div>
             ))}
           </div>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 24, fontSize: 12, color: 'rgba(255,255,255,0.15)', textAlign: 'center' }}>
+          <div style={{ borderTop: '1px solid rgba(168,166,200,0.06)', paddingTop: 24, fontSize: 12, color: '#a8a6c8', textAlign: 'center' }}>
             © 2026 Metapps — Projeto acadêmico (TCC). Todos os direitos reservados.
           </div>
         </div>
@@ -474,8 +450,8 @@ export default function Landpage() {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         button { font-family: 'Inter', -apple-system, sans-serif; }
-        html, body { overflow-x: hidden; }
-        body { overflow-y: auto; background: #080c14; }
+        html, body { overflow-x: hidden; background: #14182b; }
+        body { overflow-y: auto; }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
             animation-duration: 0.01ms !important;
