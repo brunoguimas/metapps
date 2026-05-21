@@ -278,8 +278,8 @@ export default function Register() {
   )
 
   const content = done
-    ? <VerifyPane email={email} onSuccess={() => go('/splash')} />
-    : regForm
+  ? <VerifyPane email={email} onSuccess={() => go('/login')} />
+  : regForm
 
   if (mob) return (
     <div style={mobPage}>

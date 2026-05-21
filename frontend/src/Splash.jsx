@@ -1,44 +1,132 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import icon from './assets/icon.svg'
+import animacaoVideo from './assets/animacao.mp4'
+
+const CORES = {
+  bg1: '#14182b',
+  bg2: '#212842',
+}
 
 export default function Splash() {
   const navigate = useNavigate()
-  const wrap = useRef(null)
+  const wrapRef = useRef(null)
+  const videoRef = useRef(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (wrap.current) {
-        wrap.current.style.transition = 'opacity 0.5s ease'
-        wrap.current.style.opacity = '0'
-      }
-      setTimeout(() => {
-        navigate('/home', { replace: true })
-      }, 520)
-    }, 5000)
-    return () => clearTimeout(t)
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleEnded = () => fadeOutAndNavigate()
+    const fallbackTimer = setTimeout(() => fadeOutAndNavigate(), 7000)
+
+    video.addEventListener('ended', handleEnded)
+    return () => {
+      video.removeEventListener('ended', handleEnded)
+      clearTimeout(fallbackTimer)
+    }
   }, [navigate])
 
+  function fadeOutAndNavigate() {
+    if (wrapRef.current) {
+      wrapRef.current.style.transition = 'opacity 0.6s ease'
+      wrapRef.current.style.opacity = '0'
+    }
+    setTimeout(() => navigate('/home', { replace: true }), 600)
+  }
+
   return (
-    <div ref={wrap} style={s.wrap}>
-      <div style={s.grain} />
-      <div style={{ ...s.blob, width: 680, height: 680, background: '#1a3a8c', top: -260, left: -200 }} />
-      <div style={{ ...s.blob, width: 440, height: 440, background: '#5b4fd4', opacity: 0.15, bottom: -110, right: -100 }} />
-      <div style={{ ...s.blob, width: 280, height: 280, background: '#c4770a', opacity: 0.1, top: '45%', right: '20%' }} />
-      <div style={{ position: 'relative', zIndex: 1, animation: 'sIn 0.85s cubic-bezier(0.34,1.4,0.64,1) both 0.04s' }}>
-        <img src={icon} alt="Metapps" style={s.icon}
-          onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block' }} />
-        <div style={{ display: 'none', ...s.fb }}>META<span style={{ color: '#7b9fd4' }}>PPS</span></div>
-      </div>
-      <style>{`@keyframes sIn{from{opacity:0;transform:scale(0.72)}to{opacity:1;transform:scale(1)}}`}</style>
+    <div ref={wrapRef} style={s.wrap}>
+      <video
+        ref={videoRef}
+        src={animacaoVideo}
+        style={{
+          ...s.video,
+          objectFit: isMobile ? 'contain' : 'cover',   // sem cortes no mobile
+        }}
+        autoPlay
+        playsInline
+        muted
+        preload="auto"
+        onError={() => fadeOutAndNavigate()}
+      />
+      <div style={s.blob1} />
+      <div style={s.blob2} />
+      <div style={s.blob3} />
+      <style>{blobAnimationStyle}</style>
     </div>
   )
 }
 
 const s = {
-  wrap: { position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'radial-gradient(ellipse 90% 70% at 30% 40%, rgba(79,126,221,0.26) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 75% 70%, rgba(91,79,212,0.15) 0%, transparent 55%), linear-gradient(158deg,#08081c 0%,#0b0c26 55%,#07081a 100%)' },
-  grain: { position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")` },
-  blob: { position: 'absolute', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none', opacity: 0.18 },
-  icon: { width: 'min(400px, 80vw)', height: 'auto', display: 'block', filter: 'drop-shadow(0 24px 72px rgba(79,126,221,0.42)) drop-shadow(0 4px 16px rgba(0,0,0,0.6))' },
-  fb: { fontSize: 'clamp(72px,20vw,110px)', fontWeight: 800, letterSpacing: '-4px', color: '#e8ecf2', textAlign: 'center' },
+  wrap: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9999,
+    overflow: 'hidden',
+    background: `linear-gradient(180deg, ${CORES.bg1} 0%, ${CORES.bg2} 55%, ${CORES.bg1} 100%)`,
+  },
+  video: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
+  },
+  blob1: {
+    position: 'absolute',
+    width: 640,
+    height: 640,
+    background: '#5d6b8e',
+    borderRadius: '50%',
+    filter: 'blur(110px)',
+    opacity: 0.06,
+    top: -220,
+    left: -180,
+    pointerEvents: 'none',
+    zIndex: 2,
+    animation: 'floatBlob 12s ease-in-out infinite',
+  },
+  blob2: {
+    position: 'absolute',
+    width: 400,
+    height: 400,
+    background: '#27187e',
+    borderRadius: '50%',
+    filter: 'blur(90px)',
+    opacity: 0.05,
+    bottom: -120,
+    right: -60,
+    pointerEvents: 'none',
+    zIndex: 2,
+    animation: 'floatBlob 16s ease-in-out infinite 1.5s',
+  },
+  blob3: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    background: '#a8a6c8',
+    borderRadius: '50%',
+    filter: 'blur(70px)',
+    opacity: 0.04,
+    top: '42%',
+    right: '18%',
+    pointerEvents: 'none',
+    zIndex: 2,
+    animation: 'floatBlob 10s ease-in-out infinite 3s',
+  },
 }
+
+const blobAnimationStyle = `
+  @keyframes floatBlob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-20px, 15px) scale(1.02); }
+  }
+`
