@@ -101,7 +101,7 @@ export default function Login() {
       </form>
       <div style={orRow}><span style={orLine}/><span style={orText}>ou</span><span style={orLine}/></div>
       <button onClick={handleGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
-      <p style={footTxt}>Sem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/register')}}>Criar conta</a></p>
+      <p style={footTxt}>Sem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/auth/register')}}>Criar conta</a></p>
     </>
   )
 

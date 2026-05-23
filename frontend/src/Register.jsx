@@ -273,12 +273,12 @@ export default function Register() {
         </button>
       </form>
 
-      <p style={footTxt}>Já tem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/login')}}>Entrar</a></p>
+      <p style={footTxt}>Já tem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/auth//login')}}>Entrar</a></p>
     </>
   )
 
   const content = done
-  ? <VerifyPane email={email} onSuccess={() => go('/login')} />
+  ? <VerifyPane email={email} onSuccess={() => go('/auth//login')} />
   : regForm
 
   if (mob) return (

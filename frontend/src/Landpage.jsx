@@ -91,7 +91,7 @@ export default function Landpage() {
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src={icon} alt="Metapps" style={{ height: 32, width: 'auto', cursor: 'pointer' }} onClick={() => navigate('/home')} onError={e => e.target.style.display = 'none'} />
-          <button onClick={() => navigate('/register')} style={btnPrimary}>Começar agora</button>
+          <button onClick={() => navigate('/auth/register')} style={btnPrimary}>Começar agora</button>
         </div>
       </nav>
 
@@ -115,8 +115,8 @@ export default function Landpage() {
                 O Metapps cria atividades personalizadas usando inteligência artificial — no seu ritmo, no seu nível, em qualquer assunto.
               </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: mob ? 'center' : 'flex-start' }}>
-                <button onClick={() => navigate('/register')} style={{ ...btnPrimary, padding: '14px 32px', fontSize: 18 }}>Começar agora</button>
-                <button onClick={() => navigate('/login')} style={btnOutline}>Já tenho conta</button>
+                <button onClick={() => navigate('/auth/register')} style={{ ...btnPrimary, padding: '14px 32px', fontSize: 18 }}>Começar agora</button>
+                <button onClick={() => navigate('/auth/login')} style={btnOutline}>Já tenho conta</button>
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -264,7 +264,7 @@ export default function Landpage() {
           <Reveal>
             <h2 style={{ fontSize: 'clamp(30px,6vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#f7f7ff', lineHeight: 1.1, marginBottom: 20 }}>Pronto para começar?</h2>
             <p style={{ fontSize: 17, color: '#a8a6c8', marginBottom: 36, lineHeight: 1.7 }}>Crie sua conta agora e descubra como a inteligência artificial pode transformar seus estudos.</p>
-            <button onClick={() => navigate('/register')} style={{ ...btnPrimary, padding: '16px 44px', fontSize: 18, boxShadow: '0 8px 28px rgba(79,126,221,0.5)' }}>Começar agora</button>
+            <button onClick={() => navigate('/auth/register')} style={{ ...btnPrimary, padding: '16px 44px', fontSize: 18, boxShadow: '0 8px 28px rgba(79,126,221,0.5)' }}>Começar agora</button>
           </Reveal>
         </div>
       </section>
@@ -278,7 +278,7 @@ export default function Landpage() {
               <p style={{ fontSize: 13, color: '#a8a6c8', lineHeight: 1.6, maxWidth: 240 }}>Seus estudos do seu jeito — Aprendizado personalizado com IA.</p>
             </div>
             {[
-              ['Produto', [['Como funciona', null], ['Criar conta', () => navigate('/register')], ['Entrar', () => navigate('/login')]]],
+              ['Produto', [['Como funciona', null], ['Criar conta', () => navigate('/auth/register')], ['Entrar', () => navigate('/auth/login')]]],
               ['Suporte', [['suporte@metapps.com', null], ['contato@metapps.com', null]]],
               ['Legal', [['Termos de uso', () => window.open('/src/pages/Termos.html', '_blank')], ['Privacidade', () => window.open('/src/pages/Termos.html#privacidade', '_blank')]]],
             ].map(([title, links]) => (

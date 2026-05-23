@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
@@ -9,6 +10,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/security"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
 )
 
@@ -32,7 +34,7 @@ func (h *OAuthHandler) GoogleLogin(c *gin.Context) {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInternal, "state generation failed", err))
 		return
 	}
-	url := h.cfg.GoogleLogin.AuthCodeURL(state)
+	url := h.cfg.GoogleLogin.AuthCodeURL(state, oauth2.SetAuthURLParam("prompt", "select_account"))
 
 	security.SetOAuthStateCookie(c, state, h.cfg)
 
@@ -95,8 +97,15 @@ func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
 
 	security.SetRefreshTokenCookie(c, refreshToken, h.cfg)
 
-	httpx.OK(c, gin.H{
-		"message":      "login successful",
-		"access_token": accessToken,
-	})
+	u, err := url.Parse(h.cfg.FrontendOrigin + "/auth/google/callback")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	q := u.Query()
+	q.Set("token", accessToken)
+	u.RawQuery = q.Encode()
+
+	c.Redirect(http.StatusTemporaryRedirect, u.String())
 }

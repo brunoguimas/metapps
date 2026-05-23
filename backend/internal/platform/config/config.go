@@ -18,7 +18,8 @@ type Config struct {
 	FrontendOrigin           string
 	CookieDomainRefresh      string
 	CookieDomainOAuthState   string
-	CookiePath               string
+	JWTTokenCookiePath       string
+	OAuthStateCookiePath    string
 	CookieSecure             bool
 	JWTSecret                string
 	Issuer                   string
@@ -44,7 +45,8 @@ func Load() *Config {
 	cookieDomain := getEnv("COOKIE_DOMAIN", "localhost")
 	cookieDomainRefresh := getEnv("COOKIE_DOMAIN_REFRESH", cookieDomain)
 	cookieDomainOAuthState := getEnv("COOKIE_DOMAIN_OAUTH_STATE", cookieDomain)
-	cookiePath := getEnv("COOKIE_PATH", "/auth/refresh")
+	jwtCookiePath := getEnv("JWT_TOKEN_COOKIE_PATH", "/auth/refresh")
+	oauthStateCookiePath := getEnv("OAUTH_STATE_COOKIE_PATH", "/auth/google/callback")
 	cookieSecure := getEnvBool("COOKIE_SECURE", false)
 	issuer := getEnv("ISSUER", "metapps")
 	accessTtlStr := getEnv("ACCESS_TOKEN_TTL", "5m")
@@ -111,7 +113,8 @@ func Load() *Config {
 		FrontendOrigin:           origin,
 		CookieDomainRefresh:      cookieDomainRefresh,
 		CookieDomainOAuthState:   cookieDomainOAuthState,
-		CookiePath:               cookiePath,
+		JWTTokenCookiePath:       jwtCookiePath,
+		OAuthStateCookiePath:    oauthStateCookiePath,
 		CookieSecure:             cookieSecure,
 		JWTSecret:                jwtSecret,
 		Issuer:                   issuer,

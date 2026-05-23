@@ -1,10 +1,13 @@
+// vai tomar no cu esse arquivo bosta
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const JWT_TOKEN_COOKIE_PATH = import.meta.env.VITE_JWT_TOKEN_COOKIE_PATH || '/auth/refresh'
 
 // Access token stored in memory only — never localStorage
 let accessToken = null
 
 export function getAccessToken()   { return accessToken }
 export function clearAccessToken() { accessToken = null }
+export function setAccessToken(token) { accessToken = token }
 
 // POST /auth/register
 export async function register(username, email, password) {
@@ -40,7 +43,7 @@ export function loginWithGoogle() {
 
 // POST /auth/refresh — uses refresh_token cookie, updates accessToken
 export async function refreshSession() {
-  const res  = await fetch(`${API_URL}/auth/refresh`, {
+  const res  = await fetch(`${API_URL}${JWT_TOKEN_COOKIE_PATH}`, {
     method: 'POST',
     credentials: 'include',
   })

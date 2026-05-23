@@ -184,7 +184,7 @@ export default function Homepage() {
     try {
       await refreshSession()
     } catch {
-      navigate('/login')
+      navigate('/auth/login')
       return
     }
 
@@ -192,9 +192,9 @@ export default function Homepage() {
     try {
       const res = await authFetch('/auth/me')
       const data = await res.json()
-      if (!res.ok) { navigate('/login'); return }
+      if (!res.ok) { navigate('/auth/login'); return }
       setEmail(data.user?.email || '')
-    } catch { navigate('/login'); return }
+    } catch { navigate('/auth/login'); return }
 
     // 3. Carrega goals
     try {
@@ -209,7 +209,7 @@ export default function Homepage() {
 
   async function handleLogout() {
     apiLogout()
-    navigate('/login')
+    navigate('/auth/login')
   }
 
   function toggleMateria(m) {
