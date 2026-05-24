@@ -3,7 +3,6 @@ package router
 import (
 	"time"
 
-	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/middleware"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
@@ -12,12 +11,23 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/taskattempt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandler, g *goal.GoalHandler, t *task.TaskHandler, ta *taskattempt.Handler, jwtService jwt.JWTService, cfg *config.Config) *gin.Engine {
+func NewRouter(
+a *auth.AuthHandler,
+o *oauth.OAuthHandler,
+h *health.HealthHandler,
+g *goal.GoalHandler,
+tp *topic.TopicHandler,
+t *task.TaskHandler,
+ta *taskattempt.Handler,
+jwtService jwt.JWTService,
+cfg *config.Config,
+) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
@@ -50,16 +60,6 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 	protected := r.Group("/protected")
 	protected.Use(middleware.AuthMiddleware(jwtService))
 	{
-		// protected.POST("/email/update", a.EmailUpdate)
-		// protected.POST("/password/update", a.PasswordUpdate)
-		protected.GET("/home", func(c *gin.Context) {
-			userID, _ := c.Get("user_id")
-			httpx.OK(c, gin.H{
-				"message": "Authorized",
-				"user_id": userID,
-			})
-		})
-
 		goals := protected.Group("/goals")
 		{
 			goals.POST("", g.Create)
@@ -67,6 +67,10 @@ func NewRouter(a *auth.AuthHandler, o *oauth.OAuthHandler, h *health.HealthHandl
 			goals.GET("/:id", g.Get)
 			goals.PUT("/:id", g.Update)
 			goals.DELETE("/:id", g.Delete)
+		}
+		roadmap := protected.Group("/roadmap")
+		{
+			roadmap.POST("/generate", tp.GenerateRoadmap)
 		}
 		tasks := protected.Group("/tasks")
 		{
