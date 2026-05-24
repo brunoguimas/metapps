@@ -49,7 +49,7 @@ func (s *taskService) Create(c context.Context, userID, goalID uuid.UUID) (*Task
 		PerformanceSummary: "performance ruim em todos os assuntos apresentados", // TODO: melhorar isso depois
 	}
 
-	prompt, err := ai.RenderPrompt("generate_task.txt", data)
+	prompt, err := ai.RenderPrompt("generate_task.txt", "task.schema.json", data)
 	if err != nil {
 		return nil, apperrors.NewAppError(
 			apperrors.ErrInternal,

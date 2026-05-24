@@ -1,6 +1,7 @@
 package topic
 
 import (
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -13,9 +14,9 @@ type TopicModule struct {
 	Handler    *TopicHandler
 }
 
-func NewModule(d topic_dependency.TopicDependencyService, g goal.GoalService, queries *db.Queries, c *config.Config) *TopicModule {
+func NewModule(d topic_dependency.TopicDependencyService, g goal.GoalService, a ai.Client, queries *db.Queries, c *config.Config) *TopicModule {
 	r := NewTopicRepository(queries)
-	s := NewTopicService(r, d, c)
+	s := NewTopicService(r, d, a, c)
 	h := NewTopicHandler(s, g)
 
 	return &TopicModule{

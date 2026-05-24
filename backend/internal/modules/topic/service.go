@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic/dto"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
@@ -17,23 +18,33 @@ import (
 type TopicService struct {
 	repo TopicRepository
 	deps topic_dependency.TopicDependencyService
+	ai ai.Client
 	cfg  *config.Config
 }
 
-func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, c *config.Config) TopicService {
+func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config) TopicService {
 	return TopicService{
 		repo: r,
 		deps: d,
+		ai: a,
 		cfg:  c,
 	}
 }
 
 func (s *TopicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
-	// roadmapJSON, err := ai.RenderPrompt("generate_roadmap.txt", nil)
-	roadmapJSON, err := os.ReadFile("internal/modules/topic/testdata/valid_roadmap.json")
+	data := struct{
+		GoalTitle string 
+	}{
+		GoalTitle: g.Title,
+	}
+
+	prompt, err := ai.RenderPrompt("generate_roadmap.txt", "roadmap.schema.json", data)
 	if err != nil {
 		return nil, err
 	}
+
+	roadmapJSON, err := s.ai.Generate(prompt)
+	os.WriteFile("file.txt", []byte(roadmapJSON), os.ModeAppend)
 
 	r, err := parseRoadmapJSON(string(roadmapJSON))
 	if err != nil {
@@ -139,7 +150,7 @@ func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 	var roadmap dto.AIRoadmapResponse
 	err := json.Unmarshal([]byte(roadmapStr), &roadmap)
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "invalid json", err)
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, fmt.Sprintf("invalid json: %s", err.Error()), err)
 	}
 
 	return &roadmap, nil
