@@ -1,8 +1,6 @@
 package goal
 
 import (
-	"encoding/json"
-
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
@@ -18,8 +16,8 @@ func NewGoalHandler(s GoalService) *GoalHandler {
 }
 
 type goalRequest struct {
-	Title        string          `json:"title" binding:"required"`
-	Difficulties json.RawMessage `json:"difficulties" binding:"required"`
+	Title    string       `json:"title" binding:"required"`
+	Settings GoalSettings `json:"goal_settings" binding:"required"`
 }
 
 func (h *GoalHandler) Create(c *gin.Context) {
@@ -35,7 +33,7 @@ func (h *GoalHandler) Create(c *gin.Context) {
 		return
 	}
 
-	goal, err := h.goals.Create(c.Request.Context(), userID, req.Title, req.Difficulties)
+	goal, err := h.goals.Create(c.Request.Context(), userID, &req)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -101,7 +99,7 @@ func (h *GoalHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := h.goals.Update(c.Request.Context(), userID, goalID, req.Title, req.Difficulties); err != nil {
+	if err := h.goals.Update(c.Request.Context(), userID, goalID, &req); err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}

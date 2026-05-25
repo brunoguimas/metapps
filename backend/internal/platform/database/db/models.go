@@ -70,11 +70,11 @@ type EmailCode struct {
 }
 
 type Goal struct {
-	ID           uuid.UUID
-	UserID       uuid.UUID
-	Title        string
-	Difficulties json.RawMessage
-	CreatedAt    time.Time
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Title     string
+	Settings  json.RawMessage
+	CreatedAt time.Time
 }
 
 type OauthAccount struct {
@@ -97,12 +97,12 @@ type RefreshToken struct {
 type Task struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
-	GoalID    uuid.UUID
 	Content   json.RawMessage
 	Type      string
 	Done      bool
 	DoneAt    sql.NullTime
 	CreatedAt sql.NullTime
+	TopicID   uuid.UUID
 }
 
 type TaskAttempt struct {

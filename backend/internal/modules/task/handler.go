@@ -13,20 +13,18 @@ import (
 
 type TaskHandler struct {
 	tasks TaskService
-	goals goal.GoalService
 	cfg   *config.Config
 }
 
 func NewTaskHandler(s TaskService, g goal.GoalService, c *config.Config) *TaskHandler {
 	return &TaskHandler{
 		tasks: s,
-		goals: g,
 		cfg:   c,
 	}
 }
 
 type generateRequest struct {
-	GoalID uuid.UUID `json:"goal_id" binding:"required"`
+	TopicID uuid.UUID `json:"topic_id" binding:"required"`
 }
 
 func (h *TaskHandler) Generate(c *gin.Context) {
@@ -37,12 +35,13 @@ func (h *TaskHandler) Generate(c *gin.Context) {
 	}
 
 	var req generateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	err = c.ShouldBindJSON(&req)
+	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
 	}
 
-	task, err := h.tasks.Create(c.Request.Context(), userID, req.GoalID)
+	task, err := h.tasks.Create(c.Request.Context(), userID, req.TopicID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -79,13 +78,13 @@ func (h *TaskHandler) Get(c *gin.Context) {
 		return
 	}
 
-	goalID, err := uuid.Parse(c.Param("id"))
+	topicID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		httpx.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
-	task, err := h.tasks.GetByID(c.Request.Context(), userID, goalID)
+	task, err := h.tasks.GetByID(c.Request.Context(), userID, topicID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return

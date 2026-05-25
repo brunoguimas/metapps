@@ -8,21 +8,22 @@ import (
 )
 
 type TopicHandler struct {
-	goals goal.GoalService
+	goals  goal.GoalService
 	topics TopicService
 }
 
 func NewTopicHandler(t TopicService, g goal.GoalService) *TopicHandler {
 	return &TopicHandler{
-		goals: g,
+		goals:  g,
 		topics: t,
 	}
 }
 
 type roadmapRequest struct {
-	GoalID string `json:"goal_id"`
+	GoalID string `json:"goal_id" bindin:"required"`
 }
-func (h *TopicHandler) GenerateRoadmap (c *gin.Context) {
+
+func (h *TopicHandler) GenerateRoadmap(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)

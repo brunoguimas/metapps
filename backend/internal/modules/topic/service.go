@@ -15,30 +15,41 @@ import (
 	"github.com/google/uuid"
 )
 
-type TopicService struct {
+type TopicService interface {
+	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
+	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
+}
+
+type topicService struct {
 	repo TopicRepository
 	deps topic_dependency.TopicDependencyService
-	ai ai.Client
+	ai   ai.Client
 	cfg  *config.Config
 }
 
 func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config) TopicService {
-	return TopicService{
+	return topicService{
 		repo: r,
 		deps: d,
-		ai: a,
+		ai:   a,
 		cfg:  c,
 	}
 }
 
-func (s *TopicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
-	data := struct{
-		GoalTitle string 
+func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
+	b, err := ai.FS.ReadFile("schemas/roadmap.schema.json")
+	if err != nil {
+		return nil, err
+	}
+	data := struct {
+		GoalTitle     string
+		RoadmapSchema string
 	}{
-		GoalTitle: g.Title,
+		GoalTitle:     g.Title,
+		RoadmapSchema: string(b),
 	}
 
-	prompt, err := ai.RenderPrompt("generate_roadmap.txt", "roadmap.schema.json", data)
+	prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +155,10 @@ func (s *TopicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 	}
 
 	return &roadmap, nil
+}
+
+func (s topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) {
+	return s.repo.Get(c, topicID)
 }
 
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {

@@ -47,22 +47,7 @@ SCHEMA: QUIZ (OBRIGATÓRIO SE type="quiz")
 
 "content" deve seguir exatamente:
 
-{
-"questions": [
-{
-"statement": "string (mínimo 3 caracteres)",
-"materials": [
-{
-"type": "text | image | link",
-"data": "string"
-}
-],
-"alternatives": ["string", "string", "string", "string"],
-"answer": number,
-"explanation": "string"
-}
-]
-}
+{{.QuizSchema}}
 
 REGRAS:
 
@@ -77,17 +62,7 @@ SCHEMA: ESSAY (OBRIGATÓRIO SE type="essay")
 
 "content" deve seguir exatamente:
 
-{
-"materials": [
-{
-"type": "text | image | link",
-"data": "string"
-}
-],
-"instructions": "string",
-"min_words": number,
-"max_words": number
-}
+{{.EssaySchema}}
 
 REGRAS:
 

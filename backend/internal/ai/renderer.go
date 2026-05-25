@@ -8,21 +8,14 @@ import (
 	"text/template"
 )
 
-//go:embed templates/*.txt schemas/*.json
+//go:embed templates/*.txt
 var assetsFS embed.FS
 
-func RenderPrompt(promptName string, schemaName string, data any) (string, error) {
-	schemaBytes, err := assetsFS.ReadFile("schemas/" + schemaName)
-	if err != nil {
-		return "", fmt.Errorf("failed to read schema %s: %w", schemaName, err)
-	}
-
+func RenderPrompt(promptName string, data any) (string, error) {
 	templateData, err := toMap(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert template data: %w", err)
 	}
-
-	templateData["Schema"] = string(schemaBytes)
 
 	content, err := assetsFS.ReadFile("templates/" + promptName)
 	if err != nil {

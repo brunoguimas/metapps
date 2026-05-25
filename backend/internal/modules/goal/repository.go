@@ -3,6 +3,7 @@ package goal
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -27,10 +28,15 @@ func NewGoalRepository(q *db.Queries) GoalRepository {
 }
 
 func (r *goalRepository) Create(c context.Context, g *Goal) (*Goal, error) {
+	s, err := settingsToRawMessage(g.Settings)
+	if err != nil {
+		return nil, err
+	}
+
 	goal, err := r.queries.CreateOneGoal(c, db.CreateOneGoalParams{
-		UserID:       g.UserID,
-		Title:        g.Title,
-		Difficulties: g.Difficulties,
+		UserID:   g.UserID,
+		Title:    g.Title,
+		Settings: s,
 	})
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
@@ -68,11 +74,16 @@ func (r *goalRepository) GetByID(c context.Context, userID, goalID uuid.UUID) (*
 }
 
 func (r *goalRepository) Update(c context.Context, g *Goal) error {
-	_, err := r.queries.UpdateGoalByID(c, db.UpdateGoalByIDParams{
-		Title:        g.Title,
-		Difficulties: g.Difficulties,
-		ID:           g.ID,
-		UserID:       g.UserID,
+	s, err := settingsToRawMessage(g.Settings)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.queries.UpdateGoalByID(c, db.UpdateGoalByIDParams{
+		Title:    g.Title,
+		Settings: s,
+		ID:       g.ID,
+		UserID:   g.UserID,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -97,11 +108,22 @@ func (r *goalRepository) Delete(c context.Context, userID, goalID uuid.UUID) err
 }
 
 func mapGoal(g db.Goal) *Goal {
+	var settings GoalSettings
+	json.Unmarshal(g.Settings, &settings)
 	return &Goal{
-		ID:           g.ID,
-		UserID:       g.UserID,
-		Title:        g.Title,
-		Difficulties: g.Difficulties,
-		CreatedAt:    g.CreatedAt,
+		ID:        g.ID,
+		UserID:    g.UserID,
+		Title:     g.Title,
+		Settings:  settings,
+		CreatedAt: g.CreatedAt,
 	}
+}
+
+func settingsToRawMessage(s GoalSettings) (json.RawMessage, error) {
+	settings, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.RawMessage(settings), nil
 }

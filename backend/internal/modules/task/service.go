@@ -3,53 +3,67 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
 
 type TaskService interface {
-	Create(c context.Context, userID, goalID uuid.UUID) (*Task, error)
+	Create(c context.Context, userID, topicID uuid.UUID) (*Task, error)
 	GetByUserID(c context.Context, userID uuid.UUID) ([]*Task, error)
-	GetByID(c context.Context, userID, goalID uuid.UUID) (*Task, error)
+	GetByID(c context.Context, userID, topicID uuid.UUID) (*Task, error)
 }
 
 type taskService struct {
-	ai       ai.Client
-	repo     TaskRepository
-	goalRepo goal.GoalRepository
-	cfg      *config.Config
+	ai     ai.Client
+	repo   TaskRepository
+	topics topic.TopicService
+	cfg    *config.Config
 }
 
-func NewTaskService(a ai.Client, r TaskRepository, g goal.GoalRepository, c *config.Config) TaskService {
+func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, g goal.GoalRepository, c *config.Config) TaskService {
 	return &taskService{
-		ai:       a,
-		repo:     r,
-		goalRepo: g,
-		cfg:      c,
+		ai:     a,
+		repo:   r,
+		topics: t,
+		cfg:    c,
 	}
 }
 
-func (s *taskService) Create(c context.Context, userID, goalID uuid.UUID) (*Task, error) {
-	goal, err := s.goalRepo.GetByID(c, userID, goalID)
+func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
+	t, err := s.topics.Get(c, topicID)
+	if err != nil {
+		return nil, err
+	}
+
+	os.WriteFile("string", []byte("oioiio"), os.ModeAppend)
+	quiz, err := ai.FS.ReadFile("schemas/quiz.schema.json")
+	if err != nil {
+		return nil, err
+	}
+	essay, err := ai.FS.ReadFile("schemas/essay.schema.json")
 	if err != nil {
 		return nil, err
 	}
 
 	data := struct {
-		GoalTitle          string
-		Difficulties       string
-		PerformanceSummary string
+		TopicTitle       string
+		TopicDescription string
+		QuizSchema       string
+		EssaySchema      string
 	}{
-		GoalTitle:          goal.Title,
-		Difficulties:       string(goal.Difficulties),
-		PerformanceSummary: "performance ruim em todos os assuntos apresentados", // TODO: melhorar isso depois
+		TopicTitle:       t.Title,
+		TopicDescription: t.Description,
+		QuizSchema:       string(quiz),
+		EssaySchema:      string(essay),
 	}
 
-	prompt, err := ai.RenderPrompt("generate_task.txt", "task.schema.json", data)
+	prompt, err := ai.RenderPrompt("generate_task.txt", data)
 	if err != nil {
 		return nil, apperrors.NewAppError(
 			apperrors.ErrInternal,
@@ -93,46 +107,9 @@ func (s *taskService) Create(c context.Context, userID, goalID uuid.UUID) (*Task
 		)
 	}
 
-	switch aiResp.Type {
-	case TaskQuiz:
-		var quiz QuizContent
-		if err := json.Unmarshal(aiResp.Content, &quiz); err != nil {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				"invalid quiz content",
-				err,
-			)
-		}
-
-		if err := quiz.Validate(); err != nil {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				"invalid quiz content",
-				err,
-			)
-		}
-
-	case TaskEssay:
-		var essay EssayContent
-		if err := json.Unmarshal(aiResp.Content, &essay); err != nil {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				"invalid essay content",
-				err,
-			)
-		}
-		if err := essay.Validate(); err != nil {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				"invalid essay content",
-				err,
-			)
-		}
-	}
-
 	task := &Task{
 		UserID:  userID,
-		GoalID:  goalID,
+		TopicID: topicID,
 		Meta:    aiResp.Meta,
 		Type:    aiResp.Type,
 		Content: aiResp.Content,
@@ -166,8 +143,8 @@ func (s *taskService) GetByUserID(c context.Context, userID uuid.UUID) ([]*Task,
 	return tasks, nil
 }
 
-func (s *taskService) GetByID(c context.Context, userID, goalID uuid.UUID) (*Task, error) {
-	t, err := s.repo.GetByID(c, userID, goalID)
+func (s *taskService) GetByID(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
+	t, err := s.repo.GetByID(c, userID, topicID)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
 			return nil, appErr

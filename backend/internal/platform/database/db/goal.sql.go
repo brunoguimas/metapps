@@ -13,25 +13,25 @@ import (
 )
 
 const createOneGoal = `-- name: CreateOneGoal :one
-INSERT INTO public.goals (user_id, title, difficulties)
+INSERT INTO public.goals (user_id, title, settings)
 VALUES ($1, $2, $3)
-RETURNING id, user_id, title, difficulties, created_at
+RETURNING id, user_id, title, settings, created_at
 `
 
 type CreateOneGoalParams struct {
-	UserID       uuid.UUID
-	Title        string
-	Difficulties json.RawMessage
+	UserID   uuid.UUID
+	Title    string
+	Settings json.RawMessage
 }
 
 func (q *Queries) CreateOneGoal(ctx context.Context, arg CreateOneGoalParams) (Goal, error) {
-	row := q.db.QueryRowContext(ctx, createOneGoal, arg.UserID, arg.Title, arg.Difficulties)
+	row := q.db.QueryRowContext(ctx, createOneGoal, arg.UserID, arg.Title, arg.Settings)
 	var i Goal
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Title,
-		&i.Difficulties,
+		&i.Settings,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -57,7 +57,7 @@ func (q *Queries) DeleteGoalByID(ctx context.Context, arg DeleteGoalByIDParams) 
 }
 
 const getGoalByID = `-- name: GetGoalByID :one
-SELECT id, user_id, title, difficulties, created_at FROM public.goals
+SELECT id, user_id, title, settings, created_at FROM public.goals
 WHERE id = $1
     AND user_id = $2
 `
@@ -74,14 +74,14 @@ func (q *Queries) GetGoalByID(ctx context.Context, arg GetGoalByIDParams) (Goal,
 		&i.ID,
 		&i.UserID,
 		&i.Title,
-		&i.Difficulties,
+		&i.Settings,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getGoalByUserIDandTitle = `-- name: GetGoalByUserIDandTitle :one
-SELECT id, user_id, title, difficulties, created_at FROM public.goals
+SELECT id, user_id, title, settings, created_at FROM public.goals
 WHERE user_id = $1
     AND title = $2
 `
@@ -98,14 +98,14 @@ func (q *Queries) GetGoalByUserIDandTitle(ctx context.Context, arg GetGoalByUser
 		&i.ID,
 		&i.UserID,
 		&i.Title,
-		&i.Difficulties,
+		&i.Settings,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getGoalsByUserID = `-- name: GetGoalsByUserID :many
-SELECT id, user_id, title, difficulties, created_at FROM public.goals
+SELECT id, user_id, title, settings, created_at FROM public.goals
 WHERE user_id = $1
 `
 
@@ -122,7 +122,7 @@ func (q *Queries) GetGoalsByUserID(ctx context.Context, userID uuid.UUID) ([]Goa
 			&i.ID,
 			&i.UserID,
 			&i.Title,
-			&i.Difficulties,
+			&i.Settings,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -141,23 +141,23 @@ func (q *Queries) GetGoalsByUserID(ctx context.Context, userID uuid.UUID) ([]Goa
 const updateGoalByID = `-- name: UpdateGoalByID :one
 UPDATE public.goals
 SET title = $1,
-    difficulties = $2
+    settings = $2
 WHERE id = $3
     AND user_id = $4
 RETURNING id
 `
 
 type UpdateGoalByIDParams struct {
-	Title        string
-	Difficulties json.RawMessage
-	ID           uuid.UUID
-	UserID       uuid.UUID
+	Title    string
+	Settings json.RawMessage
+	ID       uuid.UUID
+	UserID   uuid.UUID
 }
 
 func (q *Queries) UpdateGoalByID(ctx context.Context, arg UpdateGoalByIDParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, updateGoalByID,
 		arg.Title,
-		arg.Difficulties,
+		arg.Settings,
 		arg.ID,
 		arg.UserID,
 	)

@@ -13,13 +13,13 @@ import (
 )
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO public.tasks (user_id, goal_id, content, type)
-VALUES ($1, $2, $3, $4) RETURNING id, user_id, goal_id, content, type, done, done_at, created_at
+INSERT INTO public.tasks (user_id, topic_id, content, type)
+VALUES ($1, $2, $3, $4) RETURNING id, user_id, content, type, done, done_at, created_at, topic_id
 `
 
 type CreateTaskParams struct {
 	UserID  uuid.UUID
-	GoalID  uuid.UUID
+	TopicID uuid.UUID
 	Content json.RawMessage
 	Type    string
 }
@@ -27,7 +27,7 @@ type CreateTaskParams struct {
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
 	row := q.db.QueryRowContext(ctx, createTask,
 		arg.UserID,
-		arg.GoalID,
+		arg.TopicID,
 		arg.Content,
 		arg.Type,
 	)
@@ -35,18 +35,18 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
-		&i.GoalID,
 		&i.Content,
 		&i.Type,
 		&i.Done,
 		&i.DoneAt,
 		&i.CreatedAt,
+		&i.TopicID,
 	)
 	return i, err
 }
 
 const getTaskByID = `-- name: GetTaskByID :one
-SELECT id, user_id, goal_id, content, type, done, done_at, created_at FROM public.tasks 
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id FROM public.tasks 
 WHERE id = $1
     AND user_id = $2
 `
@@ -62,18 +62,18 @@ func (q *Queries) GetTaskByID(ctx context.Context, arg GetTaskByIDParams) (Task,
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
-		&i.GoalID,
 		&i.Content,
 		&i.Type,
 		&i.Done,
 		&i.DoneAt,
 		&i.CreatedAt,
+		&i.TopicID,
 	)
 	return i, err
 }
 
 const getTasksByUserID = `-- name: GetTasksByUserID :many
-SELECT id, user_id, goal_id, content, type, done, done_at, created_at FROM public.tasks
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id FROM public.tasks
 WHERE user_id = $1
 `
 
@@ -89,12 +89,12 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Tas
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
-			&i.GoalID,
 			&i.Content,
 			&i.Type,
 			&i.Done,
 			&i.DoneAt,
 			&i.CreatedAt,
+			&i.TopicID,
 		); err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ SET done = true,
     done_at = now()
 WHERE id = $1
     AND user_id = $2
-RETURNING id, user_id, goal_id, content, type, done, done_at, created_at
+RETURNING id, user_id, content, type, done, done_at, created_at, topic_id
 `
 
 type MarkTaskDoneParams struct {
@@ -129,12 +129,12 @@ func (q *Queries) MarkTaskDone(ctx context.Context, arg MarkTaskDoneParams) (Tas
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
-		&i.GoalID,
 		&i.Content,
 		&i.Type,
 		&i.Done,
 		&i.DoneAt,
 		&i.CreatedAt,
+		&i.TopicID,
 	)
 	return i, err
 }

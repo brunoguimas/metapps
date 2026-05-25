@@ -55,7 +55,7 @@ func main() {
 	topicDependencyRepo := topic_dependency.NewTopicDependencyRepository(queries)
 	topicDependencyService := topic_dependency.NewTopicDependencyService(topicDependencyRepo)
 	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, ai, queries, cfg)
-	taskModule := task.NewTaskModule(queries, ai, goalModule, cfg)
+	taskModule := task.NewTaskModule(queries, topicModule.Service, ai, goalModule, cfg)
 	taskAttemptModule := taskattempt.NewModule(queries, taskModule)
 	platformlogger.LogSystemInfo("modules initialized")
 

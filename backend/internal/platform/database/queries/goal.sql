@@ -1,5 +1,5 @@
 -- name: CreateOneGoal :one
-INSERT INTO public.goals (user_id, title, difficulties)
+INSERT INTO public.goals (user_id, title, settings)
 VALUES ($1, $2, $3)
 RETURNING *;
 
@@ -12,7 +12,7 @@ RETURNING id;
 -- name: UpdateGoalByID :one
 UPDATE public.goals
 SET title = $1,
-    difficulties = $2
+    settings = $2
 WHERE id = $3
     AND user_id = $4
 RETURNING id;
