@@ -1,5 +1,5 @@
 -- name: CreateTask :one 
-INSERT INTO public.tasks (user_id, goal_id, content, type)
+INSERT INTO public.tasks (user_id, topic_id, content, type)
 VALUES ($1, $2, $3, $4) RETURNING *;
 
 -- name: GetTasksByUserID :many

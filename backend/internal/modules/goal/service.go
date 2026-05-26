@@ -2,17 +2,16 @@ package goal
 
 import (
 	"context"
-	"encoding/json"
 
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
 
 type GoalService interface {
-	Create(c context.Context, userID uuid.UUID, title string, difficulties json.RawMessage) (*Goal, error)
+	Create(c context.Context, userID uuid.UUID, g *goalRequest) (*Goal, error)
 	List(c context.Context, userID uuid.UUID) ([]*Goal, error)
 	Get(c context.Context, userID, goalID uuid.UUID) (*Goal, error)
-	Update(c context.Context, userID, goalID uuid.UUID, title string, difficulties json.RawMessage) error
+	Update(c context.Context, userID, goalID uuid.UUID, g *goalRequest) error
 	Delete(c context.Context, userID, goalID uuid.UUID) error
 }
 
@@ -24,21 +23,14 @@ func NewGoalService(r GoalRepository) GoalService {
 	return &goalService{repo: r}
 }
 
-func (s *goalService) Create(c context.Context, userID uuid.UUID, title string, difficulties json.RawMessage) (*Goal, error) {
-	if title == "" {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "title is required", nil)
-	}
-	if len(difficulties) > 0 && !json.Valid(difficulties) {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid difficulties json", nil)
-	}
-
-	g := &Goal{
-		UserID:       userID,
-		Title:        title,
-		Difficulties: difficulties,
+func (s *goalService) Create(c context.Context, userID uuid.UUID, g *goalRequest) (*Goal, error) {
+	goal := &Goal{
+		UserID:   userID,
+		Title:    g.Title,
+		Settings: g.Settings,
 	}
 
-	goal, err := s.repo.Create(c, g)
+	goal, err := s.repo.Create(c, goal)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
 			return nil, appErr
@@ -70,19 +62,12 @@ func (s *goalService) Get(c context.Context, userID, goalID uuid.UUID) (*Goal, e
 	return goal, nil
 }
 
-func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, title string, difficulties json.RawMessage) error {
-	if title == "" {
-		return apperrors.NewAppError(apperrors.ErrInvalidInput, "title is required", nil)
-	}
-	if len(difficulties) > 0 && !json.Valid(difficulties) {
-		return apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid difficulties json", nil)
-	}
-
+func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, g *goalRequest) error {
 	if err := s.repo.Update(c, &Goal{
-		ID:           goalID,
-		UserID:       userID,
-		Title:        title,
-		Difficulties: difficulties,
+		ID:       goalID,
+		UserID:   userID,
+		Title:    g.Title,
+		Settings: g.Settings,
 	}); err != nil {
 		if appErr, ok := apperrors.As(err); ok {
 			return appErr

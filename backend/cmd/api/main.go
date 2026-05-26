@@ -15,6 +15,8 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/taskattempt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database"
@@ -50,7 +52,10 @@ func main() {
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
 	ai, client := ai.NewGroqClient()
 	healthModule := health.NewModule(queries, client, startedAt)
-	taskModule := task.NewTaskModule(queries, ai, goalModule, cfg)
+	topicDependencyRepo := topic_dependency.NewTopicDependencyRepository(queries)
+	topicDependencyService := topic_dependency.NewTopicDependencyService(topicDependencyRepo)
+	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, ai, queries, cfg)
+	taskModule := task.NewTaskModule(queries, topicModule.Service, ai, goalModule, cfg)
 	taskAttemptModule := taskattempt.NewModule(queries, taskModule)
 	platformlogger.LogSystemInfo("modules initialized")
 
@@ -59,6 +64,7 @@ func main() {
 		oauthModule.Handler,
 		healthModule.Handler,
 		goalModule.Handler,
+		topicModule.Handler,
 		taskModule.Handler,
 		taskAttemptModule.Handler,
 		jwtModule.Service,

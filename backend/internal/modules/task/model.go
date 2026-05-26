@@ -27,7 +27,7 @@ type Task struct {
 	ID        uuid.UUID       `json:"id"`
 	Version   int             `json:"version"`
 	UserID    uuid.UUID       `json:"user_id"`
-	GoalID    uuid.UUID       `json:"goal_id"`
+	TopicID   uuid.UUID       `json:"topic_id"`
 	Meta      TaskMeta        `json:"meta"`
 	Content   json.RawMessage `json:"content"`
 	Type      TaskType        `json:"type"`

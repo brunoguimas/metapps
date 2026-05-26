@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "id": "logic_prog",
+      "parent_id": null,
+      "title": "Lógica de Programação",
+      "description": "Conceitos fundamentais de programação.",
+      "required_mastery": 0.6,
+      "weight": 1.0,
+      "order_index": 0
+    },
+    {
+      "id": "internet",
+      "parent_id": null,
+      "title": "Internet",
+      "description": "Conceitos básicos sobre internet.",
+      "required_mastery": 0.5,
+      "weight": 1.0,
+      "order_index": 1
+    },
+    {
+      "id": "backend",
+      "parent_id": null,
+      "title": "Fundamentos de Backend",
+      "description": "Conceitos centrais do backend.",
+      "required_mastery": 0.7,
+      "weight": 1.0,
+      "order_index": 2
+    },
+    {
+      "id": "docker",
+      "parent_id": null,
+      "title": "Docker",
+      "description": "Aprender containers.",
+      "required_mastery": 0.7,
+      "weight": 0.9,
+      "order_index": 3
+    },
+    {
+      "id": "deployment",
+      "parent_id": null,
+      "title": "Deploy",
+      "description": "Publicar aplicações.",
+      "required_mastery": 0.7,
+      "weight": 0.8,
+      "order_index": 4
+    },
+
+    {
+      "id": "algorithms",
+      "parent_id": "logic_prog",
+      "title": "Algoritmos",
+      "description": "Resolver problemas em etapas.",
+      "required_mastery": 0.6,
+      "weight": 1.0,
+      "order_index": 0
+    },
+    {
+      "id": "variables",
+      "parent_id": "logic_prog",
+      "title": "Variáveis e Tipos",
+      "description": "Armazenamento e tipos.",
+      "required_mastery": 0.7,
+      "weight": 1.0,
+      "order_index": 1
+    },
+    {
+      "id": "control_flow",
+      "parent_id": "logic_prog",
+      "title": "Estruturas de Controle",
+      "description": "Condicionais e laços.",
+      "required_mastery": 0.7,
+      "weight": 1.0,
+      "order_index": 2
+    },
+    {
+      "id": "functions",
+      "parent_id": "logic_prog",
+      "title": "Funções",
+      "description": "Reutilização de código.",
+      "required_mastery": 0.7,
+      "weight": 0.9,
+      "order_index": 3
+    },
+
+    {
+      "id": "client_server",
+      "parent_id": "internet",
+      "title": "Cliente e Servidor",
+      "description": "Comunicação entre aplicações.",
+      "required_mastery": 0.6,
+      "weight": 1.0,
+      "order_index": 0
+    },
+    {
+      "id": "dns",
+      "parent_id": "internet",
+      "title": "DNS",
+      "description": "Resolução de domínios.",
+      "required_mastery": 0.5,
+      "weight": 0.7,
+      "order_index": 0
+    },
+    {
+      "id": "http",
+      "parent_id": "internet",
+      "title": "HTTP",
+      "description": "Métodos e status.",
+      "required_mastery": 0.8,
+      "weight": 1.0,
+      "order_index": 1
+    },
+
+    {
+      "id": "api",
+      "parent_id": "backend",
+      "title": "APIs REST",
+      "description": "Arquitetura REST.",
+      "required_mastery": 0.7,
+      "weight": 1.0,
+      "order_index": 0
+    },
+    {
+      "id": "routes",
+      "parent_id": "backend",
+      "title": "Rotas",
+      "description": "Endpoints.",
+      "required_mastery": 0.7,
+      "weight": 0.8,
+      "order_index": 1
+    },
+    {
+      "id": "middlewares",
+      "parent_id": "backend",
+      "title": "Middlewares",
+      "description": "Interceptação de requisições.",
+      "required_mastery": 0.7,
+      "weight": 0.8,
+      "order_index": 2
+    },
+    {
+      "id": "authentication",
+      "parent_id": "backend",
+      "title": "Autenticação",
+      "description": "JWT e autorização.",
+      "required_mastery": 0.8,
+      "weight": 1.0,
+      "order_index": 3
+    },
+    {
+      "id": "databases",
+      "parent_id": "backend",
+      "title": "Banco de Dados",
+      "description": "Persistência.",
+      "required_mastery": 0.8,
+      "weight": 1.0,
+      "order_index": 4
+    },
+    {
+      "id": "sql",
+      "parent_id": "backend",
+      "title": "SQL",
+      "description": "Consultas.",
+      "required_mastery": 0.8,
+      "weight": 1.0,
+      "order_index": 5
+    },
+    {
+      "id": "orm",
+      "parent_id": "backend",
+      "title": "ORM",
+      "description": "Mapeamento objeto-relacional.",
+      "required_mastery": 0.6,
+      "weight": 0.6,
+      "order_index": 6
+    }
+  ],
+
+  "edges": [
+    { "from": "logic_prog", "to": "internet" },
+    { "from": "internet", "to": "backend" },
+    { "from": "backend", "to": "docker" },
+    { "from": "docker", "to": "deployment" },
+    { "from": "client_server", "to": "http" },
+    { "from": "http", "to": "api" },
+    { "from": "authentication", "to": "deployment" }
+  ]
+}

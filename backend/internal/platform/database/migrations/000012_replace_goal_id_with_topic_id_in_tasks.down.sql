@@ -1,0 +1,2 @@
+ALTER TABLE tasks ADD COLUMN goal_id UUID NOT NULL REFERENCES goals(id);
+ALTER TABLE tasks DROP COLUMN topic_id;

@@ -39,7 +39,7 @@ func (r *taskRepository) Create(c context.Context, task *Task) (*Task, error) {
 
 	t, err := r.queries.CreateTask(c, db.CreateTaskParams{
 		UserID:  task.UserID,
-		GoalID:  task.GoalID,
+		TopicID: task.TopicID,
 		Content: payload,
 		Type:    string(task.Type),
 	})
@@ -102,7 +102,7 @@ func mapTask(t db.Task) *Task {
 	return &Task{
 		ID:        t.ID,
 		UserID:    t.UserID,
-		GoalID:    t.GoalID,
+		TopicID:   t.TopicID,
 		Meta:      extractTaskMeta(t.Content),
 		Content:   extractTaskInnerContent(t.Content),
 		Type:      TaskType(t.Type),

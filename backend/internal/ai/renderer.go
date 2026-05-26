@@ -3,31 +3,53 @@ package ai
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"text/template"
 )
 
 //go:embed templates/*.txt
-var promptsFS embed.FS
+var assetsFS embed.FS
 
-func RenderPrompt(path string, data any) (string, error) {
-	// 1. Ler template do embed
-	content, err := promptsFS.ReadFile("templates/" + path)
+func RenderPrompt(promptName string, data any) (string, error) {
+	templateData, err := toMap(data)
 	if err != nil {
-		return "", fmt.Errorf("failed to read prompt %s: %w", path, err)
+		return "", fmt.Errorf("failed to convert template data: %w", err)
 	}
 
-	// 2. Parse template
-	tmpl, err := template.New(path).Parse(string(content))
+	content, err := assetsFS.ReadFile("templates/" + promptName)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse prompt %s: %w", path, err)
+		return "", fmt.Errorf("failed to read prompt %s: %w", promptName, err)
 	}
 
-	// 3. Executar template
+	tmpl, err := template.New(promptName).Parse(string(content))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse prompt %s: %w", promptName, err)
+	}
+
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute prompt %s: %w", path, err)
+
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute prompt %s: %w", promptName, err)
 	}
 
 	return buf.String(), nil
+}
+
+func toMap(v any) (map[string]any, error) {
+	if v == nil {
+		return map[string]any{}, nil
+	}
+
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(b, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

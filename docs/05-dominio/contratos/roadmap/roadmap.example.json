@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "logic_prog",
+      "title": "Lógica de Programação",
+      "description": "...",
+      "weight": 1.0,
+      "order_index": 0
+    },
+    {
+      "id": "internet",
+      "title": "Internet",
+      "description": "...",
+      "weight": 1.0,
+      "order_index": 1
+    },
+    {
+        "id": "api",
+        "title": "APIs REST",
+        "description": "...",
+        "weight": 0.9,
+        "order_index": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "logic_prog",
+      "to": "internet"
+    },
+    {
+        "from": "internet",
+        "to": "api"
+    }
+  ],
+  "ordering": [
+    {
+      "parent": null,
+      "sequence": ["logic_prog", "internet"]
+    }
+  ]
+}

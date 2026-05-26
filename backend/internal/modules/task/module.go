@@ -3,6 +3,7 @@ package task
 import (
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 )
@@ -13,9 +14,9 @@ type TaskModule struct {
 	Handler    *TaskHandler
 }
 
-func NewTaskModule(q *db.Queries, ai ai.Client, g *goal.Module, c *config.Config) *TaskModule {
+func NewTaskModule(q *db.Queries, t topic.TopicService, ai ai.Client, g *goal.Module, c *config.Config) *TaskModule {
 	r := NewTaskRepository(q)
-	s := NewTaskService(ai, r, g.Repository, c)
+	s := NewTaskService(ai, r, t, g.Repository, c)
 	h := NewTaskHandler(s, g.Service, c)
 
 	return &TaskModule{
