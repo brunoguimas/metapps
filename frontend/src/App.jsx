@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Splash        from './Splash'
 import Landpage      from './Landpage'
 import Login         from './Login'
 import Register      from './Register'
@@ -10,7 +9,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/splash"                 element={<Splash />} />
         <Route path="/"                       element={<Landpage />} />
         <Route path="/auth/login"             element={<Login />} />
         <Route path="/auth/register"          element={<Register />} />
