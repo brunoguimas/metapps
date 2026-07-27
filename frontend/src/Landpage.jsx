@@ -93,7 +93,6 @@ export default function Landpage() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Handlers com os paths CORRETOS do App.jsx
   const goToRegister = () => navigate('/auth/register')
   const goToLogin = () => navigate('/auth/login')
   const goToHome = () => navigate('/')
@@ -104,7 +103,6 @@ export default function Landpage() {
   return (
     <div style={{ width: '100%', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased', background: '#f5f4ff', color: '#1a1a2e', overflowX: 'hidden' }}>
 
-      {/* ── NAVBAR fixa no topo ── */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: 'rgba(245,244,255,0.92)', backdropFilter: 'blur(16px)',
@@ -126,7 +124,6 @@ export default function Landpage() {
         </div>
       </nav>
 
-      {/* ── HERO ── */}
       <section style={{ paddingTop: mob ? 72 : 100, paddingBottom: mob ? 60 : 80, background: '#f5f4ff' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 28px' }}>
           <div style={{ display: 'flex', flexDirection: mob ? 'column' : 'row', alignItems: 'center', gap: mob ? 48 : 80 }}>
@@ -153,14 +150,12 @@ export default function Landpage() {
         </div>
       </section>
 
-      {/* ── WAVE ── */}
       <div style={{ background: '#f5f4ff', lineHeight: 0 }}>
         <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
           <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#1a1a2e" />
         </svg>
       </div>
 
-      {/* ── COMO FUNCIONA ── */}
       <section style={{ background: '#1a1a2e', padding: mob ? '70px 16px' : '100px 28px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <Reveal>
@@ -170,7 +165,7 @@ export default function Landpage() {
           <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr 1fr', gap: 24 }}>
             {[
               { num: '01', title: 'Escolha o tema', desc: 'Diga o que quer aprender — qualquer matéria, do básico ao avançado.', color: '#6382ff' },
-              { num: '02', title: 'A IA gera a tarefa', desc: 'Exercícios únicos criados em segundos, adaptados ao seu nível.', color: '#3ecf8e' },
+              { num: '02', title: 'A IA gera a tarefa', desc: 'Roadmaps únicos criados em segundos, adaptados para você.', color: '#3ecf8e' },
               { num: '03', title: 'Pratique e evolua', desc: 'Complete, receba feedback e acompanhe seu progresso em tempo real.', color: '#f5c542' },
             ].map(({ num, title, desc, color }, i) => (
               <Reveal key={num} delay={i * 80}>
