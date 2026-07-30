@@ -120,11 +120,22 @@ export async function listGoals() {
   return data.goals
 }
 
-export async function generateTask(goalId) {
-  const res = await authFetch('/protected/tasks/generate', {
+export async function generateRoadmap(goalId) {
+  const res = await authFetch('/protected/roadmap/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ goal_id: goalId }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Erro ao gerar roadmap')
+  return data.roadmap
+}
+
+export async function generateTask(topicId) {  // mudou de goal_id para topic_id
+  const res = await authFetch('/protected/tasks/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic_id: topicId }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Erro ao gerar tarefa')
