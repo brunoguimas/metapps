@@ -4,19 +4,19 @@
 
 ### RF01 - Cadastro
 
-> O sistema deve permitir que os usuário se cadastrem utilizando nome de usuário, email e senha.
+> O sistema deve permitir que os usuário se cadastrem utilizando nome de usuário, e-mail e senha; Ou através do Google.
 
 ### RF02 - Login
 
-> O Sistema deve permitir que o usuário realize login utilizando email e senha.
+> O Sistema deve permitir que o usuário realize Login utilizando e-mail e senha.
 
 ### RF03 - Alteração de senha
 
-> O sistema deve permitir que o usuário mude sua senha enviando sua senha antiga.
+> O sistema deve permitir que o usuário mude sua senha através do e-mail.
 
 ### RF04 - Recuperação de senha
 
-> O sistema deve permitir que o usuário recupere sua senha utilizando um token especial enviado em seu email.
+> O sistema deve permitir que o usuário recupere sua senha utilizando um token especial enviado em seu e-mail.
 
 ## Gerenciamento de metas
 
@@ -25,7 +25,8 @@
 > O sistema deve permitir que o usuário defina uma meta por meio de um questionário curto contendo:
 > - "Nome da meta" (ex: Redação ENEM, Interpretação de texto etc.);
 > - "Motivação";
-> - "Maiores dificuldades" (ex: Gramática, Equações).
+> - "Horário disponível de estudo";
+> - "Maiores dificuldades" (ex: Gramática, Equações);
 
 ### RF06 - Múltiplas metas
 
@@ -49,10 +50,9 @@
 
 > O sistema deve ajustar a dificuldade das atividades conforme o desempenho do usuário em atividades anteriores.
 
-## Não específicos
-
 ### RF11 - Acompanhamento de progresso
 
 > O sistema deve permitir que o usuário acompanhe o próprio progresso através de estatísticas, como:
-> - Nível de constânia (em porcentagem);
+> - Nível de constância (em porcentagem);
 > - Mapa de calor.
+
