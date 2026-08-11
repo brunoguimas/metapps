@@ -1,4 +1,4 @@
-// ─── REACT ───────────────────────────────────────────────────
+// ─── IMPORTS DO REACT DO CELLBIT ───────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { register, emailVerify, resendVerification, loginWithGoogle } from './api'
@@ -15,12 +15,88 @@ const EyeHide = () => <svg width="16" height="16" fill="none" stroke="currentCol
 const Spin = () => <svg style={{ animation:'spin .7s linear infinite' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="12" cy="12" r="10" strokeOpacity=".22"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
 const GIcon = () => <svg width="16" height="16" viewBox="0 0 48 48" style={{ flexShrink:0 }}><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h12.7c-.5 2.8-2.2 5.1-4.6 6.7v5.5h7.4c4.3-4 6.8-9.9 6.8-16.4z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.5c-2.2 1.4-4.9 2.2-8.5 2.2-6.5 0-12-4.4-14-10.3H2.4v5.7C6.4 42.8 14.6 48 24 48z"/><path fill="#FBBC05" d="M10 28.6A14.9 14.9 0 0 1 10 24c0-1.6.3-3.1.7-4.6v-5.7H2.4A24 24 0 0 0 0 24c0 3.9.9 7.6 2.4 10.9L10 28.6z"/><path fill="#EA4335" d="M24 9.5c3.6 0 6.9 1.2 9.4 3.6l7-7C36.3 2.4 30.6 0 24 0 14.6 0 6.4 5.2 2.4 13.1l7.6 5.7C12 12.9 17.5 9.5 24 9.5z"/></svg>
 
-// ─── HELPERS ─────────────────────────────────────────────────
-function mapErr(m='') {
-  if (m.includes('failed to fetch')||m.includes('networkerror')||m.includes('load failed')) return 'Sem conexão com o servidor.'
-  if (m.includes("couldn't create")||m.includes('already')) return 'Este e-mail já está em uso.'
-  if (m.includes('invalid')||m.includes('code')||m.includes('expired')) return 'Código inválido ou expirado.'
-  return m||'Algo deu errado.'
+// ─── FILTRO DE ERROS AMIGÁVEL (ATUALIZADO) ─────────────────
+function mapErr(m = '') {
+  const msg = (m?.toLowerCase?.() ?? String(m)).trim()
+
+  // Conexão / rede
+  if (
+    msg.includes('failed to fetch') ||
+    msg.includes('network error') ||
+    msg.includes('load failed') ||
+    msg.includes('timeout') ||
+    msg.includes('unreachable')
+  ) {
+    return 'Sem conexão com o servidor. Verifique sua internet.'
+  }
+
+  // E-mail já existe / duplicado
+  if (
+    msg.includes("couldn't create") ||
+    msg.includes('already exists') ||
+    msg.includes('already in use') ||
+    msg.includes('duplicate') ||
+    msg.includes('já está em uso') ||
+    msg.includes('já cadastrado') ||
+    msg.includes('e-mail já')
+  ) {
+    return 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.'
+  }
+
+  // Nome de usuário já existe
+  if (
+    msg.includes('username') && (msg.includes('taken') || msg.includes('already') || msg.includes('exists'))
+  ) {
+    return 'Este nome de usuário já está em uso. Escolha outro.'
+  }
+
+  // Código de verificação inválido / expirado
+  if (
+    msg.includes('invalid code') ||
+    msg.includes('expired') ||
+    msg.includes('código inválido') ||
+    msg.includes('código expirado') ||
+    msg.includes('verification failed')
+  ) {
+    return 'Código inválido ou expirado. Solicite um novo código.'
+  }
+
+  // Credenciais inválidas (pode ocorrer em fluxos alternativos)
+  if (
+    msg.includes('invalid credentials') ||
+    msg.includes('password') ||
+    msg.includes('senha incorreta')
+  ) {
+    return 'Credenciais inválidas. Verifique os dados e tente novamente.'
+  }
+
+  // Muitas tentativas / rate limit
+  if (
+    msg.includes('too many') ||
+    msg.includes('rate limit') ||
+    msg.includes('muitas tentativas') ||
+    msg.includes('429')
+  ) {
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
+  }
+
+  // Bad request genérico (400)
+  if (msg.includes('bad request') || msg.includes('400') || msg.includes('requisição inválida')) {
+    return 'Dados inválidos. Verifique os campos e tente novamente.'
+  }
+
+  // Erro interno do servidor (500)
+  if (msg.includes('internal server') || msg.includes('500') || msg.includes('erro interno')) {
+    return 'Erro no servidor. Nossa equipe já foi notificada. Tente mais tarde.'
+  }
+
+  // Qualquer outra mensagem desconhecida
+  if (msg && msg.length > 0) {
+    return 'Algo deu errado. Tente novamente em alguns instantes.'
+  }
+
+  // Fallback final
+  return 'Ocorreu um erro inesperado. Por favor, tente novamente.'
 }
 
 function PwField({ value, onChange, placeholder, autoComplete, invalid }) {
@@ -40,7 +116,7 @@ function Match({ pw, cpw }) {
   return <div style={{ fontSize:11, marginTop:5, color: pw===cpw ? '#3ecf8e' : '#f06a6a' }}>{pw===cpw ? 'Senhas conferem' : 'Senhas não conferem'}</div>
 }
 
-// ─── VERIFY PANE ─────────────────────────────────────────────
+// ─── PAINEL DE VERIFICAÇÃO ─────────────────────────────────────────────
 function VerifyPane({ email, onSuccess }) {
   const inputs = useRef([])
   const [digits, setDigits] = useState(['','','','','',''])
@@ -79,7 +155,7 @@ function VerifyPane({ email, onSuccess }) {
   async function submitCode(code) {
     setErr(''); setLoad(true)
     try { await emailVerify(email, code); onSuccess() }
-    catch(er) { setErr(mapErr(er.message)); setDigits(['','','','','','']); inputs.current[0]?.focus() }
+    catch(er) { setErr(mapErr(er?.message || er)); setDigits(['','','','','','']); inputs.current[0]?.focus() }
     finally { setLoad(false) }
   }
 
@@ -89,7 +165,6 @@ function VerifyPane({ email, onSuccess }) {
     setSent(true); setTimeout(()=>setSent(false), 3000); startCd()
   }
 
-  // ─── HTML ────────────────────────────────────────────────
   return (
     <div style={{ animation:'slideIn .5s cubic-bezier(0.16,1,0.3,1) both', textAlign:'center' }}>
       <div style={{ width:52, height:52, margin:'0 auto 18px', background:'rgba(99,130,255,0.15)', border:'1px solid rgba(99,130,255,0.3)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -163,16 +238,15 @@ export default function Register() {
     if (!terms) { setErr('Aceite os Termos de Serviço para continuar.'); return }
     setLoad(true)
     try { await register(uname.trim(), email.trim(), pw); setDone(true) }
-    catch(er) { setErr(mapErr(er.message)) }
+    catch(er) { setErr(mapErr(er?.message || er)) }
     finally { setLoad(false) }
   }
 
   async function handleGoogle() {
-    try { loginWithGoogle() }
-    catch(er) { setErr(mapErr(er.message)) }
+    try { await loginWithGoogle() }
+    catch(er) { setErr(mapErr(er?.message || er)) }
   }
 
-  // ─── HTML ────────────────────────────────────────────────
   const regForm = (
     <>
       <h1 style={formTitle}>Criar conta</h1>
@@ -268,7 +342,7 @@ export default function Register() {
   )
 }
 
-// ─── CSS ─────────────────────────────────────────────────────
+// ─── MEU CSS <3<3<3 ─────────────────────────────────────────────────────
 const ANIMS = `
   @keyframes fIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}

@@ -14,13 +14,89 @@ const EyeHide  = () => <svg width="16" height="16" fill="none" stroke="currentCo
 const Spin     = () => <svg style={{ animation:'spin .7s linear infinite' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><circle cx="12" cy="12" r="10" strokeOpacity=".22"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
 const GIcon    = () => <svg width="16" height="16" viewBox="0 0 48 48" style={{ flexShrink:0 }}><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h12.7c-.5 2.8-2.2 5.1-4.6 6.7v5.5h7.4c4.3-4 6.8-9.9 6.8-16.4z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.5c-2.2 1.4-4.9 2.2-8.5 2.2-6.5 0-12-4.4-14-10.3H2.4v5.7C6.4 42.8 14.6 48 24 48z"/><path fill="#FBBC05" d="M10 28.6A14.9 14.9 0 0 1 10 24c0-1.6.3-3.1.7-4.6v-5.7H2.4A24 24 0 0 0 0 24c0 3.9.9 7.6 2.4 10.9L10 28.6z"/><path fill="#EA4335" d="M24 9.5c3.6 0 6.9 1.2 9.4 3.6l7-7C36.3 2.4 30.6 0 24 0 14.6 0 6.4 5.2 2.4 13.1l7.6 5.7C12 12.9 17.5 9.5 24 9.5z"/></svg>
 
-// ─── HELPERS ─────────────────────────────────────────────────
-function mapErr(m='') {
-  if (m.includes('failed to fetch')||m.includes('networkerror')||m.includes('load failed')) return 'Sem conexão com o servidor.'
-  if (m.includes('invalid')||m.includes('password')||m.includes('credentials')) return 'E-mail ou senha incorretos.'
-  return m||'Algo deu errado.'
+// ─── FILTRO DE ERROS AMIGÁVEL (CELLBIT STYLE) ──────────────
+function mapErr(m = '') {
+  const msg = m.toLowerCase?.() ?? String(m)
+  
+  // Conexão / rede
+  if (
+    msg.includes('failed to fetch') ||
+    msg.includes('network error') ||
+    msg.includes('load failed') ||
+    msg.includes('timeout') ||
+    msg.includes('unreachable')
+  ) {
+    return 'Sem conexão com o servidor. Verifique sua internet.'
+  }
+
+  // Credenciais / login
+  if (
+    msg.includes('invalid') ||
+    msg.includes('password') ||
+    msg.includes('credentials') ||
+    msg.includes('unauthorized') ||
+    msg.includes('senha') ||
+    msg.includes('credenciais')
+  ) {
+    if (msg.includes('email') || msg.includes('e-mail') || msg.includes('usuário') || msg.includes('user')) {
+      return 'E-mail ou senha incorretos.'
+    }
+    return 'E-mail ou senha incorretos.'
+  }
+
+  // Usuário não encontrado
+  if (
+    msg.includes('not found') ||
+    msg.includes('não encontrado') ||
+    msg.includes('inexistente') ||
+    msg.includes('no user')
+  ) {
+    return 'Usuário não encontrado. Verifique o e-mail ou crie uma conta.'
+  }
+
+  // Conta bloqueada / desativada
+  if (
+    msg.includes('disabled') ||
+    msg.includes('blocked') ||
+    msg.includes('locked') ||
+    msg.includes('suspended') ||
+    msg.includes('bloqueada') ||
+    msg.includes('desativada')
+  ) {
+    return 'Sua conta foi temporariamente bloqueada. Entre em contato com o suporte.'
+  }
+
+  // Muitas tentativas / rate limit
+  if (
+    msg.includes('too many') ||
+    msg.includes('rate limit') ||
+    msg.includes('muitas tentativas') ||
+    msg.includes('429')
+  ) {
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
+  }
+
+  // Bad request genérico (400)
+  if (msg.includes('bad request') || msg.includes('400') || msg.includes('requisição inválida')) {
+    return 'Dados inválidos. Verifique os campos e tente novamente.'
+  }
+
+  // Erro interno do servidor (500)
+  if (msg.includes('internal server') || msg.includes('500') || msg.includes('erro interno')) {
+    return 'Erro no servidor. Nossa equipe já foi notificada. Tente mais tarde.'
+  }
+
+  // Qualquer outra mensagem que veio do backend (não mostrar ao usuário)
+  // Se for uma string genérica mas não vazia, retornamos um fallback educado
+  if (msg && msg.length > 0) {
+    return 'Algo deu errado. Tente novamente em alguns instantes.'
+  }
+
+  // Fallback final (caso raro)
+  return 'Ocorreu um erro inesperado. Por favor, tente novamente.'
 }
 
+// ─── COMPONENTES AUXILIARES ─────────────────────────────────
 function PwField({ value, onChange, placeholder, autoComplete }) {
   const [show, setShow] = useState(false)
   return (
@@ -64,16 +140,15 @@ export default function Login() {
     if (!email.trim()||!pw) { setErr('Preencha todos os campos.'); return }
     setLoad(true)
     try { await login(email.trim(),pw); go('/home') }
-    catch(er) { setErr(mapErr(er.message)) }
+    catch(er) { setErr(mapErr(er?.message || er)) }
     finally { setLoad(false) }
   }
 
   async function handleGoogle() {
-    try { loginWithGoogle() }
-    catch(er) { setErr(mapErr(er.message)) }
+    try { await loginWithGoogle(); go('/home') }
+    catch(er) { setErr(mapErr(er?.message || er)) }
   }
 
-  // ─── ODEIO HTML ──────────────────────────────────────────
   const BackBtn = () => (
     <button onClick={() => navigate('/')}
       onMouseEnter={e => e.currentTarget.style.color='#f5f4ff'}
