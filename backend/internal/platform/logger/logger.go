@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func requestAttrs(c *gin.Context) []any {
@@ -19,39 +18,9 @@ func requestAttrs(c *gin.Context) []any {
 	}
 }
 
-func LogInfo(c *gin.Context, msg string) {
-	slog.Info(msg, requestAttrs(c)...)
-}
-
-func LogWithUser(c *gin.Context, msg string, user_id uuid.UUID) {
-	attrs := append(requestAttrs(c), "user_id", user_id)
-	slog.Info(msg, attrs...)
-}
-
-func LogWarn(c *gin.Context, err error, msg string, status int) {
-	logWithStatus(c, err, msg, status, slog.Warn)
-}
-
-func LogError(c *gin.Context, err error, msg string, status int) {
-	logWithStatus(c, err, msg, status, slog.Error)
-}
-
 func LogResponse(c *gin.Context, msg string, status int) {
 	attrs := append(requestAttrs(c), "status", status)
 	slog.Info(msg, attrs...)
-}
-
-func logWithStatus(c *gin.Context, err error, msg string, status int, logFn func(string, ...any)) {
-	errStr := "no error"
-	if err != nil {
-		errStr = err.Error()
-	}
-
-	attrs := append(requestAttrs(c),
-		"error", errStr,
-		"status", status,
-	)
-	logFn(msg, attrs...)
 }
 
 func LogSystemInfo(msg string, attrs ...any) {
@@ -80,4 +49,34 @@ func SeverityForStatus(status int) func(*gin.Context, error, string, int) {
 	}
 
 	return nil
+}
+
+// LogError logs an error with the given context and status.
+// It should be used for errors that warrant an error-level log.
+func LogError(c *gin.Context, err error, msg string, status int) {
+	errStr := "no error"
+	if err != nil {
+		errStr = err.Error()
+	}
+
+	attrs := append(requestAttrs(c),
+		"error", errStr,
+		"status", status,
+	)
+	slog.Error(msg, attrs...)
+}
+
+// LogWarn logs a warning with the given context and status.
+// It should be used for non-critical issues that warrant a warning-level log.
+func LogWarn(c *gin.Context, err error, msg string, status int) {
+	errStr := "no error"
+	if err != nil {
+		errStr = err.Error()
+	}
+
+	attrs := append(requestAttrs(c),
+		"error", errStr,
+		"status", status,
+	)
+	slog.Warn(msg, attrs...)
 }

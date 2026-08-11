@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/logger"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,16 +37,7 @@ func ErrorFrom(c *gin.Context, err error) {
 		return
 	}
 
-	if appErr, ok := apperrors.As(err); ok {
-		logError(c, err, appErr.Error(), appErr.Status())
-		c.JSON(appErr.Status(), gin.H{
-			"error": appErr.Error(),
-			"code":  appErr.Code(),
-		})
-		return
-	}
-
-	logError(c, err, "internal server error", http.StatusInternalServerError)
+	logError(c, err, err.Error(), http.StatusInternalServerError)
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 }
 
