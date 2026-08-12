@@ -136,6 +136,8 @@ CORRETO:
 "title":"Variáveis e Tipos"
 }
 
+8. NUNCA gere tópicos ou subtópicos com o campo 'title' ou 'id' vazio, nulo ou composto apenas por espaços. Todo node DEVE ter um título descritivo e preenchido obrigatoriamente.
+
 ---
 
 ## ESTRUTURA DOS NODES

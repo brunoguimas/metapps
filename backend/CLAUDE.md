@@ -48,7 +48,7 @@ The error handling has been simplified to make logs more informative and easier 
   - `ai/`: AI-related functionality (Groq client, embeddings, etc.)
   - `httpx/`: HTTP utilities (context, response, binding)
   - `middleware/`: HTTP middleware (logger, rate limit, JWT)
-  - `modules/`: Business modules (auth, goal, health, jwt, mail, oauth, task, taskattempt, topic, topic_dependency, user) each following a pattern:
+  - `modules/`: Business modules (auth, goal, health, jwt, mail, oauth, task, task_attempt, topic, topic_dependency, user) each following a pattern:
     - `model.go`: Data models
     - `repository.go`: Data access layer
     - `service.go`: Business logic
