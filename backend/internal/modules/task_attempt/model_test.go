@@ -1,4 +1,4 @@
-package taskattempt
+package task_attempt
 
 import "testing"
 

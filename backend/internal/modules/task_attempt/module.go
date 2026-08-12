@@ -1,4 +1,4 @@
-package taskattempt
+package task_attempt
 
 import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"

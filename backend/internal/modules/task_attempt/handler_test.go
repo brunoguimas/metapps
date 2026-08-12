@@ -1,4 +1,4 @@
-package taskattempt
+package task_attempt
 
 import (
 	"context"
@@ -93,4 +93,59 @@ func TestTaskAttemptHandlerSubmit_Fail(t *testing.T) {
 	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, string(apperrors.ErrInvalidInput), resp.Code)
+}
+
+func TestTaskAttemptHandlerSubmit_FailInvalidTaskID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+		submitFn: func(context.Context, uuid.UUID, uuid.UUID, *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
+			t.Fatal("Submit should not be called with invalid task id")
+			return nil, nil, nil
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/tasks/not-a-uuid/attempts", strings.NewReader(`{"type":"essay","response":"minha resposta"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = req
+	ctx.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
+	ctx.Set("user_id", uuid.New().String())
+
+	handler.Submit(ctx)
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	var resp struct {
+		Code string `json:"code"`
+	}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, string(apperrors.ErrInvalidInput), resp.Code)
+}
+
+func TestTaskAttemptHandlerSubmit_AcceptsTaskIDParamAlias(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userID := uuid.New()
+	taskID := uuid.New()
+
+	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+		submitFn: func(_ context.Context, gotUserID, gotTaskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
+			assert.Equal(t, userID, gotUserID)
+			assert.Equal(t, taskID, gotTaskID)
+			assert.Equal(t, task.TaskEssay, input.Type)
+			return &TaskAttempt{ID: uuid.New(), UserID: gotUserID, TaskID: gotTaskID}, &task.Task{ID: gotTaskID, Done: true}, nil
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID.String()+"/attempts", strings.NewReader(`{"type":"essay","response":"minha resposta"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = req
+	ctx.Params = gin.Params{{Key: "taskid", Value: taskID.String()}}
+	ctx.Set("user_id", userID.String())
+
+	handler.Submit(ctx)
+
+	require.Equal(t, http.StatusCreated, rec.Code)
 }

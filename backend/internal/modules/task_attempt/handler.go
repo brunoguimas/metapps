@@ -1,4 +1,4 @@
-package taskattempt
+package task_attempt
 
 import (
 	"io"
@@ -24,7 +24,7 @@ func (h *Handler) Submit(c *gin.Context) {
 		return
 	}
 
-	taskID, err := uuid.Parse(c.Param("id"))
+	taskID, err := taskIDFromContext(c)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -78,7 +78,7 @@ func (h *Handler) ListByTask(c *gin.Context) {
 		return
 	}
 
-	taskID, err := uuid.Parse(c.Param("id"))
+	taskID, err := taskIDFromContext(c)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -91,4 +91,21 @@ func (h *Handler) ListByTask(c *gin.Context) {
 	}
 
 	httpx.OK(c, gin.H{"task_attempts": attempts})
+}
+
+func taskIDFromContext(c *gin.Context) (uuid.UUID, error) {
+	raw := c.Param("id")
+	if raw == "" {
+		raw = c.Param("taskID")
+	}
+	if raw == "" {
+		raw = c.Param("taskid")
+	}
+
+	taskID, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task id", err)
+	}
+
+	return taskID, nil
 }

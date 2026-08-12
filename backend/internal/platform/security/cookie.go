@@ -11,7 +11,6 @@ import (
 const (
 	refreshToken = "refresh_token"
 	oauthState   = "oauth_state"
-	httpOnly     = true
 )
 
 func SetRefreshTokenCookie(c *gin.Context, token string, cfg config.Config) {
@@ -33,7 +32,7 @@ func SetOAuthStateCookie(c *gin.Context, state string, cfg config.Config) {
 		oauthState,
 		state,
 		int(cfg.OAuthStateTTL.Seconds()),
-		"/auth",
+		cfg.OAuthStateCookiePath,
 		normalizeCookieDomain(cfg.CookieDomainOAuthState),
 		cfg.CookieSecure,
 		true,
@@ -46,7 +45,7 @@ func RemoveAuthStateCookie(c *gin.Context, cfg config.Config) {
 		oauthState,
 		"",
 		-1,
-		"/auth",
+		cfg.OAuthStateCookiePath,
 		normalizeCookieDomain(cfg.CookieDomainOAuthState),
 		cfg.CookieSecure,
 		true,
