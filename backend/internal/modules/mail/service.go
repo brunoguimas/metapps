@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -106,7 +107,7 @@ func (s *emailService) verifyCode(c context.Context, userID uuid.UUID, codeType,
 
 func (s *emailService) SendVerificationCode(c context.Context, userEmail, username, code string) error {
 	if err := s.mailer.SendVerifyEmail(userEmail, username, code); err != nil {
-		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't send email", err)
+		return apperrors.NewAppError(apperrors.ErrInternal, fmt.Sprintf("couldn't send email: %v", err), err)
 	}
 
 	return nil
@@ -114,7 +115,7 @@ func (s *emailService) SendVerificationCode(c context.Context, userEmail, userna
 
 func (s *emailService) SendPasswordResetCode(c context.Context, userEmail, username, code string) error {
 	if err := s.mailer.SendPasswordResetEmail(userEmail, username, code); err != nil {
-		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't send email", err)
+		return apperrors.NewAppError(apperrors.ErrInternal, fmt.Sprintf("couldn't send email: %v", err), err)
 	}
 
 	return nil

@@ -53,7 +53,12 @@ func (s *jwtService) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return t.SignedString([]byte(s.secretKey))
+	token, err := t.SignedString([]byte(s.secretKey))
+	if err != nil {
+		return "", apperrors.NewAppError(apperrors.ErrInternal, "couldn't sign access token", err)
+	}
+
+	return token, nil
 }
 
 func (s *jwtService) ValidateAccessToken(tokenStr string) (*claims, error) {
@@ -95,7 +100,12 @@ func (s *jwtService) GenerateRefreshToken(c context.Context, userID uuid.UUID) (
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return t.SignedString([]byte(s.secretKey))
+	token, err := t.SignedString([]byte(s.secretKey))
+	if err != nil {
+		return "", apperrors.NewAppError(apperrors.ErrInternal, "couldn't sign refresh token", err)
+	}
+
+	return token, nil
 }
 
 func (s *jwtService) ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error) {

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
-	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,12 +18,13 @@ func TestTaskRepositoryCreate_Success(t *testing.T) {
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
+	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
 	repo := NewTaskRepository(queries)
 
 	result, err := repo.Create(context.Background(), &Task{
-		UserID: user.ID,
-		GoalID: goal.ID,
-		Type:   TaskEssay,
+		UserID:  user.ID,
+		TopicID: topic.ID,
+		Type:    TaskEssay,
 		Meta: TaskMeta{
 			Title:        "Redacao",
 			Description:  "Tema",
@@ -35,7 +36,7 @@ func TestTaskRepositoryCreate_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, user.ID, result.UserID)
-	assert.Equal(t, goal.ID, result.GoalID)
+	assert.Equal(t, topic.ID, result.TopicID)
 	assert.Equal(t, TaskEssay, result.Type)
 	assert.Equal(t, "Redacao", result.Meta.Title)
 }
@@ -62,7 +63,8 @@ func TestTaskRepositoryMarkDone_Success(t *testing.T) {
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
-	created := dbtest.CreateTask(t, queries, user.ID, goal.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(TaskQuiz))
+	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
+	created := dbtest.CreateTask(t, queries, user.ID, topic.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(TaskQuiz))
 	repo := NewTaskRepository(queries)
 
 	result, err := repo.MarkDone(context.Background(), user.ID, created.ID)
