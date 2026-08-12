@@ -16,18 +16,18 @@ import (
 )
 
 type fakeGoalService struct {
-	createFn func(context.Context, uuid.UUID, string, json.RawMessage) (*Goal, error)
+	createFn func(context.Context, uuid.UUID, *goalRequest) (*Goal, error)
 }
 
-func (s *fakeGoalService) Create(c context.Context, userID uuid.UUID, title string, difficulties json.RawMessage) (*Goal, error) {
-	return s.createFn(c, userID, title, difficulties)
+func (s *fakeGoalService) Create(c context.Context, userID uuid.UUID, req *goalRequest) (*Goal, error) {
+	return s.createFn(c, userID, req)
 }
 
 func (s *fakeGoalService) List(context.Context, uuid.UUID) ([]*Goal, error) { return nil, nil }
 func (s *fakeGoalService) Get(context.Context, uuid.UUID, uuid.UUID) (*Goal, error) {
 	return nil, nil
 }
-func (s *fakeGoalService) Update(context.Context, uuid.UUID, uuid.UUID, string, json.RawMessage) error {
+func (s *fakeGoalService) Update(context.Context, uuid.UUID, uuid.UUID, *goalRequest) error {
 	return nil
 }
 func (s *fakeGoalService) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
@@ -37,15 +37,15 @@ func TestGoalHandlerCreate_Success(t *testing.T) {
 
 	userID := uuid.New()
 	service := &fakeGoalService{
-		createFn: func(_ context.Context, gotUserID uuid.UUID, title string, difficulties json.RawMessage) (*Goal, error) {
+		createFn: func(_ context.Context, gotUserID uuid.UUID, req *goalRequest) (*Goal, error) {
 			assert.Equal(t, userID, gotUserID)
-			assert.Equal(t, "Vestibular", title)
-			assert.JSONEq(t, `{"math":"hard"}`, string(difficulties))
-			return &Goal{ID: uuid.New(), UserID: gotUserID, Title: title, Difficulties: difficulties}, nil
+			assert.Equal(t, "Vestibular", req.Title)
+			assert.Equal(t, "passar no vestibular", req.Settings.Motivation)
+			return &Goal{ID: uuid.New(), UserID: gotUserID, Title: req.Title, Settings: req.Settings}, nil
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Vestibular","difficulties":{"math":"hard"}}`))
+	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Vestibular","settings":{"motivation":"passar no vestibular"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -67,7 +67,7 @@ func TestGoalHandlerCreate_Fail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeGoalService{
-		createFn: func(context.Context, uuid.UUID, string, json.RawMessage) (*Goal, error) {
+		createFn: func(context.Context, uuid.UUID, *goalRequest) (*Goal, error) {
 			t.Fatal("Create should not be called on invalid payload")
 			return nil, nil
 		},
