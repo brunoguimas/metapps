@@ -7,6 +7,7 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
@@ -45,29 +46,43 @@ func (r *fakeTaskRepository) MarkDone(c context.Context, userID, id uuid.UUID) (
 	return nil, nil
 }
 
-type fakeGoalRepositoryTask struct {
-	getByIDFn func(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error)
+type fakeTopicService struct {
+	getFn func(context.Context, uuid.UUID) (*topic.Topic, error)
 }
+
+func (s *fakeTopicService) GenerateRoadmap(context.Context, *goal.Goal) (*topic.Roadmap, error) {
+	return nil, nil
+}
+
+func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUIDs) (*topic.Roadmap, error) {
+	return nil, nil
+}
+
+func (s *fakeTopicService) Get(c context.Context, topicID uuid.UUID) (*topic.Topic, error) {
+	return s.getFn(c, topicID)
+}
+
+type fakeGoalRepositoryTask struct{}
 
 func (r *fakeGoalRepositoryTask) Create(context.Context, *goal.Goal) (*goal.Goal, error) { return nil, nil }
 func (r *fakeGoalRepositoryTask) ListByUserID(context.Context, uuid.UUID) ([]*goal.Goal, error) {
 	return nil, nil
 }
-func (r *fakeGoalRepositoryTask) GetByID(c context.Context, userID, goalID uuid.UUID) (*goal.Goal, error) {
-	return r.getByIDFn(c, userID, goalID)
+func (r *fakeGoalRepositoryTask) GetByID(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error) {
+	return nil, nil
 }
 func (r *fakeGoalRepositoryTask) Update(context.Context, *goal.Goal) error { return nil }
 func (r *fakeGoalRepositoryTask) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 
 func TestTaskServiceCreate_Success(t *testing.T) {
 	userID := uuid.New()
-	goalID := uuid.New()
+	topicID := uuid.New()
 	var createdTask *Task
 
 	service := NewTaskService(
 		&fakeAIClient{
 			generateFn: func(prompt string) (string, error) {
-				assert.Contains(t, prompt, "ENEM")
+				assert.Contains(t, prompt, "FORMATO RAIZ")
 				return `{"type":"essay","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}}`, nil
 			},
 		},
@@ -78,15 +93,16 @@ func TestTaskServiceCreate_Success(t *testing.T) {
 				return t, nil
 			},
 		},
-		&fakeGoalRepositoryTask{
-			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error) {
-				return &goal.Goal{ID: goalID, UserID: userID, Title: "ENEM", Difficulties: []byte(`{"history":"medium"}`)}, nil
+		&fakeTopicService{
+			getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
+				return &topic.Topic{ID: tID, Title: "Topico 1", Description: "Desc 1"}, nil
 			},
 		},
+		&fakeGoalRepositoryTask{},
 		&config.Config{},
 	)
 
-	result, err := service.Create(context.Background(), userID, goalID)
+	result, err := service.Create(context.Background(), userID, topicID)
 
 	require.NoError(t, err)
 	require.NotNil(t, createdTask)
@@ -108,11 +124,12 @@ func TestTaskServiceCreate_Fail(t *testing.T) {
 				return nil, nil
 			},
 		},
-		&fakeGoalRepositoryTask{
-			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error) {
-				return &goal.Goal{Title: "ENEM"}, nil
+		&fakeTopicService{
+			getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
+				return &topic.Topic{ID: tID, Title: "Topico 1"}, nil
 			},
 		},
+		&fakeGoalRepositoryTask{},
 		&config.Config{},
 	)
 
