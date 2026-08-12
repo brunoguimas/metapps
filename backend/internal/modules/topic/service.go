@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
@@ -17,6 +18,7 @@ import (
 
 type TopicService interface {
 	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
+	GetRoadmap(c context.Context, goalID uuid.UUIDs) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 }
 
@@ -162,11 +164,46 @@ func (s topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) 
 }
 
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
+	cleaned := strings.TrimSpace(roadmapStr)
+	cleaned = strings.TrimPrefix(cleaned, "```json")
+	cleaned = strings.TrimPrefix(cleaned, "```")
+	cleaned = strings.TrimSuffix(cleaned, "```")
+	cleaned = strings.TrimSpace(cleaned)
+
 	var roadmap dto.AIRoadmapResponse
-	err := json.Unmarshal([]byte(roadmapStr), &roadmap)
+	err := json.Unmarshal([]byte(cleaned), &roadmap)
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, fmt.Sprintf("invalid json: %s", err.Error()), err)
 	}
 
+	validNodes := make([]dto.TopicNode, 0, len(roadmap.Nodes))
+	for i := range roadmap.Nodes {
+		node := &roadmap.Nodes[i]
+		node.Title = strings.TrimSpace(node.Title)
+		node.NameID = strings.TrimSpace(node.NameID)
+		node.Description = strings.TrimSpace(node.Description)
+
+		if node.Title == "" {
+			return nil, apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				fmt.Sprintf("topic node at index %d has an empty title", i),
+				nil,
+			)
+		}
+		if node.NameID == "" {
+			return nil, apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				fmt.Sprintf("topic node at index %d has an empty id", i),
+				nil,
+			)
+		}
+		validNodes = append(validNodes, *node)
+	}
+	roadmap.Nodes = validNodes
+
 	return &roadmap, nil
+}
+
+func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUIDs) (*Roadmap, error) {
+	return nil, nil
 }
