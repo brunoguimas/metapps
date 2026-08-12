@@ -84,8 +84,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		httpx.ErrorFrom(c, err)
 		return
 	}
+	if user == nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInternal, "login returned no user", nil))
+		return
+	}
 	if !user.Verified && h.cfg.RequireEmailVerification {
-		httpx.Error(c, http.StatusUnauthorized, "email not verified")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidCredentials, "email not verified", nil))
 		return
 	}
 
@@ -313,12 +317,12 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	userID, err := uuid.Parse(claims.Subject)
 	if err != nil {
-		httpx.Error(c, http.StatusInternalServerError, "couldn't parse user id")
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid token subject", err))
 		return
 	}
 	u, err := h.users.GetUserByID(c, userID)
 	if err != nil {
-		httpx.Error(c, http.StatusNotFound, "user not found")
+		httpx.ErrorFrom(c, err)
 		return
 	}
 
