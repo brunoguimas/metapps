@@ -10,7 +10,8 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
-	"github.com/brunoguimas/metapps/backend/internal/modules/taskattempt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/gin-contrib/cors"
@@ -24,7 +25,8 @@ h *health.HealthHandler,
 g *goal.GoalHandler,
 tp *topic.TopicHandler,
 t *task.TaskHandler,
-ta *taskattempt.Handler,
+ta *task_attempt.Handler,
+tcHandler *task_correction.Handler,
 jwtService jwt.JWTService,
 cfg *config.Config,
 ) *gin.Engine {
@@ -79,6 +81,13 @@ cfg *config.Config,
 			tasks.GET("/:id", t.Get)
 			tasks.POST("/:id/attempts", ta.Submit)
 			tasks.GET("/:id/attempts", ta.ListByTask)
+		}
+		corrections := protected.Group("/corrections")
+		{
+			corrections.POST("", tcHandler.CreateCorrection)
+			corrections.GET("/attempt/:attemptID", tcHandler.GetCorrectionByAttemptID)
+			corrections.POST("/essay/:attemptID", tcHandler.GenerateEssayCorrection)
+			corrections.POST("/quiz/:attemptID", tcHandler.GenerateQuizCorrection)
 		}
 		protected.GET("/task-attempts", ta.ListByUser)
 	}
