@@ -8,6 +8,7 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
+	topic "github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -116,17 +117,77 @@ func (r *fakeTaskRepository) MarkDone(c context.Context, userID, id uuid.UUID) (
 	return nil, nil
 }
 
+// fakeTopicRepository implements topic.TopicRepository.
+type fakeTopicRepository struct {
+}
+
+// Get returns a dummy topic.
+func (r *fakeTopicRepository) Get(c context.Context, topicID uuid.UUID) (*topic.Topic, error) {
+	return &topic.Topic{ID: topicID}, nil
+}
+
+// GetByGoalID returns a dummy list.
+func (r *fakeTopicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*topic.Topic, error) {
+	return []*topic.Topic{{ID: goalID}}, nil
+}
+
+// Create creates and returns a dummy topic.
+func (r *fakeTopicRepository) Create(c context.Context, t *topic.Topic) (*topic.Topic, error) {
+	t.ID = uuid.New()
+	return t, nil
+}
+
+// fakeTopicProgressRepository implements topic.TopicProgressRepository.
+type fakeTopicProgressRepository struct {
+}
+
+// GetOrCreate returns a dummy progress.
+func (r *fakeTopicProgressRepository) GetOrCreate(c context.Context, userID, topicID uuid.UUID) (*topic.TopicProgress, error) {
+	return &topic.TopicProgress{
+		ID:           uuid.New(),
+		UserID:       userID,
+		TopicID:      topicID,
+		MasteryScore: 0,
+		ConfidenceScore: 0,
+		AttemptsCount: 0,
+		Status:       topic.TopicStatusLocked,
+	}, nil
+}
+
+// Update does nothing.
+func (r *fakeTopicProgressRepository) Update(c context.Context, progress *topic.TopicProgress) error {
+	return nil
+}
+
 func TestCreateCorrection_Success(t *testing.T) {
 	userID := uuid.New()
 	attemptID := uuid.New()
+	taskID := uuid.New()
 
 	attemptRepo := &fakeAttemptRepository{
 		attempts: map[uuid.UUID]*task_attempt.TaskAttempt{
-			attemptID: {ID: attemptID, UserID: userID},
+			attemptID: {ID: attemptID, UserID: userID, TaskID: taskID},
 		},
 	}
+	taskRepo := &fakeTaskRepository{
+		tasks: map[uuid.UUID]*task.Task{
+			taskID: {
+				ID:      taskID,
+				UserID:  userID,
+				Type:    task.TaskEssay,
+				Content: json.RawMessage(`{"instructions":"Escreva sobre algo"}`),
+				Meta: task.TaskMeta{
+					Title:        "Tarefa de Teste",
+					Description:  "Descrição da tarefa",
+					Expectations: "Escrever algo coerente",
+				},
+			},
+		},
+	}
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
 	repo := newFakeRepo()
-	svc := NewService(repo, attemptRepo, &fakeTaskRepository{}, &fakeAIClient{})
+	svc := NewService(repo, attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
 
 	score := 0.85
 	corr, err := svc.CreateCorrection(context.Background(), userID, attemptID, "Bom trabalho", &score)
@@ -148,7 +209,10 @@ func TestCreateCorrection_Forbidden(t *testing.T) {
 			attemptID: {ID: attemptID, UserID: otherUserID},
 		},
 	}
-	svc := NewService(newFakeRepo(), attemptRepo, &fakeTaskRepository{}, &fakeAIClient{})
+	taskRepo := &fakeTaskRepository{}
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
 
 	score := 0.5
 	corr, err := svc.CreateCorrection(context.Background(), userID, attemptID, "Feedback", &score)
@@ -169,7 +233,10 @@ func TestCreateCorrection_InvalidScore(t *testing.T) {
 			attemptID: {ID: attemptID, UserID: userID},
 		},
 	}
-	svc := NewService(newFakeRepo(), attemptRepo, &fakeTaskRepository{}, &fakeAIClient{})
+	taskRepo := &fakeTaskRepository{}
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
 
 	invalidScore := 1.5
 	corr, err := svc.CreateCorrection(context.Background(), userID, attemptID, "Feedback", &invalidScore)
@@ -194,7 +261,10 @@ func TestGetCorrectionByAttemptID_Success(t *testing.T) {
 			attemptID: {ID: attemptID, UserID: userID},
 		},
 	}
-	svc := NewService(repo, attemptRepo, &fakeTaskRepository{}, &fakeAIClient{})
+	taskRepo := &fakeTaskRepository{}
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(repo, attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
 
 	corr, err := svc.GetCorrectionByAttemptID(context.Background(), userID, attemptID)
 
@@ -249,7 +319,9 @@ func TestGenerateEssayCorrection_Success(t *testing.T) {
 		},
 	}
 
-	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, aiClient)
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, aiClient)
 
 	corr, err := svc.GenerateEssayCorrection(context.Background(), userID, attemptID)
 
@@ -286,9 +358,129 @@ func TestGenerateEssayCorrection_NotEssay(t *testing.T) {
 		},
 	}
 
-	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, &fakeAIClient{})
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
 
 	corr, err := svc.GenerateEssayCorrection(context.Background(), userID, attemptID)
+
+	require.Error(t, err)
+	require.Nil(t, corr)
+	appErr, ok := apperrors.As(err)
+	require.True(t, ok)
+	assert.Equal(t, apperrors.ErrTaskAttemptTypeMismatch, appErr.Code())
+}
+
+// TestGenerateQuizCorrection_Success tests successful generation of quiz correction.
+func TestGenerateQuizCorrection_Success(t *testing.T) {
+	userID := uuid.New()
+	taskID := uuid.New()
+	attemptID := uuid.New()
+
+	quizContent := task.QuizContent{
+		Questions: []task.QuizQuestion{
+			{
+				Statement:     "Qual é a capital do Brasil?",
+				Alternatives:  []string{"São Paulo", "Rio de Janeiro", "Brasília", "Salvador"},
+				Answer:        2, // Brasília
+				Explanation:   "Brasília é a capital do Brasil desde 1960.",
+			},
+			{
+				Statement:     "Quanto é 2 + 2?",
+				Alternatives:  []string{"3", "4", "5", "6"},
+				Answer:        1, // 4
+				Explanation:   "2 + 2 igual a 4.",
+			},
+		},
+	}
+	quizContentJSON, _ := json.Marshal(quizContent)
+	attemptContentJSON, _ := json.Marshal(map[string]interface{}{
+		"response": []map[string]interface{}{
+			{"question_index": 0, "answer": 2}, // Correto
+			{"question_index": 1, "answer": 1}, // Correto
+		},
+	})
+
+	attemptRepo := &fakeAttemptRepository{
+		attempts: map[uuid.UUID]*task_attempt.TaskAttempt{
+			attemptID: {
+				ID:      attemptID,
+				UserID:  userID,
+				TaskID:  taskID,
+				Content: attemptContentJSON,
+			},
+		},
+	}
+
+	taskRepo := &fakeTaskRepository{
+		tasks: map[uuid.UUID]*task.Task{
+			taskID: {
+				ID:      taskID,
+				UserID:  userID,
+				Type:    task.TaskQuiz,
+				Content: quizContentJSON,
+				Meta: task.TaskMeta{
+					Title:        "Quiz de Geografia e Matemática",
+					Description:  "Teste de conhecimentos básicos",
+					Expectations: "Responder corretamente todas as questões",
+				},
+			},
+		},
+	}
+
+	aiClient := &fakeAIClient{
+		generateFn: func(prompt string) (string, error) {
+			return " ótimo trabalho! Você acertou todas as questões. " +
+				"Continue estudando para manter esse desempenho.", nil
+		},
+	}
+
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, aiClient)
+
+	corr, err := svc.GenerateQuizCorrection(context.Background(), userID, attemptID)
+
+	require.NoError(t, err)
+	require.NotNil(t, corr)
+	assert.Equal(t, attemptID, corr.AttemptID)
+	assert.Contains(t, corr.Feedback, "ótimo trabalho")
+	assert.NotNil(t, corr.Score)
+	assert.Equal(t, 1.0, *corr.Score) // Todas as questões corretas
+}
+
+// TestGenerateQuizCorrection_NotQuiz tests that GenerateQuizCorrection returns an error when the task is not a quiz.
+func TestGenerateQuizCorrection_NotQuiz(t *testing.T) {
+	userID := uuid.New()
+	taskID := uuid.New()
+	attemptID := uuid.New()
+
+	attemptRepo := &fakeAttemptRepository{
+		attempts: map[uuid.UUID]*task_attempt.TaskAttempt{
+			attemptID: {
+				ID:      attemptID,
+				UserID:  userID,
+				TaskID:  taskID,
+				Content: json.RawMessage(`"resposta"`),
+			},
+		},
+	}
+
+	taskRepo := &fakeTaskRepository{
+		tasks: map[uuid.UUID]*task.Task{
+			taskID: {
+				ID:     taskID,
+				UserID: userID,
+				Type:   task.TaskEssay, // Not a quiz
+			},
+		},
+	}
+
+	topicRepo := &fakeTopicRepository{}
+	progressRepo := &fakeTopicProgressRepository{}
+	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
+
+	corr, err := svc.GenerateQuizCorrection(context.Background(), userID, attemptID)
 
 	require.Error(t, err)
 	require.Nil(t, corr)

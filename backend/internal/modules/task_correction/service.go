@@ -9,6 +9,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
+	topic "github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
@@ -25,14 +26,18 @@ type service struct {
 	repo        Repository
 	attemptRepo task_attempt.Repository
 	taskRepo    task.TaskRepository
+	topicRepo   topic.TopicRepository
+	progressRepo topic.TopicProgressRepository
 	client      ai.Client
 }
 
-func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.TaskRepository, client ai.Client) Service {
+func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.TaskRepository, topicRepo topic.TopicRepository, progressRepo topic.TopicProgressRepository, client ai.Client) Service {
 	return &service{
 		repo:        r,
 		attemptRepo: attemptRepo,
 		taskRepo:    taskRepo,
+		topicRepo:   topicRepo,
+		progressRepo: progressRepo,
 		client:      client,
 	}
 }
@@ -59,7 +64,14 @@ func (s *service) CreateCorrection(ctx context.Context, userID, attemptID uuid.U
 		Status:    StatusCompleted,
 	}
 
-	return s.repo.Create(ctx, correction)
+	createdCorrection, err := s.repo.Create(ctx, correction)
+	if err != nil {
+		return nil, err
+	}
+	if score != nil {
+		s.updateProgress(ctx, userID, attemptID, *score)
+	}
+	return createdCorrection, nil
 }
 
 func (s *service) GetCorrectionByAttemptID(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
@@ -78,6 +90,81 @@ func (s *service) GetCorrectionByAttemptID(ctx context.Context, userID, attemptI
 
 func (s *service) UpdateCorrection(ctx context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	return s.repo.Update(ctx, correction)
+}
+
+// updateProgress updates the topic progress for the user based on the attempt and correction score.
+func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUID, score float64) {
+	// Get the attempt to get the task ID.
+	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get attempt for progress update: %v\n", err)
+		return
+	}
+
+	// Get the task to get the topic ID and task details.
+	taskObj, err := s.taskRepo.GetByID(ctx, userID, attempt.TaskID)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get task for progress update: %v\n", err)
+		return
+	}
+
+	// Get the topic to get the required mastery.
+	topicObj, err := s.topicRepo.Get(ctx, taskObj.TopicID)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get topic for progress update: %v\n", err)
+		return
+	}
+
+	// Get or create the topic progress for the user and topic.
+	progress, err := s.progressRepo.GetOrCreate(ctx, userID, taskObj.TopicID)
+	if err != nil {
+		fmt.Printf("ERROR: failed to get or create topic progress: %v\n", err)
+		return
+	}
+
+	// Calculate new mastery and confidence scores as a running average.
+	// We'll update both mastery and confidence to the same value for simplicity.
+	newAttempts := progress.AttemptsCount + 1
+	newMastery := (progress.MasteryScore*float64(progress.AttemptsCount) + score) / float64(newAttempts)
+	newConfidence := newMastery // For now, set confidence to the same as mastery.
+
+	// Determine the new status based on the new mastery and the topic's required mastery.
+	var newStatus topic.TopicStatus
+	if newMastery >= topicObj.RequiredMastery {
+		newStatus = topic.TopicStatusMastered
+	} else if newMastery > 0 {
+		newStatus = topic.TopicStatusInProgress
+	} else {
+		newStatus = topic.TopicStatusLocked
+	}
+
+	// Determine the evolution stage based on the new mastery score.
+	var evolutionStage string
+	switch {
+	case newMastery < 0.2:
+		evolutionStage = "Ovo"
+	case newMastery < 0.4:
+		evolutionStage = "Larva"
+	case newMastery < 0.6:
+		evolutionStage = "Pupa"
+	case newMastery < 0.8:
+		evolutionStage = "Juvenil"
+	default:
+		evolutionStage = "Adulto"
+	}
+
+	// Update the progress.
+	progress.MasteryScore = newMastery
+	progress.ConfidenceScore = newConfidence
+	progress.AttemptsCount = int32(newAttempts)
+	progress.Status = newStatus
+	progress.EvolutionStage = evolutionStage
+
+	// Save the updated progress.
+	if err := s.progressRepo.Update(ctx, progress); err != nil {
+		fmt.Printf("ERROR: failed to update topic progress: %v\n", err)
+		return
+	}
 }
 
 // GenerateEssayCorrection generates an AI-powered correction for an essay attempt using correct_essay.txt template
@@ -164,7 +251,12 @@ func (s *service) GenerateEssayCorrection(ctx context.Context, userID, attemptID
 		Status:    StatusCompleted,
 	}
 
-	return s.repo.Create(ctx, correction)
+	createdCorrection, err := s.repo.Create(ctx, correction)
+	if err != nil {
+		return nil, err
+	}
+	s.updateProgress(ctx, userID, attemptID, normalizedScore)
+	return createdCorrection, nil
 }
 
 // GenerateQuizCorrection evaluates a quiz attempt deterministically and generates AI text feedback using correct_quiz.txt template
@@ -288,5 +380,10 @@ func (s *service) GenerateQuizCorrection(ctx context.Context, userID, attemptID 
 		Status:    StatusCompleted,
 	}
 
-	return s.repo.Create(ctx, correction)
+	createdCorrection, err := s.repo.Create(ctx, correction)
+	if err != nil {
+		return nil, err
+	}
+	s.updateProgress(ctx, userID, attemptID, deterministicScore)
+	return createdCorrection, nil
 }

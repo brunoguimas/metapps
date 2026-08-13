@@ -1,0 +1,1 @@
+ALTER TABLE public.topic_progress DROP COLUMN evolution_stage;

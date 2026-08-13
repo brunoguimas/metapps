@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
@@ -18,23 +17,25 @@ import (
 
 type TopicService interface {
 	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
-	GetRoadmap(c context.Context, goalID uuid.UUIDs) (*Roadmap, error)
+	GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 }
 
 type topicService struct {
-	repo TopicRepository
-	deps topic_dependency.TopicDependencyService
-	ai   ai.Client
-	cfg  *config.Config
+	repo           TopicRepository
+	deps           topic_dependency.TopicDependencyService
+	ai             ai.Client
+	cfg            *config.Config
+	progressRepo   TopicProgressRepository
 }
 
-func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config) TopicService {
+func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config, pr TopicProgressRepository) TopicService {
 	return topicService{
-		repo: r,
-		deps: d,
-		ai:   a,
-		cfg:  c,
+		repo:      r,
+		deps:      d,
+		ai:        a,
+		cfg:       c,
+		progressRepo: pr,
 	}
 }
 
@@ -57,7 +58,6 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 	}
 
 	roadmapJSON, err := s.ai.Generate(prompt)
-	os.WriteFile("file.txt", []byte(roadmapJSON), os.ModeAppend)
 
 	r, err := parseRoadmapJSON(string(roadmapJSON))
 	if err != nil {
@@ -204,6 +204,27 @@ func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 	return &roadmap, nil
 }
 
-func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUIDs) (*Roadmap, error) {
-	return nil, nil
+func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
+	topics, err := s.repo.GetByGoalID(c, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get topic dependencies
+	var topicIDs []uuid.UUID
+	for _, topic := range topics {
+		topicIDs = append(topicIDs, topic.ID)
+	}
+
+	dependencies, err := s.deps.GetByTopicIDs(c, topicIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	roadmap := &Roadmap{
+		Topics:       topics,
+		Dependencies: dependencies,
+	}
+
+	return roadmap, nil
 }
