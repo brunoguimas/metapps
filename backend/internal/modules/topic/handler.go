@@ -60,3 +60,34 @@ func (h *TopicHandler) GenerateRoadmap(c *gin.Context) {
 		"roadmap": roadmap,
 	})
 }
+
+func (h *TopicHandler) GetRoadmap(c *gin.Context) {
+	userID, err := httpx.GetFromContext(c, "user_id")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	goalID, err := uuid.Parse(c.Param("goalID"))
+	if err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid goal id", err))
+		return
+	}
+
+	// Verify the goal belongs to the user
+	_, err = h.goals.Get(c.Request.Context(), userID, goalID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	roadmap, err := h.topics.GetRoadmap(c.Request.Context(), goalID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{
+		"roadmap": roadmap,
+	})
+}

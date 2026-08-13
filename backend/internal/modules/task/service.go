@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"encoding/json"
-	"os"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
@@ -41,7 +40,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		return nil, err
 	}
 
-	os.WriteFile("string", []byte("oioiio"), os.ModeAppend)
 	quiz, err := ai.FS.ReadFile("schemas/quiz.schema.json")
 	if err != nil {
 		return nil, err

@@ -16,7 +16,8 @@ type TopicModule struct {
 
 func NewModule(d topic_dependency.TopicDependencyService, g goal.GoalService, a ai.Client, queries *db.Queries, c *config.Config) *TopicModule {
 	r := NewTopicRepository(queries)
-	s := NewTopicService(r, d, a, c)
+	pr := NewTopicProgressRepository(queries)
+	s := NewTopicService(r, d, a, c, pr)
 	h := NewTopicHandler(s, g)
 
 	return &TopicModule{

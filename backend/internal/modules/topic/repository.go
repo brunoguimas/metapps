@@ -10,6 +10,7 @@ import (
 type TopicRepository interface {
 	Create(c context.Context, t *Topic) (*Topic, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
+	GetByGoalID(c context.Context, goalID uuid.UUID) ([]*Topic, error)
 }
 
 type topicRepository struct {
@@ -57,15 +58,40 @@ func (r topicRepository) Get(c context.Context, topicID uuid.UUID) (*Topic, erro
 	}
 
 	return &Topic{
-		topic.ID,
-		topic.GoalID,
-		topic.ParentTopicID,
-		topic.Title,
-		topic.Description,
-		topic.RequiredMastery,
-		topic.Weight,
-		topic.OrderIndex,
-		topic.CreatedAt,
-		topic.UpdatedAt,
+		ID:              topic.ID,
+		GoalID:          topic.GoalID,
+		ParentTopicID:   topic.ParentTopicID,
+		Title:           topic.Title,
+		Description:     topic.Description,
+		RequiredMastery: topic.RequiredMastery,
+		Weight:          topic.Weight,
+		OrderIndex:      topic.OrderIndex,
+		CreatedAT:       topic.CreatedAt,
+		UpdatedAt:       topic.UpdatedAt,
 	}, nil
+}
+
+func (r topicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*Topic, error) {
+	dbTopics, err := r.queries.GetTopicByGoalID(c, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	topics := make([]*Topic, len(dbTopics))
+	for i, dbTopic := range dbTopics {
+		topics[i] = &Topic{
+			ID:              dbTopic.ID,
+			GoalID:          dbTopic.GoalID,
+			ParentTopicID:   dbTopic.ParentTopicID,
+			Title:           dbTopic.Title,
+			Description:     dbTopic.Description,
+			RequiredMastery: dbTopic.RequiredMastery,
+			Weight:          dbTopic.Weight,
+			OrderIndex:      dbTopic.OrderIndex,
+			CreatedAT:       dbTopic.CreatedAt,
+			UpdatedAt:       dbTopic.UpdatedAt,
+		}
+	}
+
+	return topics, nil
 }

@@ -157,6 +157,7 @@ type TopicProgress struct {
 	Status          TopicStatus
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	EvolutionStage  string
 }
 
 type User struct {

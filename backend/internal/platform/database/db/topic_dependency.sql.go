@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createTopicDependency = `-- name: CreateTopicDependency :one
@@ -33,4 +34,38 @@ func (q *Queries) CreateTopicDependency(ctx context.Context, arg CreateTopicDepe
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getByTopicIDs = `-- name: GetByTopicIDs :many
+SELECT id, topic_id, depends_on_topic_id, created_at, updated_at FROM public.topic_dependencies
+WHERE topic_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetByTopicIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]TopicDependency, error) {
+	rows, err := q.db.QueryContext(ctx, getByTopicIDs, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopicDependency
+	for rows.Next() {
+		var i TopicDependency
+		if err := rows.Scan(
+			&i.ID,
+			&i.TopicID,
+			&i.DependsOnTopicID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

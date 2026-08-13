@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	"github.com/google/uuid"
 )
 
 type TopicDependencyRepository struct {
@@ -32,4 +33,24 @@ func (r *TopicDependencyRepository) Create(c context.Context, d *TopicDependency
 		dependency.CreatedAt,
 		dependency.UpdatedAt,
 	}, nil
+}
+
+func (r *TopicDependencyRepository) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
+	dependencies, err := r.queries.GetByTopicIDs(c, topicIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*TopicDependency
+	for _, dep := range dependencies {
+		result = append(result, &TopicDependency{
+			ID:             dep.ID,
+			TopicID:        dep.TopicID,
+			DependsOnTopicID: dep.DependsOnTopicID,
+			CreatedAt:      dep.CreatedAt,
+			UpdatedAt:      dep.UpdatedAt,
+		})
+	}
+
+	return result, nil
 }

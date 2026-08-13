@@ -54,7 +54,7 @@ func (s *fakeTopicService) GenerateRoadmap(context.Context, *goal.Goal) (*topic.
 	return nil, nil
 }
 
-func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUIDs) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID) (*topic.Roadmap, error) {
 	return nil, nil
 }
 

@@ -73,6 +73,7 @@ cfg *config.Config,
 		roadmap := protected.Group("/roadmap")
 		{
 			roadmap.POST("/generate", tp.GenerateRoadmap)
+			roadmap.GET("/:goalID", tp.GetRoadmap)
 		}
 		tasks := protected.Group("/tasks")
 		{
