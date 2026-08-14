@@ -23,27 +23,27 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/database"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 	"github.com/brunoguimas/metapps/backend/internal/platform/jobs"
-	"github.com/jpoz/groq"
-	"github.com/gin-gonic/gin"
 	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 	"github.com/brunoguimas/metapps/backend/internal/router"
+	"github.com/gin-gonic/gin"
+	"github.com/jpoz/groq"
 )
 
 // AppModules holds all initialized application modules.
 type AppModules struct {
-	MailModule        *mail.Module
-	JWTModule         *jwt.Module
-	UserModule        *user.Module
-	GoalModule        *goal.Module
-	OauthModule       *oauth.Module
-	AuthModule        *auth.Module
-	AIClient          ai.Client
-	GroqClient        *groq.Client
-	HealthModule      *health.Module
-	TopicDependencySvc topic_dependency.TopicDependencyService
-	TopicModule       *topic.TopicModule
-	TaskModule        *task.TaskModule
-	TaskAttemptModule *task_attempt.Module
+	MailModule           *mail.Module
+	JWTModule            *jwt.Module
+	UserModule           *user.Module
+	GoalModule           *goal.Module
+	OauthModule          *oauth.Module
+	AuthModule           *auth.Module
+	AIClient             ai.Client
+	GroqClient           *groq.Client
+	HealthModule         *health.Module
+	TopicDependencySvc   topic_dependency.TopicDependencyService
+	TopicModule          *topic.TopicModule
+	TaskModule           *task.TaskModule
+	TaskAttemptModule    *task_attempt.Module
 	TaskCorrectionModule *task_correction.Module
 }
 
@@ -70,41 +70,43 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
 
 	// AI clients
-	aiClient, groqClient := ai.NewGroqClient()
+	geminiClient, err := ai.NewGeminiClient(context.Background(), *cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	// Health module
-	healthModule := health.NewModule(queries, groqClient, time.Now())
+	healthModule := health.NewModule(queries, geminiClient, time.Now())
 
 	// Topic dependency service
 	topicDependencyRepo := topic_dependency.NewTopicDependencyRepository(queries)
 	topicDependencyService := topic_dependency.NewTopicDependencyService(topicDependencyRepo)
 
 	// Topic module
-	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, aiClient, queries, cfg)
+	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, geminiClient, queries, cfg)
 
 	// Task module
-	taskModule := task.NewTaskModule(queries, topicModule.Service, aiClient, goalModule, cfg)
+	taskModule := task.NewTaskModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
 
 	// Task attempt module
 	taskAttemptModule := task_attempt.NewModule(queries, taskModule)
 
 	// Task correction module
-	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, aiClient, jwtModule.Service)
+	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)
 
 	return &AppModules{
-		MailModule:        mailModule,
-		JWTModule:         jwtModule,
-		UserModule:        userModule,
-		GoalModule:        goalModule,
-		OauthModule:       oauthModule,
-		AuthModule:        authModule,
-		AIClient:          aiClient,
-		GroqClient:        groqClient,
-		HealthModule:      healthModule,
-		TopicDependencySvc: topicDependencyService,
-		TopicModule:       topicModule,
-		TaskModule:        taskModule,
-		TaskAttemptModule: taskAttemptModule,
+		MailModule:           mailModule,
+		JWTModule:            jwtModule,
+		UserModule:           userModule,
+		GoalModule:           goalModule,
+		OauthModule:          oauthModule,
+		AuthModule:           authModule,
+		AIClient:             geminiClient,
+		HealthModule:         healthModule,
+		TopicDependencySvc:   topicDependencyService,
+		TopicModule:          topicModule,
+		TaskModule:           taskModule,
+		TaskAttemptModule:    taskAttemptModule,
 		TaskCorrectionModule: taskCorrectionModule,
 	}, nil
 }
@@ -154,3 +156,4 @@ func main() {
 		os.Exit(1)
 	}
 }
+

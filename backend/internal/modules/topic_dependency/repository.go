@@ -7,18 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type TopicDependencyRepository struct {
+type topicDependencyRepository struct {
 	queries *db.Queries
 }
 
-func NewTopicDependencyRepository(q *db.Queries) TopicDependencyRepository {
-	return TopicDependencyRepository{
+func NewTopicDependencyRepository(q *db.Queries) *topicDependencyRepository {
+	return &topicDependencyRepository{
 		queries: q,
 	}
 }
 
-func (r *TopicDependencyRepository) Create(c context.Context, d *TopicDependency) (*TopicDependency, error) {
-	dependency, err := r.queries.CreateTopicDependency(c, db.CreateTopicDependencyParams{
+func (r *topicDependencyRepository) Create(ctx context.Context, d *TopicDependency) (*TopicDependency, error) {
+	dependency, err := r.queries.CreateTopicDependency(ctx, db.CreateTopicDependencyParams{
 		TopicID: d.TopicID,
 		DependsOnTopicID: d.DependsOnTopicID,
 	})
@@ -35,7 +35,7 @@ func (r *TopicDependencyRepository) Create(c context.Context, d *TopicDependency
 	}, nil
 }
 
-func (r *TopicDependencyRepository) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
+func (r *topicDependencyRepository) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
 	dependencies, err := r.queries.GetByTopicIDs(c, topicIDs)
 	if err != nil {
 		return nil, err

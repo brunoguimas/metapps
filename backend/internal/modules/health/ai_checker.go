@@ -1,9 +1,10 @@
 package health
 
 import (
+	"context"
 	"time"
 
-	"github.com/jpoz/groq"
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 )
 
 type AIChecker interface {
@@ -11,10 +12,10 @@ type AIChecker interface {
 }
 
 type aiChecker struct {
-	client *groq.Client
+	client ai.Client
 }
 
-func NewAIChecker(ai *groq.Client) AIChecker {
+func NewAIChecker(ai ai.Client) AIChecker {
 	return &aiChecker{
 		client: ai,
 	}
@@ -31,26 +32,15 @@ func (a *aiChecker) AIStatus() StatusService {
 
 	start := time.Now()
 
-	_, err := a.client.CreateChatCompletion(groq.CompletionCreateParams{
-		Model: "llama-3.3-70b-versatile",
-		Messages: []groq.Message{
-			{
-				Role:    "user",
-				Content: "Qual sua MPB favorita?",
-			},
-		},
-		ResponseFormat: groq.ResponseFormat{
-			Type: "text",
-		},
-	})
+	_, err := a.client.Generate(context.Background(), "Qual sua MPB favorita?")
 
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil {
 		return StatusService{
-			Status: "down",
+			Status:    "down",
 			LatencyMS: int64(latency),
-			Error: err.Error(),
+			Error:     err.Error(),
 		}
 	}
 	if latency > 2000 {

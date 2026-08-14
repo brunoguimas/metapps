@@ -19,7 +19,7 @@ type Config struct {
 	CookieDomainRefresh      string
 	CookieDomainOAuthState   string
 	JWTTokenCookiePath       string
-	OAuthStateCookiePath    string
+	OAuthStateCookiePath     string
 	CookieSecure             bool
 	JWTSecret                string
 	Issuer                   string
@@ -35,6 +35,7 @@ type Config struct {
 	SMTPPass                 string
 	GoogleLogin              oauth2.Config
 	RequireEmailVerification bool
+	GeminiKey                string
 }
 
 func Load() *Config {
@@ -60,6 +61,7 @@ func Load() *Config {
 	smtpUser := getEnv("SMTP_USER", "")
 	smtpPass := getEnv("SMTP_PASS", "")
 	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
+	geminiKey := mustGetenv("GEMINI_API_KEY")
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
@@ -114,7 +116,7 @@ func Load() *Config {
 		CookieDomainRefresh:      cookieDomainRefresh,
 		CookieDomainOAuthState:   cookieDomainOAuthState,
 		JWTTokenCookiePath:       jwtCookiePath,
-		OAuthStateCookiePath:    oauthStateCookiePath,
+		OAuthStateCookiePath:     oauthStateCookiePath,
 		CookieSecure:             cookieSecure,
 		JWTSecret:                jwtSecret,
 		Issuer:                   issuer,
@@ -130,6 +132,7 @@ func Load() *Config {
 		SMTPPass:                 smtpPass,
 		GoogleLogin:              googleLogin,
 		RequireEmailVerification: requireEmailVerification,
+		GeminiKey:                geminiKey,
 	}
 }
 

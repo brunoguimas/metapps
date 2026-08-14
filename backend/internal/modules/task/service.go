@@ -3,10 +3,11 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
-	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
@@ -19,18 +20,24 @@ type TaskService interface {
 }
 
 type taskService struct {
-	ai     ai.Client
-	repo   TaskRepository
-	topics topic.TopicService
-	cfg    *config.Config
+	ai           ai.Client
+	repo         TaskRepository
+	topics       topic.TopicService
+	topicRepo    topic.TopicRepository
+	progressRepo topic.TopicProgressRepository
+	deps         topic_dependency.TopicDependencyService
+	cfg          *config.Config
 }
 
-func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, g goal.GoalRepository, c *config.Config) TaskService {
+func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, tr topic.TopicRepository, pr topic.TopicProgressRepository, d topic_dependency.TopicDependencyService, c *config.Config) TaskService {
 	return &taskService{
-		ai:     a,
-		repo:   r,
-		topics: t,
-		cfg:    c,
+		ai:           a,
+		repo:         r,
+		topics:       t,
+		topicRepo:    tr,
+		progressRepo: pr,
+		deps:         d,
+		cfg:          c,
 	}
 }
 
@@ -38,6 +45,38 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 	t, err := s.topics.Get(c, topicID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if the topic is a parent topic (has children)
+	goalID := t.GoalID
+	allTopics, err := s.topicRepo.GetByGoalID(c, goalID)
+	if err != nil {
+		return nil, err
+	}
+	var children []*topic.Topic
+	for _, topic := range allTopics {
+		if topic.ParentTopicID.Valid && topic.ParentTopicID.UUID == t.ID {
+			children = append(children, topic)
+		}
+	}
+	if len(children) > 0 {
+		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "cannot generate tasks for parent topics", nil)
+	}
+
+	// Check dependencies: all prerequisite topics must be mastered
+	deps, err := s.deps.GetByTopicIDs(c, []uuid.UUID{t.ID})
+	if err != nil {
+		return nil, err
+	}
+	for _, dep := range deps {
+		progress, err := s.progressRepo.GetOrCreate(c, userID, dep.DependsOnTopicID)
+		if err != nil {
+			return nil, err
+		}
+		if progress.Status != topic.TopicStatusMastered {
+			return nil, apperrors.NewAppError(apperrors.ErrInvalidInput,
+				fmt.Sprintf("prerequisite topic %s not mastered", dep.DependsOnTopicID), nil)
+		}
 	}
 
 	quiz, err := ai.FS.ReadFile("schemas/quiz.schema.json")
@@ -70,7 +109,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		)
 	}
 
-	raw, err := s.ai.Generate(prompt)
+	raw, err := s.ai.Generate(c, prompt)
 	if err != nil {
 		return nil, err
 	}

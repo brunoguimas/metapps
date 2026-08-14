@@ -16,12 +16,12 @@ import (
 )
 
 type fakeAIClient struct {
-	generateFn func(prompt string) (string, error)
+	generateFn func(context.Context, string) (string, error)
 }
 
-func (c *fakeAIClient) Generate(prompt string) (string, error) {
+func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
 	if c.generateFn != nil {
-		return c.generateFn(prompt)
+		return c.generateFn(ctx, prompt)
 	}
 	return `{"feedback":"Excelente redação!","score":90}`, nil
 }
@@ -314,7 +314,7 @@ func TestGenerateEssayCorrection_Success(t *testing.T) {
 	}
 
 	aiClient := &fakeAIClient{
-		generateFn: func(prompt string) (string, error) {
+		generateFn: func(ctx context.Context, prompt string) (string, error) {
 			return "```json\n{\"feedback\":\"Texto muito bem escrito!\",\"score\":85.0}\n```", nil
 		},
 	}
@@ -429,7 +429,7 @@ func TestGenerateQuizCorrection_Success(t *testing.T) {
 	}
 
 	aiClient := &fakeAIClient{
-		generateFn: func(prompt string) (string, error) {
+		generateFn: func(ctx context.Context, prompt string) (string, error) {
 			return " ótimo trabalho! Você acertou todas as questões. " +
 				"Continue estudando para manter esse desempenho.", nil
 		},

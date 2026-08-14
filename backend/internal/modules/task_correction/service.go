@@ -215,7 +215,7 @@ func (s *service) GenerateEssayCorrection(ctx context.Context, userID, attemptID
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to render essay correction prompt", err)
 	}
 
-	aiResponse, err := s.client.Generate(prompt)
+	aiResponse, err := s.client.Generate(ctx, prompt)
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to generate AI correction", err)
 	}
@@ -363,7 +363,7 @@ func (s *service) GenerateQuizCorrection(ctx context.Context, userID, attemptID 
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to render quiz correction prompt", err)
 	}
 
-	aiResponse, err := s.client.Generate(prompt)
+	aiResponse, err := s.client.Generate(ctx, prompt)
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to generate AI quiz correction", err)
 	}

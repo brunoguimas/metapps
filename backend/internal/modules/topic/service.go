@@ -22,19 +22,19 @@ type TopicService interface {
 }
 
 type topicService struct {
-	repo           TopicRepository
-	deps           topic_dependency.TopicDependencyService
-	ai             ai.Client
-	cfg            *config.Config
-	progressRepo   TopicProgressRepository
+	repo         TopicRepository
+	deps         topic_dependency.TopicDependencyService
+	ai           ai.Client
+	cfg          *config.Config
+	progressRepo TopicProgressRepository
 }
 
 func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config, pr TopicProgressRepository) TopicService {
 	return topicService{
-		repo:      r,
-		deps:      d,
-		ai:        a,
-		cfg:       c,
+		repo:         r,
+		deps:         d,
+		ai:           a,
+		cfg:          c,
 		progressRepo: pr,
 	}
 }
@@ -57,7 +57,7 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 		return nil, err
 	}
 
-	roadmapJSON, err := s.ai.Generate(prompt)
+	roadmapJSON, err := s.ai.Generate(c, prompt)
 
 	r, err := parseRoadmapJSON(string(roadmapJSON))
 	if err != nil {
