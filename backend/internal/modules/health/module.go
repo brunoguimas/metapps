@@ -3,8 +3,8 @@ package health
 import (
 	"time"
 
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
-	"github.com/jpoz/groq"
 )
 
 type Module struct {
@@ -13,9 +13,9 @@ type Module struct {
 	Handler    *HealthHandler
 }
 
-func NewModule(q *db.Queries, c *groq.Client, t time.Time) *Module {
+func NewModule(q *db.Queries, aiClient ai.Client, t time.Time) *Module {
 	r := NewDBChecker(q)
-	a := NewAIChecker(c)
+	a := NewAIChecker(aiClient)
 	h := NewHealthHandler(r, a, t)
 
 	return &Module{

@@ -53,6 +53,45 @@ func (q *Queries) CreateTopic(ctx context.Context, arg CreateTopicParams) (Topic
 	return i, err
 }
 
+const getTopicByGoalID = `-- name: GetTopicByGoalID :many
+SELECT id, goal_id, parent_topic_id, title, description, required_mastery, weight, order_index, created_at, updated_at FROM public.topics
+WHERE goal_id = $1
+`
+
+func (q *Queries) GetTopicByGoalID(ctx context.Context, goalID uuid.UUID) ([]Topic, error) {
+	rows, err := q.db.QueryContext(ctx, getTopicByGoalID, goalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Topic
+	for rows.Next() {
+		var i Topic
+		if err := rows.Scan(
+			&i.ID,
+			&i.GoalID,
+			&i.ParentTopicID,
+			&i.Title,
+			&i.Description,
+			&i.RequiredMastery,
+			&i.Weight,
+			&i.OrderIndex,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTopicByID = `-- name: GetTopicByID :one
 SELECT id, goal_id, parent_topic_id, title, description, required_mastery, weight, order_index, created_at, updated_at FROM public.topics
 WHERE id = $1

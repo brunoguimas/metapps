@@ -116,6 +116,16 @@ type TaskAttempt struct {
 	CreatedAt      sql.NullTime
 }
 
+type TaskCorrection struct {
+	ID        uuid.UUID
+	AttemptID uuid.UUID
+	Feedback  string
+	Score     sql.NullString
+	Status    string
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
 type Topic struct {
 	ID              uuid.UUID
 	GoalID          uuid.UUID
@@ -147,6 +157,7 @@ type TopicProgress struct {
 	Status          TopicStatus
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	EvolutionStage  string
 }
 
 type User struct {

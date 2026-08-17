@@ -30,7 +30,14 @@ func Message(c *gin.Context, status int, msg string) {
 
 func Error(c *gin.Context, status int, msg string) {
 	logError(c, nil, msg, status)
-	c.JSON(status, gin.H{"error": msg})
+
+	// Don't expose internal messages in HTTP request responses for 5xx errors
+	responseMsg := msg
+	if status >= http.StatusInternalServerError {
+		responseMsg = "internal server error"
+	}
+
+	c.JSON(status, gin.H{"error": responseMsg})
 }
 
 func ErrorFrom(c *gin.Context, err error) {
@@ -40,6 +47,16 @@ func ErrorFrom(c *gin.Context, err error) {
 
 	if appErr, ok := apperrors.As(err); ok {
 		logError(c, err, appErr.Error(), appErr.Status())
+
+		// Sanitize HTTP response for internal server errors (5xx)
+		if appErr.Status() >= http.StatusInternalServerError {
+			c.JSON(appErr.Status(), gin.H{
+				"error": "internal server error",
+				"code":  appErr.Code(),
+			})
+			return
+		}
+
 		c.JSON(appErr.Status(), gin.H{
 			"error": appErr.Error(),
 			"code":  appErr.Code(),
@@ -47,8 +64,11 @@ func ErrorFrom(c *gin.Context, err error) {
 		return
 	}
 
-	logError(c, err, "internal server error", http.StatusInternalServerError)
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	logError(c, err, err.Error(), http.StatusInternalServerError)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "internal server error",
+		"code":  apperrors.ErrInternal,
+	})
 }
 
 func logError(c *gin.Context, err error, msg string, status int) {

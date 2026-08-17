@@ -231,7 +231,7 @@ func TestAuthHandlerLogin_Success(t *testing.T) {
 		config.Config{
 			RequireEmailVerification: true,
 			RefreshTokenTTL:          time.Hour,
-			CookiePath:               "/auth/refresh",
+			JWTTokenCookiePath:       "/auth/refresh",
 		},
 	)
 
@@ -303,5 +303,47 @@ func TestAuthHandlerLogin_Fail(t *testing.T) {
 	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, "invalid email or password", resp.Error)
+	assert.Equal(t, string(apperrors.ErrInvalidCredentials), resp.Code)
+}
+
+func TestAuthHandlerLogin_FailEmailNotVerified(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	authService := &fakeAuthService{
+		loginFn: func(ctx context.Context, req *dto.LoginRequest) (*user.User, error) {
+			return &user.User{
+				ID:       uuid.New(),
+				Email:    req.Email,
+				Verified: false,
+			}, nil
+		},
+	}
+
+	handler := NewAuthHandler(authService, nil, newTestJWTService(), nil, config.Config{
+		RequireEmailVerification: true,
+	})
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/auth/login",
+		strings.NewReader(`{"email":"bruno@test.com","password":"forte123"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = req
+
+	handler.Login(ctx)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	var resp struct {
+		Error string `json:"error"`
+		Code  string `json:"code"`
+	}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "email not verified", resp.Error)
 	assert.Equal(t, string(apperrors.ErrInvalidCredentials), resp.Code)
 }

@@ -30,6 +30,9 @@ const (
 	ErrInvalidAnswerIndex        Code = "INVALID_ANSWER_INDEX"
 	ErrUnknownTaskType           Code = "UNKNOWN_TASK_TYPE"
 	ErrInvalidAIResponse         Code = "INVALID_AI_RESPONSE"
+	ErrTaskCorrectionNotFound    Code = "TASK_CORRECTION_NOT_FOUND"
+	ErrUnauthorized              Code = "UNAUTHORIZED"
+	ErrForbidden                 Code = "FORBIDDEN"
 )
 
 type appError struct {
@@ -123,6 +126,12 @@ func StatusFromCode(code Code) int {
 		return http.StatusInternalServerError
 	case ErrInvalidAIResponse:
 		return http.StatusInternalServerError
+	case ErrTaskCorrectionNotFound:
+		return http.StatusNotFound
+	case ErrUnauthorized:
+		return http.StatusUnauthorized
+	case ErrForbidden:
+		return http.StatusForbidden
 	default:
 		return 500
 	}

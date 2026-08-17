@@ -66,6 +66,41 @@ type QuizQuestion struct {
 	Explanation  string     `json:"explanation"`
 }
 
+func (q *QuizQuestion) UnmarshalJSON(data []byte) error {
+	type Alias QuizQuestion
+	aux := &struct {
+		Materials json.RawMessage `json:"material"`
+		*Alias
+	}{
+		Alias: (*Alias)(q),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	if len(aux.Materials) == 0 {
+		return nil
+	}
+
+	// Try the expected shape first: []Material
+	var materials []Material
+	if err := json.Unmarshal(aux.Materials, &materials); err == nil {
+		q.Materials = materials
+		return nil
+	}
+
+	// Fall back: bare string -> single text Material
+	var text string
+	if err := json.Unmarshal(aux.Materials, &text); err == nil {
+		if text != "" {
+			q.Materials = []Material{{Type: Text, Data: text}}
+		}
+		return nil
+	}
+
+	return fmt.Errorf("material field has unsupported shape: %s", string(aux.Materials))
+}
+
 type Material struct {
 	Type MaterialType `json:"type"`
 	Data string       `json:"data"`

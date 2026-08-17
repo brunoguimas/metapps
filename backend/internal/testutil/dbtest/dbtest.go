@@ -41,8 +41,11 @@ func Clean(t *testing.T, conn *sql.DB) {
 	t.Helper()
 	_, err := conn.Exec(`
 		TRUNCATE TABLE
+			task_corrections,
 			task_attempts,
 			tasks,
+			topic_dependencies,
+			topics,
 			email_codes,
 			oauth_accounts,
 			refresh_tokens,
@@ -67,22 +70,36 @@ func CreateUser(t *testing.T, queries *db.Queries, username, email string) db.Us
 	return u
 }
 
-func CreateGoal(t *testing.T, queries *db.Queries, userID uuid.UUID, title string, difficulties json.RawMessage) db.Goal {
+func CreateGoal(t *testing.T, queries *db.Queries, userID uuid.UUID, title string, settings json.RawMessage) db.Goal {
 	t.Helper()
 	g, err := queries.CreateOneGoal(context.Background(), db.CreateOneGoalParams{
-		UserID:       userID,
-		Title:        title,
-		Difficulties: difficulties,
+		UserID:   userID,
+		Title:    title,
+		Settings: settings,
 	})
 	require.NoError(t, err)
 	return g
 }
 
-func CreateTask(t *testing.T, queries *db.Queries, userID, goalID uuid.UUID, content json.RawMessage, taskType string) db.Task {
+func CreateTopic(t *testing.T, queries *db.Queries, goalID uuid.UUID, title, description string) db.Topic {
+	t.Helper()
+	tp, err := queries.CreateTopic(context.Background(), db.CreateTopicParams{
+		GoalID:          goalID,
+		Title:           title,
+		Description:     description,
+		RequiredMastery: 0.5,
+		Weight:          1.0,
+		OrderIndex:      0,
+	})
+	require.NoError(t, err)
+	return tp
+}
+
+func CreateTask(t *testing.T, queries *db.Queries, userID, topicID uuid.UUID, content json.RawMessage, taskType string) db.Task {
 	t.Helper()
 	task, err := queries.CreateTask(context.Background(), db.CreateTaskParams{
 		UserID:  userID,
-		GoalID:  goalID,
+		TopicID: topicID,
 		Content: content,
 		Type:    taskType,
 	})

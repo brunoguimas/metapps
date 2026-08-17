@@ -1,0 +1,111 @@
+package task_attempt
+
+import (
+	"io"
+
+	"github.com/brunoguimas/metapps/backend/internal/httpx"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+type Handler struct {
+	service Service
+}
+
+func NewHandler(service Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (h *Handler) Submit(c *gin.Context) {
+	userID, err := httpx.GetFromContext(c, "user_id")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	taskID, err := taskIDFromContext(c)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	rawBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+
+	req, err := ParseCreateAttemptInput(rawBody)
+	if err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+
+	attempt, updatedTask, err := h.service.Submit(c.Request.Context(), userID, taskID, req)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.Created(c, gin.H{
+		"message":      "task attempt submitted",
+		"task_attempt": attempt,
+		"task":         updatedTask,
+	})
+}
+
+func (h *Handler) ListByUser(c *gin.Context) {
+	userID, err := httpx.GetFromContext(c, "user_id")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	attempts, err := h.service.ListByUser(c.Request.Context(), userID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{"task_attempts": attempts})
+}
+
+func (h *Handler) ListByTask(c *gin.Context) {
+	userID, err := httpx.GetFromContext(c, "user_id")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	taskID, err := taskIDFromContext(c)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	attempts, err := h.service.ListByUserAndTask(c.Request.Context(), userID, taskID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	httpx.OK(c, gin.H{"task_attempts": attempts})
+}
+
+func taskIDFromContext(c *gin.Context) (uuid.UUID, error) {
+	raw := c.Param("id")
+	if raw == "" {
+		raw = c.Param("taskID")
+	}
+	if raw == "" {
+		raw = c.Param("taskid")
+	}
+
+	taskID, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task id", err)
+	}
+
+	return taskID, nil
+}

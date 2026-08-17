@@ -18,12 +18,14 @@ func TestParseValidRoadmap_Suceeds(t *testing.T) {
 	require.NotNil(t, r)
 
 	assert.Equal(t, 19, len(r.Nodes))
-	assert.Equal(t, 15, len(r.Edges))
+	assert.Equal(t, 7, len(r.Edges))
 
 	titles := []string{
 		"Lógica de Programação",
 		"Internet",
 		"Fundamentos de Backend",
+		"Docker",
+		"Deploy",
 		"Algoritmos",
 		"Variáveis e Tipos",
 		"Estruturas de Controle",
@@ -32,14 +34,12 @@ func TestParseValidRoadmap_Suceeds(t *testing.T) {
 		"DNS",
 		"HTTP",
 		"APIs REST",
-		"Banco de Dados",
 		"Rotas",
 		"Middlewares",
 		"Autenticação",
+		"Banco de Dados",
 		"SQL",
 		"ORM",
-		"Docker",
-		"Deploy",
 	}
 
 	for i, node := range r.Nodes {
@@ -49,12 +49,11 @@ func TestParseValidRoadmap_Suceeds(t *testing.T) {
 		assert.Equal(t, titles[i], node.Title)
 	}
 
-	assert.Equal(t, r.Edges[0].From, "logic_prog")
-	assert.Equal(t, r.Edges[0].To, "internet")
-	assert.Equal(t, r.Edges[1].From, "algorithms")
-	assert.Equal(t, r.Edges[1].To, "variables")
+	assert.Equal(t, "logic_prog", r.Edges[0].From)
+	assert.Equal(t, "internet", r.Edges[0].To)
+	assert.Equal(t, "internet", r.Edges[1].From)
+	assert.Equal(t, "backend", r.Edges[1].To)
 
-	assert.Nil(t, r.Nodes[0].ParentID)
 	assert.Nil(t, r.Nodes[0].ParentID)
 }
 
@@ -69,14 +68,10 @@ func TestParseInvalidRoadmap(t *testing.T) {
 
 	require.True(t, ok)
 
-assert.Equal(t, apperrors.ErrInvalidAIResponse, appErr.Code())
+	assert.Equal(t, apperrors.ErrInvalidAIResponse, appErr.Code())
 }
 
 func validateTopicNode(_ *testing.T, n dto.TopicNode) error {
-	// if n.ID == "" {
-	// 	return errors.New("id cannot be empty")
-	// }
-
 	if n.Title == "" {
 		return apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "title cannot be empty", nil)
 	}

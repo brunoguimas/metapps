@@ -1,6 +1,8 @@
 package goal
 
 import (
+	"encoding/json"
+
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
@@ -16,8 +18,37 @@ func NewGoalHandler(s GoalService) *GoalHandler {
 }
 
 type goalRequest struct {
-	Title    string       `json:"title" binding:"required"`
-	Settings GoalSettings `json:"goal_settings" binding:"required"`
+	Title       string       `json:"title" binding:"required"`
+	Settings    GoalSettings `json:"settings"`
+	hasSettings bool
+}
+
+func (r *goalRequest) UnmarshalJSON(data []byte) error {
+	type payload struct {
+		Title        string        `json:"title"`
+		Settings     *GoalSettings `json:"settings"`
+		GoalSettings *GoalSettings `json:"goal_settings"`
+	}
+
+	var p payload
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+
+	r.Title = p.Title
+	switch {
+	case p.Settings != nil:
+		r.Settings = *p.Settings
+		r.hasSettings = true
+	case p.GoalSettings != nil:
+		r.Settings = *p.GoalSettings
+		r.hasSettings = true
+	default:
+		r.Settings = GoalSettings{}
+		r.hasSettings = false
+	}
+
+	return nil
 }
 
 func (h *GoalHandler) Create(c *gin.Context) {
@@ -30,6 +61,10 @@ func (h *GoalHandler) Create(c *gin.Context) {
 	var req goalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+	if !req.hasSettings {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "settings is required", nil))
 		return
 	}
 
@@ -96,6 +131,10 @@ func (h *GoalHandler) Update(c *gin.Context) {
 	var req goalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
+		return
+	}
+	if !req.hasSettings {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "settings is required", nil))
 		return
 	}
 

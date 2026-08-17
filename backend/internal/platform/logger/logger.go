@@ -1,57 +1,36 @@
 package logger
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func requestAttrs(c *gin.Context) []any {
-	requestID, _ := c.Get("request_id")
+	attrs := make([]any, 0, 10)
 
-	return []any{
-		"request_id", requestID,
+	if reqID, ok := c.Get("request_id"); ok && reqID != "" {
+		attrs = append(attrs, "request_id", reqID)
+	}
+	if userID, ok := c.Get("user_id"); ok && userID != "" {
+		attrs = append(attrs, "user_id", userID)
+	}
+
+	attrs = append(attrs,
 		"method", c.Request.Method,
 		"path", c.Request.URL.Path,
 		"client_ip", c.ClientIP(),
-	}
-}
+	)
 
-func LogInfo(c *gin.Context, msg string) {
-	slog.Info(msg, requestAttrs(c)...)
-}
-
-func LogWithUser(c *gin.Context, msg string, user_id uuid.UUID) {
-	attrs := append(requestAttrs(c), "user_id", user_id)
-	slog.Info(msg, attrs...)
-}
-
-func LogWarn(c *gin.Context, err error, msg string, status int) {
-	logWithStatus(c, err, msg, status, slog.Warn)
-}
-
-func LogError(c *gin.Context, err error, msg string, status int) {
-	logWithStatus(c, err, msg, status, slog.Error)
+	return attrs
 }
 
 func LogResponse(c *gin.Context, msg string, status int) {
 	attrs := append(requestAttrs(c), "status", status)
 	slog.Info(msg, attrs...)
-}
-
-func logWithStatus(c *gin.Context, err error, msg string, status int, logFn func(string, ...any)) {
-	errStr := "no error"
-	if err != nil {
-		errStr = err.Error()
-	}
-
-	attrs := append(requestAttrs(c),
-		"error", errStr,
-		"status", status,
-	)
-	logFn(msg, attrs...)
 }
 
 func LogSystemInfo(msg string, attrs ...any) {
@@ -65,6 +44,9 @@ func LogSystemWarn(msg string, attrs ...any) {
 func LogSystemError(msg string, err error, attrs ...any) {
 	if err != nil {
 		attrs = append(attrs, "error", err.Error())
+		if cause := errors.Unwrap(err); cause != nil {
+			attrs = append(attrs, "cause", cause.Error())
+		}
 	}
 
 	slog.Error(msg, attrs...)
@@ -80,4 +62,50 @@ func SeverityForStatus(status int) func(*gin.Context, error, string, int) {
 	}
 
 	return nil
+}
+
+// LogError logs an error with the given context and status.
+// It should be used for errors that warrant an error-level log.
+func LogError(c *gin.Context, err error, msg string, status int) {
+	attrs := append(requestAttrs(c), "status", status)
+
+	if err != nil {
+		attrs = append(attrs, "error", err.Error())
+
+		if appErr, ok := apperrors.As(err); ok {
+			attrs = append(attrs, "code", string(appErr.Code()))
+			if cause := appErr.Unwrap(); cause != nil {
+				attrs = append(attrs, "cause", cause.Error())
+			}
+		} else if cause := errors.Unwrap(err); cause != nil {
+			attrs = append(attrs, "cause", cause.Error())
+		}
+	} else {
+		attrs = append(attrs, "error", "no error")
+	}
+
+	slog.Error(msg, attrs...)
+}
+
+// LogWarn logs a warning with the given context and status.
+// It should be used for non-critical issues that warrant a warning-level log.
+func LogWarn(c *gin.Context, err error, msg string, status int) {
+	attrs := append(requestAttrs(c), "status", status)
+
+	if err != nil {
+		attrs = append(attrs, "error", err.Error())
+
+		if appErr, ok := apperrors.As(err); ok {
+			attrs = append(attrs, "code", string(appErr.Code()))
+			if cause := appErr.Unwrap(); cause != nil {
+				attrs = append(attrs, "cause", cause.Error())
+			}
+		} else if cause := errors.Unwrap(err); cause != nil {
+			attrs = append(attrs, "cause", cause.Error())
+		}
+	} else {
+		attrs = append(attrs, "error", "no error")
+	}
+
+	slog.Warn(msg, attrs...)
 }

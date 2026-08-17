@@ -35,6 +35,7 @@ func (s *goalService) Create(c context.Context, userID uuid.UUID, g *goalRequest
 		if appErr, ok := apperrors.As(err); ok {
 			return nil, appErr
 		}
+
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create goal", err)
 	}
 	return goal, nil

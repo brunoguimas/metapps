@@ -21,8 +21,8 @@ type fakeTaskServiceHandler struct {
 	createFn func(context.Context, uuid.UUID, uuid.UUID) (*Task, error)
 }
 
-func (s *fakeTaskServiceHandler) Create(c context.Context, userID, goalID uuid.UUID) (*Task, error) {
-	return s.createFn(c, userID, goalID)
+func (s *fakeTaskServiceHandler) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
+	return s.createFn(c, userID, topicID)
 }
 
 func (s *fakeTaskServiceHandler) GetByUserID(context.Context, uuid.UUID) ([]*Task, error) { return nil, nil }
@@ -33,17 +33,17 @@ func (s *fakeTaskServiceHandler) GetByID(context.Context, uuid.UUID, uuid.UUID) 
 func TestTaskHandlerGenerate_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userID := uuid.New()
-	goalID := uuid.New()
+	topicID := uuid.New()
 
 	handler := NewTaskHandler(&fakeTaskServiceHandler{
-		createFn: func(_ context.Context, gotUserID, gotGoalID uuid.UUID) (*Task, error) {
+		createFn: func(_ context.Context, gotUserID, gotTopicID uuid.UUID) (*Task, error) {
 			assert.Equal(t, userID, gotUserID)
-			assert.Equal(t, goalID, gotGoalID)
-			return &Task{ID: uuid.New(), UserID: gotUserID, GoalID: gotGoalID, Type: TaskEssay}, nil
+			assert.Equal(t, topicID, gotTopicID)
+			return &Task{ID: uuid.New(), UserID: gotUserID, TopicID: gotTopicID, Type: TaskEssay}, nil
 		},
 	}, nil, &config.Config{})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/generate", strings.NewReader(`{"goal_id":"`+goalID.String()+`"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/generate", strings.NewReader(`{"topic_id":"`+topicID.String()+`"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -60,7 +60,7 @@ func TestTaskHandlerGenerate_Success(t *testing.T) {
 	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, "task generated", resp.Message)
-	assert.Equal(t, goalID, resp.Task.GoalID)
+	assert.Equal(t, topicID, resp.Task.TopicID)
 }
 
 func TestTaskHandlerGenerate_Fail(t *testing.T) {
@@ -72,7 +72,7 @@ func TestTaskHandlerGenerate_Fail(t *testing.T) {
 		},
 	}, nil, &config.Config{})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/generate", strings.NewReader(`{"goal_id":"bad-uuid"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/generate", strings.NewReader(`{"topic_id":"bad-uuid"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
