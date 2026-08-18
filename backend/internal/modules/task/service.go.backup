@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
-	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -27,11 +26,10 @@ type taskService struct {
 	topicRepo    topic.TopicRepository
 	progressRepo topic.TopicProgressRepository
 	deps         topic_dependency.TopicDependencyService
-	goals        goal.GoalService
 	cfg          *config.Config
 }
 
-func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, tr topic.TopicRepository, pr topic.TopicProgressRepository, d topic_dependency.TopicDependencyService, g goal.GoalService, c *config.Config) TaskService {
+func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, tr topic.TopicRepository, pr topic.TopicProgressRepository, d topic_dependency.TopicDependencyService, c *config.Config) TaskService {
 	return &taskService{
 		ai:           a,
 		repo:         r,
@@ -39,23 +37,8 @@ func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, tr topi
 		topicRepo:    tr,
 		progressRepo: pr,
 		deps:         d,
-		goals:        g,
 		cfg:          c,
 	}
-}
-
-func (s *taskService) computeDifficulties(p *topic.TopicProgress) string {
-	if p.MasteryScore < 0.5 {
-		return "Baixa maestria no tópico"
-	} else if p.MasteryScore < 0.8 {
-		return "Mediana maestria"
-	} else {
-		return "Alta maestria"
-	}
-}
-
-func (s *taskService) computePerformanceSummary(p *topic.TopicProgress) string {
-	return fmt.Sprintf("Tentativas: %d, Mestria: %.0f%%, Confiança: %.0f%%", p.AttemptsCount, p.MasteryScore*100, p.ConfidenceScore*100)
 }
 
 func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
@@ -96,18 +79,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		}
 	}
 
-	// Get the goal for the topic
-	goal, err := s.goals.Get(c, userID, t.GoalID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the progress for the topic and user
-	progress, err := s.progressRepo.GetOrCreate(c, userID, t.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	quiz, err := ai.FS.ReadFile("schemas/quiz.schema.json")
 	if err != nil {
 		return nil, err
@@ -120,27 +91,11 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 	data := struct {
 		TopicTitle       string
 		TopicDescription string
-		TopicRequiredMastery float64
-		TopicWeight      float64
-		GoalTitle        string
-		GoalMotivation   string
-		GoalSuccessCriteria string
-		GoalLearningStyle string
-		Difficulties     string
-		PerformanceSummary string
 		QuizSchema       string
 		EssaySchema      string
 	}{
 		TopicTitle:       t.Title,
 		TopicDescription: t.Description,
-		TopicRequiredMastery: t.RequiredMastery,
-		TopicWeight:      t.Weight,
-		GoalTitle:        goal.Title,
-		GoalMotivation:   goal.Settings.Motivation,
-		GoalSuccessCriteria: goal.Settings.SuccessCriteria,
-		GoalLearningStyle: goal.Settings.LearningStyle,
-		Difficulties:     s.computeDifficulties(progress),
-		PerformanceSummary: s.computePerformanceSummary(progress),
 		QuizSchema:       string(quiz),
 		EssaySchema:      string(essay),
 	}

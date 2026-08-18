@@ -17,13 +17,13 @@ func NewGoalHandler(s GoalService) *GoalHandler {
 	return &GoalHandler{goals: s}
 }
 
-type goalRequest struct {
+type GoalRequest struct {
 	Title       string       `json:"title" binding:"required"`
 	Settings    GoalSettings `json:"settings"`
 	hasSettings bool
 }
 
-func (r *goalRequest) UnmarshalJSON(data []byte) error {
+func (r *GoalRequest) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		Title        string        `json:"title"`
 		Settings     *GoalSettings `json:"settings"`
@@ -58,7 +58,7 @@ func (h *GoalHandler) Create(c *gin.Context) {
 		return
 	}
 
-	var req goalRequest
+	var req GoalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
@@ -128,7 +128,7 @@ func (h *GoalHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var req goalRequest
+	var req GoalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
