@@ -85,6 +85,17 @@ type OauthAccount struct {
 	CreatedAt      time.Time
 }
 
+type Profile struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	Xp               int32
+	Streak           int32
+	LastActivityDate time.Time
+	AvatarUrl        sql.NullString
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

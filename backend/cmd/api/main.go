@@ -13,6 +13,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
@@ -37,6 +38,7 @@ type AppModules struct {
 	GoalModule           *goal.Module
 	OauthModule          *oauth.Module
 	AuthModule           *auth.Module
+	ProfileModule        *profile.Module
 	AIClient             ai.Client
 	GroqClient           *groq.Client
 	HealthModule         *health.Module
@@ -75,6 +77,9 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		return nil, err
 	}
 
+	// Profile module
+	profileModule := profile.NewProfileModule(queries, cfg)
+
 	// Health module
 	healthModule := health.NewModule(queries, geminiClient, time.Now())
 
@@ -101,6 +106,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		GoalModule:           goalModule,
 		OauthModule:          oauthModule,
 		AuthModule:           authModule,
+		ProfileModule:        profileModule,
 		AIClient:             geminiClient,
 		HealthModule:         healthModule,
 		TopicDependencySvc:   topicDependencyService,
@@ -121,6 +127,7 @@ func newRouter(cfg *config.Config, modules *AppModules) *gin.Engine {
 		modules.TaskModule.Handler,
 		modules.TaskAttemptModule.Handler,
 		modules.TaskCorrectionModule.Handler,
+		modules.ProfileModule.Handler,
 		modules.JWTModule.Service,
 		cfg,
 	)

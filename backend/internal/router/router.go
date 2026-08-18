@@ -9,6 +9,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
@@ -27,6 +28,7 @@ tp *topic.TopicHandler,
 t *task.TaskHandler,
 ta *task_attempt.Handler,
 tcHandler *task_correction.Handler,
+	p *profile.ProfileHandler,
 jwtService jwt.JWTService,
 cfg *config.Config,
 ) *gin.Engine {
@@ -90,7 +92,14 @@ cfg *config.Config,
 			corrections.POST("/essay/:attemptID", tcHandler.GenerateEssayCorrection)
 			corrections.POST("/quiz/:attemptID", tcHandler.GenerateQuizCorrection)
 		}
-		protected.GET("/task-attempts", ta.ListByUser)
+		profile := protected.Group("/profile")
+			{
+				profile.GET("", p.GetProfile)
+				profile.POST("/xp", p.AddXP)
+				profile.POST("/avatar", p.UpdateAvatar)
+			}
+
+			protected.GET("/task-attempts", ta.ListByUser)
 	}
 
 	return r

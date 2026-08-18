@@ -36,6 +36,7 @@ type Config struct {
 	GoogleLogin              oauth2.Config
 	RequireEmailVerification bool
 	GeminiKey                string
+	AvatarBaseURL            string
 }
 
 func Load() *Config {
@@ -62,6 +63,7 @@ func Load() *Config {
 	smtpPass := getEnv("SMTP_PASS", "")
 	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
 	geminiKey := mustGetenv("GEMINI_API_KEY")
+	avatarBaseURL := getEnv("AVATAR_BASE_URL", "")
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
@@ -133,6 +135,7 @@ func Load() *Config {
 		GoogleLogin:              googleLogin,
 		RequireEmailVerification: requireEmailVerification,
 		GeminiKey:                geminiKey,
+		AvatarBaseURL:            avatarBaseURL,
 	}
 }
 
