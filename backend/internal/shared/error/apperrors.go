@@ -33,6 +33,8 @@ const (
 	ErrTaskCorrectionNotFound    Code = "TASK_CORRECTION_NOT_FOUND"
 	ErrUnauthorized              Code = "UNAUTHORIZED"
 	ErrForbidden                 Code = "FORBIDDEN"
+	ErrProfileNotFound           Code = "PROFILE_NOT_FOUND"
+	ErrProfileAlreadyExists      Code = "PROFILE_ALREADY_EXISTS"
 )
 
 type appError struct {
@@ -132,6 +134,10 @@ func StatusFromCode(code Code) int {
 		return http.StatusUnauthorized
 	case ErrForbidden:
 		return http.StatusForbidden
+	case ErrProfileNotFound:
+		return http.StatusNotFound
+	case ErrProfileAlreadyExists:
+		return http.StatusConflict
 	default:
 		return 500
 	}
