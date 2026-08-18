@@ -66,19 +66,6 @@ func (s *fakeTopicService) Get(c context.Context, topicID uuid.UUID) (*topic.Top
 	return s.getFn(c, topicID)
 }
 
-type fakeGoalRepositoryTask struct{}
-
-func (r *fakeGoalRepositoryTask) Create(context.Context, *goal.Goal) (*goal.Goal, error) { return nil, nil }
-func (r *fakeGoalRepositoryTask) ListByUserID(context.Context, uuid.UUID) ([]*goal.Goal, error) {
-	return nil, nil
-}
-func (r *fakeGoalRepositoryTask) GetByID(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error) {
-	return nil, nil
-}
-func (r *fakeGoalRepositoryTask) Update(context.Context, *goal.Goal) error { return nil }
-func (r *fakeGoalRepositoryTask) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
-
-// Added missing fake implementations
 type fakeTopicRepository struct {
 	createFn      func(context.Context, *topic.Topic) (*topic.Topic, error)
 	getFn         func(context.Context, uuid.UUID) (*topic.Topic, error)
@@ -119,6 +106,45 @@ func (r *fakeTopicDependencyRepository) GetByTopicIDs(c context.Context, topicID
 	return r.getByTopicIDsFn(c, topicIDs)
 }
 
+type fakeGoalService struct {
+	createFn func(context.Context, uuid.UUID, *goal.GoalRequest) (*goal.Goal, error)
+	listFn   func(context.Context, uuid.UUID) ([]*goal.Goal, error)
+	getFn    func(context.Context, uuid.UUID, uuid.UUID) (*goal.Goal, error)
+	updateFn func(context.Context, uuid.UUID, uuid.UUID, *goal.GoalRequest) error
+	deleteFn func(context.Context, uuid.UUID, uuid.UUID) error
+}
+
+func (s *fakeGoalService) Create(c context.Context, userID uuid.UUID, g *goal.GoalRequest) (*goal.Goal, error) {
+	if s.createFn != nil {
+		return s.createFn(c, userID, g)
+	}
+	return nil, nil
+}
+func (s *fakeGoalService) List(c context.Context, userID uuid.UUID) ([]*goal.Goal, error) {
+	if s.listFn != nil {
+		return s.listFn(c, userID)
+	}
+	return nil, nil
+}
+func (s *fakeGoalService) Get(c context.Context, userID, goalID uuid.UUID) (*goal.Goal, error) {
+	if s.getFn != nil {
+		return s.getFn(c, userID, goalID)
+	}
+	return nil, nil
+}
+func (s *fakeGoalService) Update(c context.Context, userID, goalID uuid.UUID, g *goal.GoalRequest) error {
+	if s.updateFn != nil {
+		return s.updateFn(c, userID, goalID, g)
+	}
+	return nil
+}
+func (s *fakeGoalService) Delete(c context.Context, userID, goalID uuid.UUID) error {
+	if s.deleteFn != nil {
+		return s.deleteFn(c, userID, goalID)
+	}
+	return nil
+}
+
 func TestTaskServiceCreate_Success(t *testing.T) {
 	userID := uuid.New()
 	topicID := uuid.New()
@@ -139,33 +165,65 @@ func TestTaskServiceCreate_Success(t *testing.T) {
 	}
 	tdService := topic_dependency.NewTopicDependencyService(tdRepo)
 
+	fakeTopicService := &fakeTopicService{
+		getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
+			return &topic.Topic{ID: tID, Title: "Topico 1", Description: "Desc 1"}, nil
+		},
+	}
+
+	fakeTopicRepo := &fakeTopicRepository{
+		createFn:      func(_ context.Context, _ *topic.Topic) (*topic.Topic, error) { return nil, nil },
+		getFn:         func(_ context.Context, _ uuid.UUID) (*topic.Topic, error) { return nil, nil },
+		getByGoalIDFn: func(_ context.Context, _ uuid.UUID) ([]*topic.Topic, error) {
+			return []*topic.Topic{}, nil
+		},
+	}
+
+	fakeTopicProgressRepo := &fakeTopicProgressRepository{
+		getOrCreateFn: func(_ context.Context, _, _ uuid.UUID) (*topic.TopicProgress, error) {
+			return &topic.TopicProgress{Status: topic.TopicStatusMastered}, nil
+		},
+		updateFn:      func(_ context.Context, _ *topic.TopicProgress) error { return nil },
+	}
+
+	fakeGoalService := &fakeGoalService{
+		createFn: func(_ context.Context, _ uuid.UUID, _ *goal.GoalRequest) (*goal.Goal, error) {
+			return &goal.Goal{ID: uuid.New(), UserID: userID, Title: "Meta Teste"}, nil
+		},
+		getFn: func(_ context.Context, _ uuid.UUID, goalID uuid.UUID) (*goal.Goal, error) {
+			return &goal.Goal{ID: goalID, UserID: userID, Title: "Meta Teste"}, nil
+		},
+	}
+
 	service := NewTaskService(
 		&fakeAIClient{
 			generateFn: func(ctx context.Context, prompt string) (string, error) {
 				assert.Contains(t, prompt, "FORMATO RAIZ")
+				assert.Contains(t, prompt, "Objetivo principal:")
+				assert.Contains(t, prompt, "Meta Teste")
+				assert.Contains(t, prompt, "Motivação do objetivo:")
+				assert.Contains(t, prompt, "Critério de sucesso:")
+				assert.Contains(t, prompt, "Estilo de aprendizagem:")
+				assert.Contains(t, prompt, "Tópico de estudo:")
+				assert.Contains(t, prompt, "Topico 1")
+				assert.Contains(t, prompt, "Descrição do tópico:")
+				assert.Contains(t, prompt, "Desc 1")
+				assert.Contains(t, prompt, "Nível de domínio necessário no tópico:")
+				assert.Contains(t, prompt, "Peso relativo do tópico no objetivo:")
+				assert.Contains(t, prompt, "Dificuldades identificadas:")
+				assert.Contains(t, prompt, "Baixa maestria no tópico")
+				assert.Contains(t, prompt, "Desempenho recente:")
+				assert.Contains(t, prompt, "Tentativas: 0, Mestria: 0%, Confiança: 0%")
+				assert.Contains(t, prompt, "Gere uma tarefa adaptada a esse contexto")
 				return `{"type":"essay","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}}`, nil
 			},
 		},
 		fakeTaskRepo,
-		&fakeTopicService{
-			getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
-				return &topic.Topic{ID: tID, Title: "Topico 1", Description: "Desc 1"}, nil
-			},
-		},
-		&fakeTopicRepository{
-			createFn:      func(_ context.Context, _ *topic.Topic) (*topic.Topic, error) { return nil, nil },
-			getFn:         func(_ context.Context, _ uuid.UUID) (*topic.Topic, error) { return nil, nil },
-			getByGoalIDFn: func(_ context.Context, _ uuid.UUID) ([]*topic.Topic, error) {
-				return []*topic.Topic{}, nil
-			},
-		},
-		&fakeTopicProgressRepository{
-			getOrCreateFn: func(_ context.Context, _, _ uuid.UUID) (*topic.TopicProgress, error) {
-				return &topic.TopicProgress{Status: topic.TopicStatusMastered}, nil
-			},
-			updateFn:      func(_ context.Context, _ *topic.TopicProgress) error { return nil },
-		},
+		fakeTopicService,
+		fakeTopicRepo,
+		fakeTopicProgressRepo,
 		tdService,
+		fakeGoalService,
 		&config.Config{},
 	)
 
@@ -179,6 +237,7 @@ func TestTaskServiceCreate_Success(t *testing.T) {
 }
 
 func TestTaskServiceCreate_Fail(t *testing.T) {
+	userID := uuid.New()
 	fakeTaskRepo := &fakeTaskRepository{T: t}
 	fakeTaskRepo.createFn = func(_ context.Context, taskT *Task) (*Task, error) {
 		fakeTaskRepo.T.Fatal("Create should not be called on invalid AI response")
@@ -193,6 +252,36 @@ func TestTaskServiceCreate_Fail(t *testing.T) {
 	}
 	tdService := topic_dependency.NewTopicDependencyService(tdRepo)
 
+	fakeTopicService := &fakeTopicService{
+		getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
+			return &topic.Topic{ID: tID, Title: "Topico 1"}, nil
+		},
+	}
+
+	fakeTopicRepo := &fakeTopicRepository{
+		createFn:      func(_ context.Context, _ *topic.Topic) (*topic.Topic, error) { return nil, nil },
+		getFn:         func(_ context.Context, _ uuid.UUID) (*topic.Topic, error) { return nil, nil },
+		getByGoalIDFn: func(_ context.Context, _ uuid.UUID) ([]*topic.Topic, error) {
+			return []*topic.Topic{}, nil
+		},
+	}
+
+	fakeTopicProgressRepo := &fakeTopicProgressRepository{
+		getOrCreateFn: func(_ context.Context, _, _ uuid.UUID) (*topic.TopicProgress, error) {
+			return &topic.TopicProgress{Status: topic.TopicStatusMastered}, nil
+		},
+		updateFn:      func(_ context.Context, _ *topic.TopicProgress) error { return nil },
+	}
+
+	fakeGoalService := &fakeGoalService{
+		createFn: func(_ context.Context, _ uuid.UUID, _ *goal.GoalRequest) (*goal.Goal, error) {
+			return &goal.Goal{ID: uuid.New(), UserID: userID, Title: "Meta Teste"}, nil
+		},
+		getFn: func(_ context.Context, _ uuid.UUID, goalID uuid.UUID) (*goal.Goal, error) {
+			return &goal.Goal{ID: goalID, UserID: userID, Title: "Meta Teste"}, nil
+		},
+	}
+
 	service := NewTaskService(
 		&fakeAIClient{
 			generateFn: func(ctx context.Context, prompt string) (string, error) {
@@ -200,29 +289,15 @@ func TestTaskServiceCreate_Fail(t *testing.T) {
 			},
 		},
 		fakeTaskRepo,
-		&fakeTopicService{
-			getFn: func(_ context.Context, tID uuid.UUID) (*topic.Topic, error) {
-				return &topic.Topic{ID: tID, Title: "Topico 1"}, nil
-			},
-		},
-		&fakeTopicRepository{
-			createFn:      func(_ context.Context, _ *topic.Topic) (*topic.Topic, error) { return nil, nil },
-			getFn:         func(_ context.Context, _ uuid.UUID) (*topic.Topic, error) { return nil, nil },
-			getByGoalIDFn: func(_ context.Context, _ uuid.UUID) ([]*topic.Topic, error) {
-				return []*topic.Topic{}, nil
-			},
-		},
-		&fakeTopicProgressRepository{
-			getOrCreateFn: func(_ context.Context, _, _ uuid.UUID) (*topic.TopicProgress, error) {
-				return &topic.TopicProgress{Status: topic.TopicStatusMastered}, nil
-			},
-			updateFn:      func(_ context.Context, _ *topic.TopicProgress) error { return nil },
-		},
+		fakeTopicService,
+		fakeTopicRepo,
+		fakeTopicProgressRepo,
 		tdService,
+		fakeGoalService,
 		&config.Config{},
 	)
 
-	result, err := service.Create(context.Background(), uuid.New(), uuid.New())
+	result, err := service.Create(context.Background(), userID, uuid.New())
 
 	require.Error(t, err)
 	require.Nil(t, result)

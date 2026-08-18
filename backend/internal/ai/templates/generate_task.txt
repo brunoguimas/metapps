@@ -83,13 +83,36 @@ GARANTA coerência entre objetivo, dificuldade e conteúdo
 
 CONTEXTO DO USUÁRIO
 
-Objetivo:
+Objetivo principal:
 {{.GoalTitle}}
 
-Dificuldades:
+Motivação do objetivo:
+{{.GoalMotivation}}
+
+Critério de sucesso:
+{{.GoalSuccessCriteria}}
+
+Estilo de aprendizagem:
+{{.GoalLearningStyle}}
+
+Tópico de estudo:
+{{.TopicTitle}}
+
+Descrição do tópico:
+{{.TopicDescription}}
+
+Nível de domínio necessário no tópico: {{.TopicRequiredMastery}} (0-1)
+Peso relativo do tópico no objetivo: {{.TopicWeight}} (0-1)
+
+Dificuldades identificadas:
 {{.Difficulties}}
 
 Desempenho recente:
 {{.PerformanceSummary}}
 
-Gere uma tarefa adaptada a esse contexto.
+Gere uma tarefa adaptada a esse contexto, considerando:
+1. Alinhamento com o objetivo principal e sua motivação
+2. Adequação ao estilo de aprendizagem do usuário
+3. Relevância para o tópico específico sendo estudado
+4. Nível de desafio apropriado baseado nas dificuldades e desempenho
+5. Clareza nas expectativas de aprendizagem

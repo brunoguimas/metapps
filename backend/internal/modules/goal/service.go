@@ -8,10 +8,10 @@ import (
 )
 
 type GoalService interface {
-	Create(c context.Context, userID uuid.UUID, g *goalRequest) (*Goal, error)
+	Create(c context.Context, userID uuid.UUID, g *GoalRequest) (*Goal, error)
 	List(c context.Context, userID uuid.UUID) ([]*Goal, error)
 	Get(c context.Context, userID, goalID uuid.UUID) (*Goal, error)
-	Update(c context.Context, userID, goalID uuid.UUID, g *goalRequest) error
+	Update(c context.Context, userID, goalID uuid.UUID, g *GoalRequest) error
 	Delete(c context.Context, userID, goalID uuid.UUID) error
 }
 
@@ -23,7 +23,7 @@ func NewGoalService(r GoalRepository) GoalService {
 	return &goalService{repo: r}
 }
 
-func (s *goalService) Create(c context.Context, userID uuid.UUID, g *goalRequest) (*Goal, error) {
+func (s *goalService) Create(c context.Context, userID uuid.UUID, g *GoalRequest) (*Goal, error) {
 	goal := &Goal{
 		UserID:   userID,
 		Title:    g.Title,
@@ -63,7 +63,7 @@ func (s *goalService) Get(c context.Context, userID, goalID uuid.UUID) (*Goal, e
 	return goal, nil
 }
 
-func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, g *goalRequest) error {
+func (s *goalService) Update(c context.Context, userID, goalID uuid.UUID, g *GoalRequest) error {
 	if err := s.repo.Update(c, &Goal{
 		ID:       goalID,
 		UserID:   userID,

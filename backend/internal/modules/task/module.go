@@ -21,7 +21,7 @@ func NewTaskModule(q *db.Queries, t topic.TopicService, ai ai.Client, g *goal.Mo
 	pr := topic.NewTopicProgressRepository(q)
 	tdr := topic_dependency.NewTopicDependencyRepository(q)
 	td := topic_dependency.NewTopicDependencyService(tdr)
-	s := NewTaskService(ai, r, t, tr, pr, td, c)
+	s := NewTaskService(ai, r, t, tr, pr, td, g.Service, c)
 	h := NewTaskHandler(s, g.Service, c)
 
 	return &TaskModule{

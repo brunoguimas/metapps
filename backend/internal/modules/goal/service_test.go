@@ -43,7 +43,7 @@ func TestGoalServiceCreate_Success(t *testing.T) {
 		},
 	})
 
-	result, err := service.Create(context.Background(), userID, &goalRequest{
+	result, err := service.Create(context.Background(), userID, &GoalRequest{
 		Title:       "Vestibular",
 		Settings:    settings,
 		hasSettings: true,
