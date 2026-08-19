@@ -99,25 +99,30 @@ function mapErr(m = '') {
   return 'Ocorreu um erro inesperado. Por favor, tente novamente.'
 }
 
-function PwField({ value, onChange, placeholder, autoComplete, invalid }) {
+// ─── COMPONENTE DE CAMPO DE SENHA (VERSÃO LIGHT/DARK) ─────
+function PwField({ value, onChange, placeholder, autoComplete, invalid, light }) {
   const [show, setShow] = useState(false)
+  const iconColor = light ? 'rgba(26,26,46,0.35)' : 'rgba(245,244,255,0.35)'
+  const inputStyle = light ? { ...inpLight, paddingLeft:42, paddingRight:44, borderColor: invalid ? 'rgba(240,106,106,0.5)' : '#d0d0e0' }
+                           : { ...inpDark, paddingLeft:42, paddingRight:44, borderColor: invalid ? 'rgba(240,106,106,0.5)' : 'rgba(255,255,255,0.1)' }
   return (
     <div style={{ position:'relative' }}>
-      <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(245,244,255,0.35)', display:'flex', pointerEvents:'none' }}><IconLock /></div>
+      <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor, display:'flex', pointerEvents:'none' }}><IconLock /></div>
       <input type={show?'text':'password'} value={value} onChange={onChange} placeholder={placeholder} autoComplete={autoComplete}
-        style={{ ...inp, paddingLeft:42, paddingRight:44, borderColor: invalid ? 'rgba(240,106,106,0.5)' : 'rgba(255,255,255,0.1)' }} />
-      <button type="button" onClick={() => setShow(v=>!v)} style={eyeBtn}>{show ? <EyeHide /> : <EyeShow />}</button>
+        style={inputStyle} />
+      <button type="button" onClick={() => setShow(v=>!v)} style={{ ...eyeBtn, color: iconColor }}>{show ? <EyeHide /> : <EyeShow />}</button>
     </div>
   )
 }
 
-function Match({ pw, cpw }) {
+function Match({ pw, cpw, light }) {
+  const textColor = light ? '#6b6b8a' : 'rgba(245,244,255,0.45)'
   if (!cpw.length) return <div style={{ height:12 }} />
   return <div style={{ fontSize:11, marginTop:5, color: pw===cpw ? '#3ecf8e' : '#f06a6a' }}>{pw===cpw ? 'Senhas conferem' : 'Senhas não conferem'}</div>
 }
 
-// ─── PAINEL DE VERIFICAÇÃO ─────────────────────────────────────────────
-function VerifyPane({ email, onSuccess }) {
+// ─── PAINEL DE VERIFICAÇÃO (VERSÃO LIGHT) ──────────────────
+function VerifyPane({ email, onSuccess, light }) {
   const inputs = useRef([])
   const [digits, setDigits] = useState(['','','','','',''])
   const [err, setErr] = useState('')
@@ -165,33 +170,46 @@ function VerifyPane({ email, onSuccess }) {
     setSent(true); setTimeout(()=>setSent(false), 3000); startCd()
   }
 
+  // Estilos condicionais
+  const containerBg = light ? '#f5f4ff' : '#1a1a2e'
+  const textColor = light ? '#1a1a2e' : '#f5f4ff'
+  const subColor = light ? '#6b6b8a' : 'rgba(245,244,255,0.55)'
+  const inputBg = light ? '#fff' : 'rgba(255,255,255,0.06)'
+  const inputBorder = light ? '#d0d0e0' : 'rgba(255,255,255,0.12)'
+  const inputBorderFocus = light ? '#6382ff' : '#6382ff'
+  const iconBg = light ? 'rgba(99,130,255,0.1)' : 'rgba(99,130,255,0.15)'
+  const iconBorder = light ? 'rgba(99,130,255,0.3)' : 'rgba(99,130,255,0.3)'
+  const iconStroke = light ? '#6382ff' : '#9ab4ff'
+  const linkColor = light ? '#6382ff' : '#9ab4ff'
+  const errBoxStyle = light ? errBoxLight : errBoxDark
+
   return (
     <div style={{ animation:'slideIn .5s cubic-bezier(0.16,1,0.3,1) both', textAlign:'center' }}>
-      <div style={{ width:52, height:52, margin:'0 auto 18px', background:'rgba(99,130,255,0.15)', border:'1px solid rgba(99,130,255,0.3)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <svg width="22" height="22" fill="none" stroke="#9ab4ff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <div style={{ width:52, height:52, margin:'0 auto 18px', background:iconBg, border:`1px solid ${iconBorder}`, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <svg width="22" height="22" fill="none" stroke={iconStroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 4l10 9 10-9"/>
         </svg>
       </div>
-      <h2 style={{ fontSize:22, fontWeight:900, color:'#f5f4ff', letterSpacing:'-0.4px', marginBottom:8 }}>Verifique seu e-mail</h2>
-      <p style={{ fontSize:14, color:'rgba(245,244,255,0.55)', lineHeight:1.65, marginBottom:28 }}>
+      <h2 style={{ fontSize:22, fontWeight:900, color:textColor, letterSpacing:'-0.4px', marginBottom:8 }}>Verifique seu e-mail</h2>
+      <p style={{ fontSize:14, color:subColor, lineHeight:1.65, marginBottom:28 }}>
         Enviamos um código de 6 dígitos para<br/>
-        <strong style={{ color:'#f5f4ff', fontWeight:700 }}>{email}</strong>
+        <strong style={{ color:textColor, fontWeight:700 }}>{email}</strong>
       </p>
       <div style={{ display:'flex', gap:8, justifyContent:'center', marginBottom:16 }} onPaste={handlePaste}>
         {digits.map((d, i) => (
           <input key={i} ref={el => inputs.current[i] = el} type="text" inputMode="numeric" maxLength={1} value={d}
             onChange={e => handleDigit(i, e.target.value)} onKeyDown={e => handleKey(i, e)}
-            style={{ width:44, height:54, textAlign:'center', fontSize:24, fontWeight:800, background:'rgba(255,255,255,0.06)', border:`2px solid ${err ? 'rgba(240,106,106,0.6)' : d ? '#6382ff' : 'rgba(255,255,255,0.12)'}`, borderRadius:12, color:'#f5f4ff', fontFamily:"'Inter',-apple-system,sans-serif", outline:'none', transition:'border-color .15s, box-shadow .15s', boxShadow: d ? '0 0 0 3px rgba(99,130,255,0.2)' : 'none', caretColor:'transparent' }} />
+            style={{ width:44, height:54, textAlign:'center', fontSize:24, fontWeight:800, background:inputBg, border:`2px solid ${err ? 'rgba(240,106,106,0.6)' : d ? '#6382ff' : inputBorder}`, borderRadius:12, color:textColor, fontFamily:"'Inter',-apple-system,sans-serif", outline:'none', transition:'border-color .15s, box-shadow .15s', boxShadow: d ? '0 0 0 3px rgba(99,130,255,0.2)' : 'none', caretColor:'transparent' }} />
         ))}
       </div>
-      {err && <div style={{ ...errBox, marginBottom:14 }}>{err}</div>}
+      {err && <div style={{ ...errBoxStyle, marginBottom:14 }}>{err}</div>}
       <button onClick={() => submitCode(digits.join(''))} disabled={load || digits.some(d=>!d)}
-        style={{ ...btnPrimary, opacity: (load || digits.some(d=>!d)) ? 0.5 : 1, marginBottom:16 }}>
+        style={{ ...(light ? btnPrimaryLight : btnPrimaryDark), opacity: (load || digits.some(d=>!d)) ? 0.5 : 1, marginBottom:16 }}>
         {load ? <><Spin /> Verificando…</> : 'Verificar código'}
       </button>
-      <p style={{ fontSize:13, color:'rgba(245,244,255,0.45)' }}>
+      <p style={{ fontSize:13, color:subColor }}>
         Não recebeu?{' '}
-        <span onClick={resend} style={{ color: cd>0 ? 'rgba(245,244,255,0.45)' : '#9ab4ff', fontWeight:700, cursor: cd>0 ? 'default' : 'pointer' }}>
+        <span onClick={resend} style={{ color: cd>0 ? subColor : linkColor, fontWeight:700, cursor: cd>0 ? 'default' : 'pointer' }}>
           {cd>0 ? `Reenviar em ${cd}s` : 'Reenviar código'}
         </span>
       </p>
@@ -247,12 +265,72 @@ export default function Register() {
     catch(er) { setErr(mapErr(er?.message || er)) }
   }
 
-  const regForm = (
+  // ─── FORMULÁRIO PARA LADO CLARO (DESKTOP) ──────────────
+  const regFormLight = (
     <>
-      <h1 style={formTitle}>Criar conta</h1>
-      <p style={formSub}>Comece a aprender com IA hoje.</p>
+      <h1 style={formTitleLight}>Criar conta</h1>
+      <p style={formSubLight}>Comece a aprender com IA hoje.</p>
 
-      <button onClick={handleGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
+      <button onClick={handleGoogle} style={btnGoogleLight}><GIcon /> Continuar com Google</button>
+
+      <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0' }}>
+        <span style={{ flex:1, height:1, background:'rgba(26,26,46,0.12)' }}/>
+        <span style={{ fontSize:12, color:'rgba(26,26,46,0.35)', fontWeight:500, textTransform:'uppercase', letterSpacing:'0.5px' }}>ou</span>
+        <span style={{ flex:1, height:1, background:'rgba(26,26,46,0.12)' }}/>
+      </div>
+
+      <form onSubmit={submit} noValidate>
+        <div style={fieldLight}>
+          <label style={lblLight}>Nome de usuário</label>
+          <div style={{ position:'relative' }}>
+            <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(26,26,46,0.35)', display:'flex', pointerEvents:'none' }}><IconUser /></div>
+            <input type="text" placeholder="seunome" autoComplete="username"
+              style={{ ...inpLight, paddingLeft:42 }} value={uname} onChange={e=>{setUname(e.target.value);setErr('')}} />
+          </div>
+        </div>
+        <div style={fieldLight}>
+          <label style={lblLight}>E-mail</label>
+          <div style={{ position:'relative' }}>
+            <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(26,26,46,0.35)', display:'flex', pointerEvents:'none' }}><IconMail /></div>
+            <input type="email" placeholder="voce@email.com" autoComplete="email"
+              style={{ ...inpLight, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
+          </div>
+        </div>
+        <div style={fieldLight}>
+          <label style={lblLight}>Senha</label>
+          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Mínimo 8 caracteres" autoComplete="new-password" light={true} />
+        </div>
+        <div style={fieldLight}>
+          <label style={lblLight}>Confirmar senha</label>
+          <PwField value={cpw} onChange={e=>{setCpw(e.target.value);setErr('')}} placeholder="Repita a senha" autoComplete="new-password" invalid={cpw.length>0&&pw!==cpw} light={true} />
+          <Match pw={pw} cpw={cpw} light={true} />
+        </div>
+        {err && <div style={errBoxLight}>{err}</div>}
+        <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'4px 0 16px' }}>
+          <input type="checkbox" id="tc" checked={terms} onChange={e=>setTerms(e.target.checked)}
+            style={{ marginTop:3, flexShrink:0, width:15, height:15, accentColor:'#6382ff', cursor:'pointer' }} />
+          <label htmlFor="tc" style={{ fontSize:12.5, color:'#6b6b8a', lineHeight:1.55, cursor:'pointer' }}>
+            Li e concordo com os{' '}
+            <span onClick={()=>window.open('/src/pages/Termos.html','_blank')} style={{ color:'#6382ff', fontWeight:600, cursor:'pointer' }}>Termos de Serviço</span>
+            {' '}e a{' '}
+            <span onClick={()=>window.open('/src/pages/Termos.html#privacidade','_blank')} style={{ color:'#6382ff', fontWeight:600, cursor:'pointer' }}>Política de Privacidade</span>
+          </label>
+        </div>
+        <button type="submit" disabled={load} style={{ ...btnPrimaryLight, opacity:load?0.7:1 }}>
+          {load ? <><Spin /> Criando conta…</> : 'Criar conta'}
+        </button>
+      </form>
+      <p style={footTxtLight}>Já tem conta?{' '}<a href="#" style={footLnkLight} onClick={e=>{e.preventDefault();go('/auth/login')}}>Entrar</a></p>
+    </>
+  )
+
+  // ─── FORMULÁRIO PARA MOBILE (ESCURO) ─────────────────────
+  const regFormDark = (
+    <>
+      <h1 style={formTitleDark}>Criar conta</h1>
+      <p style={formSubDark}>Comece a aprender com IA hoje.</p>
+
+      <button onClick={handleGoogle} style={btnGoogleDark}><GIcon /> Continuar com Google</button>
 
       <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0' }}>
         <span style={{ flex:1, height:1, background:'rgba(255,255,255,0.1)' }}/>
@@ -261,32 +339,32 @@ export default function Register() {
       </div>
 
       <form onSubmit={submit} noValidate>
-        <div style={field}>
-          <label style={lbl}>Nome de usuário</label>
+        <div style={fieldDark}>
+          <label style={lblDark}>Nome de usuário</label>
           <div style={{ position:'relative' }}>
             <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(245,244,255,0.35)', display:'flex', pointerEvents:'none' }}><IconUser /></div>
             <input type="text" placeholder="seunome" autoComplete="username"
-              style={{ ...inp, paddingLeft:42 }} value={uname} onChange={e=>{setUname(e.target.value);setErr('')}} />
+              style={{ ...inpDark, paddingLeft:42 }} value={uname} onChange={e=>{setUname(e.target.value);setErr('')}} />
           </div>
         </div>
-        <div style={field}>
-          <label style={lbl}>E-mail</label>
+        <div style={fieldDark}>
+          <label style={lblDark}>E-mail</label>
           <div style={{ position:'relative' }}>
             <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(245,244,255,0.35)', display:'flex', pointerEvents:'none' }}><IconMail /></div>
             <input type="email" placeholder="voce@email.com" autoComplete="email"
-              style={{ ...inp, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
+              style={{ ...inpDark, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
           </div>
         </div>
-        <div style={field}>
-          <label style={lbl}>Senha</label>
-          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Mínimo 8 caracteres" autoComplete="new-password" />
+        <div style={fieldDark}>
+          <label style={lblDark}>Senha</label>
+          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Mínimo 8 caracteres" autoComplete="new-password" light={false} />
         </div>
-        <div style={field}>
-          <label style={lbl}>Confirmar senha</label>
-          <PwField value={cpw} onChange={e=>{setCpw(e.target.value);setErr('')}} placeholder="Repita a senha" autoComplete="new-password" invalid={cpw.length>0&&pw!==cpw} />
-          <Match pw={pw} cpw={cpw} />
+        <div style={fieldDark}>
+          <label style={lblDark}>Confirmar senha</label>
+          <PwField value={cpw} onChange={e=>{setCpw(e.target.value);setErr('')}} placeholder="Repita a senha" autoComplete="new-password" invalid={cpw.length>0&&pw!==cpw} light={false} />
+          <Match pw={pw} cpw={cpw} light={false} />
         </div>
-        {err && <div style={errBox}>{err}</div>}
+        {err && <div style={errBoxDark}>{err}</div>}
         <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'4px 0 16px' }}>
           <input type="checkbox" id="tc" checked={terms} onChange={e=>setTerms(e.target.checked)}
             style={{ marginTop:3, flexShrink:0, width:15, height:15, accentColor:'#6382ff', cursor:'pointer' }} />
@@ -297,15 +375,17 @@ export default function Register() {
             <span onClick={()=>window.open('/src/pages/Termos.html#privacidade','_blank')} style={{ color:'#9ab4ff', fontWeight:600, cursor:'pointer' }}>Política de Privacidade</span>
           </label>
         </div>
-        <button type="submit" disabled={load} style={{ ...btnPrimary, opacity:load?0.7:1 }}>
+        <button type="submit" disabled={load} style={{ ...btnPrimaryDark, opacity:load?0.7:1 }}>
           {load ? <><Spin /> Criando conta…</> : 'Criar conta'}
         </button>
       </form>
-      <p style={footTxt}>Já tem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/auth/login')}}>Entrar</a></p>
+      <p style={footTxtDark}>Já tem conta?{' '}<a href="#" style={footLnkDark} onClick={e=>{e.preventDefault();go('/auth/login')}}>Entrar</a></p>
     </>
   )
 
-  const content = done ? <VerifyPane email={email} onSuccess={() => go('/auth/login')} /> : regForm
+  // ─── RENDER ────────────────────────────────────────────────
+  const contentLight = done ? <VerifyPane email={email} onSuccess={() => go('/auth/login')} light={true} /> : regFormLight
+  const contentDark  = done ? <VerifyPane email={email} onSuccess={() => go('/auth/login')} light={false} /> : regFormDark
 
   const BackBtn = () => (
     <button onClick={() => navigate('/')}
@@ -319,7 +399,7 @@ export default function Register() {
   if (mob) return (
     <div style={mobPage}>
       <BackBtn />
-      <div style={{ ...mobCard, animation: out?'fOut .22s ease-in forwards':'fIn .5s ease both' }}>{content}</div>
+      <div style={{ ...mobCard, animation: out?'fOut .22s ease-in forwards':'fIn .5s ease both' }}>{contentDark}</div>
       <style>{ANIMS}</style>
     </div>
   )
@@ -327,22 +407,23 @@ export default function Register() {
   return (
     <div style={split}>
       <BackBtn />
-      {/* Painel esquerdo */}
+      {/* Painel esquerdo - azul escuro */}
       <div style={leftPanel}>
+        {/* Removido onClick */}
         <img src={logo} alt="Metapps"
-          style={{ width:'min(220px,30vw)', height:'auto', display:'block', margin:'0 auto', cursor:'pointer', position:'relative', zIndex:1 }}
-          onClick={() => navigate('/')} onError={e => e.target.style.display='none'} />
+          style={{ width:'min(220px,30vw)', height:'auto', display:'block', margin:'0 auto', position:'relative', zIndex:1 }}
+          onError={e => e.target.style.display='none'} />
       </div>
-      {/* Painel direito */}
+      {/* Painel direito - claro */}
       <div style={rightPanel}>
-        <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{content}</div>
+        <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{contentLight}</div>
       </div>
       <style>{ANIMS}</style>
     </div>
   )
 }
 
-// ─── MEU CSS <3<3<3 ─────────────────────────────────────────────────────
+// ─── ESTILOS ─────────────────────────────────────────────────────
 const ANIMS = `
   @keyframes fIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}
@@ -353,20 +434,43 @@ const ANIMS = `
   input:focus{border-color:#6382ff!important;box-shadow:0 0 0 3px rgba(99,130,255,0.2)!important;outline:none}
 `
 
+// Layout principal
 const split      = { display:'flex', height:'100vh', overflow:'hidden', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', background:'#1a1a2e', position:'relative' }
-const leftPanel  = { flex:'0 0 45%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(160deg, #0f1535 0%, #1a2550 50%, #0f1535 100%)' }
-const rightPanel = { flex:'0 0 55%', display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 60px', overflowY:'auto', background:'#141930' }
-const mobPage    = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 20px 40px', background:'linear-gradient(160deg, #0f1535 0%, #141930 60%, #0f1535 100%)', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', position:'relative' }
+
+// Lado esquerdo (escuro)
+const leftPanel  = { flex:'0 0 45%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'#1a1a2e' }
+
+// Lado direito (claro)
+const rightPanel = { flex:'0 0 55%', display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 60px', overflowY:'auto', background:'#f5f4ff' }
+
+// Mobile
+const mobPage    = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 20px 40px', background:'#1a1a2e', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', position:'relative' }
 const mobCard    = { width:'100%', maxWidth:400 }
 const fbox       = { width:'100%', maxWidth:380 }
-const formTitle  = { fontSize:28, fontWeight:900, color:'#f5f4ff', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
-const formSub    = { fontSize:14, color:'rgba(245,244,255,0.5)', lineHeight:1.5, marginBottom:20 }
-const field      = { marginBottom:14 }
-const lbl        = { display:'block', fontSize:12.5, fontWeight:600, color:'rgba(245,244,255,0.45)', letterSpacing:'0.2px', marginBottom:6 }
-const inp        = { width:'100%', background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#f5f4ff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
-const eyeBtn     = { position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:6, color:'rgba(245,244,255,0.35)', display:'flex', alignItems:'center', borderRadius:6, zIndex:2 }
-const errBox     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#f06a6a', lineHeight:1.45, marginBottom:13 }
-const btnPrimary = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
-const btnGoogle  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.04)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#f5f4ff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
-const footTxt    = { fontSize:13.5, color:'rgba(245,244,255,0.45)', textAlign:'center', marginTop:24 }
-const footLnk    = { color:'#9ab4ff', fontWeight:700, textDecoration:'none' }
+
+// ----- ESTILOS PARA O LADO CLARO (direita) -----
+const formTitleLight  = { fontSize:28, fontWeight:900, color:'#1a1a2e', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
+const formSubLight    = { fontSize:14, color:'#6b6b8a', lineHeight:1.5, marginBottom:20 }
+const fieldLight      = { marginBottom:14 }
+const lblLight        = { display:'block', fontSize:12.5, fontWeight:600, color:'#6b6b8a', letterSpacing:'0.2px', marginBottom:6 }
+const inpLight        = { width:'100%', background:'#fff', border:'1.5px solid #d0d0e0', borderRadius:10, color:'#1a1a2e', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
+const errBoxLight     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#d14c4c', lineHeight:1.45, marginBottom:13 }
+const btnPrimaryLight = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
+const btnGoogleLight  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid #d0d0e0', background:'#fff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#1a1a2e', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
+const footTxtLight    = { fontSize:13.5, color:'#6b6b8a', textAlign:'center', marginTop:24 }
+const footLnkLight    = { color:'#6382ff', fontWeight:700, textDecoration:'none' }
+
+// ----- ESTILOS PARA O LADO ESCURO (mobile) -----
+const formTitleDark  = { fontSize:28, fontWeight:900, color:'#f5f4ff', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
+const formSubDark    = { fontSize:14, color:'rgba(245,244,255,0.5)', lineHeight:1.5, marginBottom:20 }
+const fieldDark      = { marginBottom:14 }
+const lblDark        = { display:'block', fontSize:12.5, fontWeight:600, color:'rgba(245,244,255,0.45)', letterSpacing:'0.2px', marginBottom:6 }
+const inpDark        = { width:'100%', background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#f5f4ff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
+const errBoxDark     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#f06a6a', lineHeight:1.45, marginBottom:13 }
+const btnPrimaryDark = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
+const btnGoogleDark  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.04)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#f5f4ff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
+const footTxtDark    = { fontSize:13.5, color:'rgba(245,244,255,0.45)', textAlign:'center', marginTop:24 }
+const footLnkDark    = { color:'#9ab4ff', fontWeight:700, textDecoration:'none' }
+
+// Olho de senha (comum)
+const eyeBtn = { position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:6, display:'flex', alignItems:'center', borderRadius:6, zIndex:2 }

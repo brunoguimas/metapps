@@ -12,8 +12,8 @@
   html { scroll-behavior: smooth; scroll-padding-top: 72px; }
   body {
     font-family: 'Inter', -apple-system, sans-serif;
-    background: #14182b;
-    color: #f7f7ff;
+    background: #1a1a2e;                /* fundo escuro igual ao landpage */
+    color: #f5f4ff;                     /* texto principal claro */
     -webkit-font-smoothing: antialiased;
     line-height: 1.6;
   }
@@ -21,9 +21,9 @@
   /* ── Header ── */
   .header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(20,24,43,0.9);
+    background: rgba(26,26,46,0.92);    /* #1a1a2e com transparência */
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(168,166,200,0.06);
+    border-bottom: 1px solid rgba(99,130,255,0.1);
   }
   .nav {
     max-width: 1040px; margin: 0 auto; padding: 0 28px;
@@ -38,41 +38,41 @@
   }
   .nav-links { display: flex; align-items: center; gap: 20px; }
   .nav-links button {
-    font-size: 13px; font-weight: 500; color: #a8a6c8;
+    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
     cursor: pointer; transition: color .15s;
     background: none; border: none; font-family: inherit; padding: 0;
   }
-  .nav-links button:hover { color: #f7f7ff; }
+  .nav-links button:hover { color: #f5f4ff; }
   .nav-back {
-    font-size: 13px; font-weight: 500; color: #a8a6c8;
+    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
     cursor: pointer; transition: color .15s;
-    background: none; border: 1px solid rgba(168,166,200,0.2);
+    background: none; border: 1px solid rgba(245,244,255,0.15);
     padding: 6px 14px; border-radius: 6px; font-family: inherit;
     margin-left: 12px;
   }
-  .nav-back:hover { color: #f7f7ff; border-color: rgba(168,166,200,0.4); }
+  .nav-back:hover { color: #f5f4ff; border-color: rgba(245,244,255,0.3); }
 
   /* ── Hero ── */
-  .hero { padding: 44px 0 36px; border-bottom: 1px solid rgba(168,166,200,0.06); }
+  .hero { padding: 44px 0 36px; border-bottom: 1px solid rgba(99,130,255,0.08); }
   .container { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
   .hero h1 {
     font-size: clamp(24px, 4vw, 36px); font-weight: 800;
-    letter-spacing: -0.6px; color: #f7f7ff; line-height: 1.2;
+    letter-spacing: -0.6px; color: #f5f4ff; line-height: 1.2;
     margin-bottom: 10px;
   }
-  .hero p { font-size: 14px; color: #a8a6c8; max-width: 580px; line-height: 1.65; }
+  .hero p { font-size: 14px; color: rgba(245,244,255,0.55); max-width: 580px; line-height: 1.65; }
   .meta { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   .badge {
     display: inline-flex; align-items: center; border-radius: 99px;
     padding: 3px 11px; font-size: 11.5px; font-weight: 600;
   }
   .badge-neutral {
-    background: rgba(168,166,200,0.1); border: 1px solid rgba(168,166,200,0.2);
-    color: #a8a6c8;
+    background: rgba(245,244,255,0.06); border: 1px solid rgba(245,244,255,0.1);
+    color: rgba(245,244,255,0.5);
   }
   .badge-blue {
-    background: rgba(79,126,221,0.1); border: 1px solid rgba(79,126,221,0.2);
-    color: #4f7edd;
+    background: rgba(99,130,255,0.12); border: 1px solid rgba(99,130,255,0.25);
+    color: #6382ff;
   }
 
   /* ── Layout ── */
@@ -80,35 +80,36 @@
   .sidebar { position: sticky; top: 82px; }
   .toc-label {
     font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; color: #a8a6c8; margin-bottom: 10px;
+    text-transform: uppercase; color: rgba(245,244,255,0.35); margin-bottom: 10px;
   }
   .toc-btn {
     display: block; width: 100%; padding: 8px 12px; border-radius: 6px;
-    font-size: 13px; font-weight: 500; color: #a8a6c8;
+    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
     text-align: left; background: none; border: none; cursor: pointer;
     transition: background .14s, color .14s; margin-bottom: 2px;
     font-family: 'Inter', -apple-system, sans-serif;
   }
-  .toc-btn:hover { background: rgba(247,247,255,0.04); color: #f7f7ff; }
+  .toc-btn:hover { background: rgba(245,244,255,0.04); color: #f5f4ff; }
   .toc-btn.active {
-    background: rgba(79,126,221,0.08); color: #4f7edd; font-weight: 600;
-    border-left: 2px solid #4f7edd; padding-left: 10px;
+    background: rgba(99,130,255,0.08); color: #6382ff; font-weight: 600;
+    border-left: 2px solid #6382ff; padding-left: 10px;
   }
-  .toc-sep { height: 1px; background: rgba(168,166,200,0.06); margin: 10px 0; }
+  .toc-sep { height: 1px; background: rgba(99,130,255,0.08); margin: 10px 0; }
   .back-btn {
     display: flex; align-items: center; gap: 6px;
-    font-size: 13px; font-weight: 500; color: #a8a6c8;
+    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
     padding: 8px 12px; border-radius: 6px; cursor: pointer;
     transition: background .14s, color .14s;
     background: none; border: none;
     font-family: 'Inter', -apple-system, sans-serif;
     width: 100%; text-align: left;
   }
-  .back-btn:hover { background: rgba(247,247,255,0.04); color: #f7f7ff; }
+  .back-btn:hover { background: rgba(245,244,255,0.04); color: #f5f4ff; }
 
   /* ── Content card ── */
   .content-card {
-    background: #212842; border: 1px solid rgba(168,166,200,0.08);
+    background: #212842;                  /* um pouco mais claro que o fundo para contraste */
+    border: 1px solid rgba(99,130,255,0.08);
     border-radius: 12px; overflow: hidden;
   }
   .tab { display: none; padding: 40px 44px; animation: fi .2s ease; }
@@ -119,50 +120,50 @@
   .sec { margin-bottom: 32px; }
   .sec:last-child { margin-bottom: 0; }
   .sec h2 {
-    font-size: 16px; font-weight: 700; color: #f7f7ff;
+    font-size: 16px; font-weight: 700; color: #f5f4ff;
     margin-bottom: 12px; padding-bottom: 10px;
-    border-bottom: 1px solid rgba(168,166,200,0.06);
+    border-bottom: 1px solid rgba(99,130,255,0.06);
   }
-  .sec p { font-size: 14px; color: #a8a6c8; line-height: 1.7; margin-bottom: 10px; }
+  .sec p { font-size: 14px; color: rgba(245,244,255,0.65); line-height: 1.7; margin-bottom: 10px; }
   .sec p:last-child { margin-bottom: 0; }
-  .sec strong { color: #f7f7ff; font-weight: 600; }
+  .sec strong { color: #f5f4ff; font-weight: 600; }
   .sec ul { margin: 8px 0 12px 18px; }
-  .sec li { font-size: 14px; color: #a8a6c8; line-height: 1.65; margin-bottom: 5px; }
+  .sec li { font-size: 14px; color: rgba(245,244,255,0.65); line-height: 1.65; margin-bottom: 5px; }
 
   /* ── Note box ── */
   .note {
-    background: rgba(39,24,126,0.06);
-    border: 1px solid rgba(39,24,126,0.15);
-    border-left: 3px solid #27187e;
+    background: rgba(99,130,255,0.06);
+    border: 1px solid rgba(99,130,255,0.15);
+    border-left: 3px solid #6382ff;
     border-radius: 0 6px 6px 0;
     padding: 12px 16px; margin: 14px 0;
   }
-  .note p { margin: 0; font-size: 13px; color: #a8a6c8; font-weight: 500; }
+  .note p { margin: 0; font-size: 13px; color: rgba(245,244,255,0.55); font-weight: 500; }
 
   /* ── Contact box ── */
   .contact-box {
-    background: rgba(79,126,221,0.06);
-    border: 1px solid rgba(79,126,221,0.15);
+    background: rgba(99,130,255,0.06);
+    border: 1px solid rgba(99,130,255,0.15);
     border-radius: 8px; padding: 16px 20px; margin-top: 18px;
   }
-  .contact-box p { font-size: 14px; color: #a8a6c8; margin-bottom: 6px; }
-  .contact-box a { color: #4f7edd; font-weight: 600; text-decoration: none; }
+  .contact-box p { font-size: 14px; color: rgba(245,244,255,0.65); margin-bottom: 6px; }
+  .contact-box a { color: #6382ff; font-weight: 600; text-decoration: none; }
   .contact-box a:hover { text-decoration: underline; }
 
-  hr { border: none; height: 1px; background: rgba(168,166,200,0.06); margin: 28px 0; }
-  .foot-note { font-size: 12px; color: #5d6b8e; text-align: center; }
+  hr { border: none; height: 1px; background: rgba(99,130,255,0.08); margin: 28px 0; }
+  .foot-note { font-size: 12px; color: rgba(245,244,255,0.25); text-align: center; }
 
   /* ── Footer ── */
-  .page-footer { border-top: 1px solid rgba(168,166,200,0.06); padding: 24px 0; background: #14182b; }
-  .footer-inner { text-align: center; font-size: 13px; color: #5d6b8e; }
+  .page-footer { border-top: 1px solid rgba(99,130,255,0.08); padding: 24px 0; background: #1a1a2e; }
+  .footer-inner { text-align: center; font-size: 13px; color: rgba(245,244,255,0.25); }
   .footer-inner button {
-    color: #a8a6c8; background: none; border: none;
+    color: rgba(245,244,255,0.5); background: none; border: none;
     font-family: inherit; font-size: 13px; font-weight: 500;
     cursor: pointer; padding: 0; transition: color .14s;
   }
-  .footer-inner button:hover { color: #4f7edd; }
-  .footer-inner a { color: #a8a6c8; text-decoration: none; font-weight: 500; }
-  .footer-inner a:hover { color: #4f7edd; }
+  .footer-inner button:hover { color: #6382ff; }
+  .footer-inner a { color: rgba(245,244,255,0.5); text-decoration: none; font-weight: 500; }
+  .footer-inner a:hover { color: #6382ff; }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
@@ -172,7 +173,7 @@
     .sidebar { position: static; }
     .toc-btns { display: flex; gap: 6px; }
     .toc-btn { white-space: nowrap; font-size: 12px; padding: 6px 10px; }
-    .toc-btn.active { border-left: none; border-bottom: 2px solid #4f7edd; padding-left: 10px; padding-bottom: 4px; }
+    .toc-btn.active { border-left: none; border-bottom: 2px solid #6382ff; padding-left: 10px; padding-bottom: 4px; }
     .tab { padding: 28px 24px; }
     .hero { padding: 32px 0 28px; }
     .nav-links button:not(.nav-back) { display: none; }
@@ -272,9 +273,13 @@
         <div class="sec">
           <h2>11. Contato</h2>
           <div class="contact-box">
-            <p>Para dúvidas sobre os Termos de Serviço:</p>
-            <p style="margin-top:8px;font-weight:600"><a href="mailto:contato@metapps.com">contato@metapps.com</a></p>
-            <p style="font-size:13px;color:#5d6b8e;margin-top:4px">Resposta em até 5 dias úteis.</p>
+            <p>Para dúvidas sobre os Termos de Serviço, entre em contato:</p>
+            <p style="margin-top:8px;font-weight:600">
+              <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
+            </p>
+            <p style="font-size:13px;color:rgba(245,244,255,0.35);margin-top:4px">
+              Telefone: <strong style="color:#f5f4ff;">19 98119 1739</strong>
+            </p>
           </div>
         </div>
         <hr>
@@ -320,8 +325,12 @@
           <h2>9. Contato — Encarregado de Dados</h2>
           <div class="contact-box">
             <p>Para dúvidas sobre privacidade ou solicitações de dados pessoais:</p>
-            <p style="margin-top:8px;font-weight:600"><a href="mailto:privacidade@metapps.com">privacidade@metapps.com</a></p>
-            <p style="font-size:13px;color:#5d6b8e;margin-top:4px">Resposta em até 5 dias úteis.</p>
+            <p style="margin-top:8px;font-weight:600">
+              <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
+            </p>
+            <p style="font-size:13px;color:rgba(245,244,255,0.35);margin-top:4px">
+              Telefone: <strong style="color:#f5f4ff;">19 98119 1739</strong>
+            </p>
           </div>
         </div>
         <hr>
@@ -358,7 +367,7 @@
       }
       if (e.data.type === 'close' && e.data.target === MY_ID) {
         window.close()
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f7f7ff;background:#14182b;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:#a8a6c8">Esta página já está aberta em outra aba.</p></div></div>'
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f5f4ff;background:#1a1a2e;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(245,244,255,0.5)">Esta página já está aberta em outra aba.</p></div></div>'
       }
     }
     bc.postMessage({ type: 'open', id: MY_ID })
@@ -367,7 +376,7 @@
     const KEY = 'metapps_termos_open'
     const existing = localStorage.getItem(KEY)
     if (existing && existing !== MY_ID) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f7f7ff;background:#14182b;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:#a8a6c8">Esta página já está aberta em outra aba.</p></div></div>'
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f5f4ff;background:#1a1a2e;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(245,244,255,0.5)">Esta página já está aberta em outra aba.</p></div></div>'
     } else {
       localStorage.setItem(KEY, MY_ID)
       window.addEventListener('beforeunload', () => {

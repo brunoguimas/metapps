@@ -1,17 +1,24 @@
-// vai tomar no cu esse arquivo bosta
+// ─── API CLIENT ────────────────────────────────────────────────
+// Nota: a troca do backend para Gemini (GeminiClient.Generate) foi feita
+// dentro do provider de IA — não muda os endpoints nem o formato de
+// resposta que este arquivo consome. Se em algum momento o backend passar
+// a devolver o roadmap no formato "nodes/edges" (igual ao schema do prompt,
+// com `parent_id` em vez de `parent_topic_id`), só ajustar getLeafTopics
+// no Homepage.jsx — ele já foi feito pra aceitar os dois formatos.
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const JWT_TOKEN_COOKIE_PATH = import.meta.env.VITE_JWT_TOKEN_COOKIE_PATH || '/auth/refresh'
 
-// Access token stored in memory only — never localStorage
+// Access token guardado apenas em memória — nunca em localStorage
 let accessToken = null
 
-export function getAccessToken()   { return accessToken }
-export function clearAccessToken() { accessToken = null }
+export function getAccessToken()      { return accessToken }
+export function clearAccessToken()    { accessToken = null }
 export function setAccessToken(token) { accessToken = token }
 
 // POST /auth/register
 export async function register(username, email, password) {
-  const res  = await fetch(`${API_URL}/auth/register`, {
+  const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -22,9 +29,9 @@ export async function register(username, email, password) {
   return data
 }
 
-// POST /auth/login — stores access_token in memory on success
+// POST /auth/login — guarda access_token em memória
 export async function login(email, password) {
-  const res  = await fetch(`${API_URL}/auth/login`, {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -36,14 +43,14 @@ export async function login(email, password) {
   return data
 }
 
-// GET /auth/google/login — redirects browser
+// GET /auth/google/login — redireciona o browser
 export function loginWithGoogle() {
   window.location.href = `${API_URL}/auth/google/login`
 }
 
-// POST /auth/refresh — uses refresh_token cookie, updates accessToken
+// POST /auth/refresh — usa o cookie refresh_token, atualiza o accessToken
 export async function refreshSession() {
-  const res  = await fetch(`${API_URL}${JWT_TOKEN_COOKIE_PATH}`, {
+  const res = await fetch(`${API_URL}${JWT_TOKEN_COOKIE_PATH}`, {
     method: 'POST',
     credentials: 'include',
   })
@@ -53,7 +60,7 @@ export async function refreshSession() {
   return data
 }
 
-// Authenticated fetch — auto-retry once on 401 via refresh
+// Fetch autenticado — refaz uma vez via refresh em caso de 401
 export async function authFetch(input, init = {}) {
   const buildHeaders = () => {
     const h = new Headers(init.headers)
@@ -89,7 +96,7 @@ export function logout() {
 
 // POST /auth/email/verify
 export async function emailVerify(email, code) {
-  const res  = await fetch(`${API_URL}/auth/email/verify`, {
+  const res = await fetch(`${API_URL}/auth/email/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -102,11 +109,11 @@ export async function emailVerify(email, code) {
 }
 
 // GOALS
-export async function createGoal(title, difficulties) {
+export async function createGoal(title, settings) {
   const res = await authFetch('/protected/goals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, difficulties }),
+    body: JSON.stringify({ title, settings }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Erro ao criar goal')
@@ -131,7 +138,7 @@ export async function generateRoadmap(goalId) {
   return data.roadmap
 }
 
-export async function generateTask(topicId) {  // mudou de goal_id para topic_id
+export async function generateTask(topicId) {
   const res = await authFetch('/protected/tasks/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

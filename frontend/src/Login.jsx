@@ -87,24 +87,25 @@ function mapErr(m = '') {
   }
 
   // Qualquer outra mensagem que veio do backend (não mostrar ao usuário)
-  // Se for uma string genérica mas não vazia, retornamos um fallback educado
   if (msg && msg.length > 0) {
     return 'Algo deu errado. Tente novamente em alguns instantes.'
   }
 
-  // Fallback final (caso raro)
   return 'Ocorreu um erro inesperado. Por favor, tente novamente.'
 }
 
 // ─── COMPONENTES AUXILIARES ─────────────────────────────────
-function PwField({ value, onChange, placeholder, autoComplete }) {
+function PwField({ value, onChange, placeholder, autoComplete, light }) {
   const [show, setShow] = useState(false)
+  // Se light=true, usa cores claras (fundo branco, texto escuro)
+  const iconColor = light ? 'rgba(26,26,46,0.35)' : 'rgba(245,244,255,0.35)'
+  const inputStyle = light ? { ...inpLight, paddingLeft:42, paddingRight:44 } : { ...inpDark, paddingLeft:42, paddingRight:44 }
   return (
     <div style={{ position:'relative' }}>
-      <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(245,244,255,0.35)', display:'flex', pointerEvents:'none' }}><IconLock /></div>
+      <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor, display:'flex', pointerEvents:'none' }}><IconLock /></div>
       <input type={show?'text':'password'} value={value} onChange={onChange} placeholder={placeholder} autoComplete={autoComplete}
-        style={{ ...inp, paddingLeft:42, paddingRight:44 }} />
-      <button type="button" onClick={() => setShow(v=>!v)} style={eyeBtn}>{show ? <EyeHide /> : <EyeShow />}</button>
+        style={inputStyle} />
+      <button type="button" onClick={() => setShow(v=>!v)} style={{ ...eyeBtn, color: iconColor }}>{show ? <EyeHide /> : <EyeShow />}</button>
     </div>
   )
 }
@@ -158,12 +159,53 @@ export default function Login() {
     </button>
   )
 
-  const form = (
+  // Formulário para o lado claro (direito)
+  const formLight = (
     <>
-      <h1 style={formTitle}>Bem-vindo de volta</h1>
-      <p style={formSub}>Entre com sua conta para continuar.</p>
+      <h1 style={formTitleLight}>Bem-vindo de volta</h1>
+      <p style={formSubLight}>Entre com sua conta para continuar.</p>
 
-      <button onClick={handleGoogle} style={btnGoogle}><GIcon /> Continuar com Google</button>
+      <button onClick={handleGoogle} style={btnGoogleLight}><GIcon /> Continuar com Google</button>
+
+      <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0' }}>
+        <span style={{ flex:1, height:1, background:'rgba(26,26,46,0.12)' }}/>
+        <span style={{ fontSize:12, color:'rgba(26,26,46,0.35)', fontWeight:500, textTransform:'uppercase', letterSpacing:'0.5px' }}>ou</span>
+        <span style={{ flex:1, height:1, background:'rgba(26,26,46,0.12)' }}/>
+      </div>
+
+      <form onSubmit={submit} noValidate>
+        <div style={fieldLight}>
+          <label style={lblLight}>E-mail</label>
+          <div style={{ position:'relative' }}>
+            <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(26,26,46,0.35)', display:'flex', pointerEvents:'none' }}><IconMail /></div>
+            <input type="email" placeholder="voce@email.com" autoComplete="email"
+              style={{ ...inpLight, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
+          </div>
+        </div>
+        <div style={fieldLight}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+            <label style={lblLight}>Senha</label>
+            <Link to="/forgot-password" style={forgotLnkLight}>Esqueci a senha</Link>
+          </div>
+          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Sua senha" autoComplete="current-password" light={true} />
+        </div>
+        {err && <div style={errBoxLight}>{err}</div>}
+        <button type="submit" disabled={load} style={{ ...btnPrimaryLight, opacity:load?0.7:1, marginTop:4 }}>
+          {load ? <><Spin /> Entrando…</> : 'Entrar'}
+        </button>
+      </form>
+
+      <p style={footTxtLight}>Sem conta?{' '}<a href="#" style={footLnkLight} onClick={e=>{e.preventDefault();go('/auth/register')}}>Criar conta</a></p>
+    </>
+  )
+
+  // Formulário para mobile (fundo escuro)
+  const formDark = (
+    <>
+      <h1 style={formTitleDark}>Bem-vindo de volta</h1>
+      <p style={formSubDark}>Entre com sua conta para continuar.</p>
+
+      <button onClick={handleGoogle} style={btnGoogleDark}><GIcon /> Continuar com Google</button>
 
       <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0' }}>
         <span style={{ flex:1, height:1, background:'rgba(255,255,255,0.1)' }}/>
@@ -172,28 +214,28 @@ export default function Login() {
       </div>
 
       <form onSubmit={submit} noValidate>
-        <div style={field}>
-          <label style={lbl}>E-mail</label>
+        <div style={fieldDark}>
+          <label style={lblDark}>E-mail</label>
           <div style={{ position:'relative' }}>
             <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(245,244,255,0.35)', display:'flex', pointerEvents:'none' }}><IconMail /></div>
             <input type="email" placeholder="voce@email.com" autoComplete="email"
-              style={{ ...inp, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
+              style={{ ...inpDark, paddingLeft:42 }} value={email} onChange={e=>{setEmail(e.target.value);setErr('')}} />
           </div>
         </div>
-        <div style={field}>
+        <div style={fieldDark}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-            <label style={lbl}>Senha</label>
-            <Link to="/forgot-password" style={forgotLnk}>Esqueci a senha</Link>
+            <label style={lblDark}>Senha</label>
+            <Link to="/forgot-password" style={forgotLnkDark}>Esqueci a senha</Link>
           </div>
-          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Sua senha" autoComplete="current-password" />
+          <PwField value={pw} onChange={e=>{setPw(e.target.value);setErr('')}} placeholder="Sua senha" autoComplete="current-password" light={false} />
         </div>
-        {err && <div style={errBox}>{err}</div>}
-        <button type="submit" disabled={load} style={{ ...btnPrimary, opacity:load?0.7:1, marginTop:4 }}>
+        {err && <div style={errBoxDark}>{err}</div>}
+        <button type="submit" disabled={load} style={{ ...btnPrimaryDark, opacity:load?0.7:1, marginTop:4 }}>
           {load ? <><Spin /> Entrando…</> : 'Entrar'}
         </button>
       </form>
 
-      <p style={footTxt}>Sem conta?{' '}<a href="#" style={footLnk} onClick={e=>{e.preventDefault();go('/auth/register')}}>Criar conta</a></p>
+      <p style={footTxtDark}>Sem conta?{' '}<a href="#" style={footLnkDark} onClick={e=>{e.preventDefault();go('/auth/register')}}>Criar conta</a></p>
     </>
   )
 
@@ -201,9 +243,10 @@ export default function Login() {
     <div style={mobPage}>
       <BackBtn />
       <div style={{ marginBottom:28, textAlign:'center' }}>
+        {/* Removido onClick */}
         <img src={logo} alt="Metapps" style={{ height:48, width:'auto' }} onError={e=>e.target.style.display='none'} />
       </div>
-      <div style={{ ...mobCard, animation: out?'fOut .22s ease-in forwards':'fIn .5s ease both' }}>{form}</div>
+      <div style={{ ...mobCard, animation: out?'fOut .22s ease-in forwards':'fIn .5s ease both' }}>{formDark}</div>
       <style>{ANIMS}</style>
     </div>
   )
@@ -212,19 +255,20 @@ export default function Login() {
     <div style={split}>
       <BackBtn />
       <div style={leftPanel}>
+        {/* Removido onClick */}
         <img src={logo} alt="Metapps"
-          style={{ width:'min(220px,30vw)', height:'auto', display:'block', margin:'0 auto', cursor:'pointer', position:'relative', zIndex:1 }}
-          onClick={() => navigate('/')} onError={e=>e.target.style.display='none'} />
+          style={{ width:'min(220px,30vw)', height:'auto', display:'block', margin:'0 auto', position:'relative', zIndex:1 }}
+          onError={e=>e.target.style.display='none'} />
       </div>
       <div style={rightPanel}>
-        <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{form}</div>
+        <div style={{ ...fbox, animation: out?'fOut .22s ease-in forwards':'fIn .55s ease both' }}>{formLight}</div>
       </div>
       <style>{ANIMS}</style>
     </div>
   )
 }
 
-// ─── CSS QUE EU AMO <3 AI KAWAIIII ───────────────────────────────────────
+// ─── ESTILOS ───────────────────────────────────────
 const ANIMS = `
   @keyframes fIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fOut{from{opacity:1}to{opacity:0;transform:translateY(-12px)}}
@@ -234,21 +278,45 @@ const ANIMS = `
   input:focus{border-color:#6382ff!important;box-shadow:0 0 0 3px rgba(99,130,255,0.2)!important;outline:none}
 `
 
+// Layout principal
 const split      = { display:'flex', height:'100vh', overflow:'hidden', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', background:'#1a1a2e', position:'relative' }
-const leftPanel  = { flex:'0 0 45%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(160deg, #0f1535 0%, #1a2550 50%, #0f1535 100%)' }
-const rightPanel = { flex:'0 0 55%', display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 60px', overflowY:'auto', background:'#141930' }
-const mobPage    = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 20px 40px', background:'linear-gradient(160deg, #0f1535 0%, #141930 60%, #0f1535 100%)', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', position:'relative' }
+
+// Lado esquerdo (azul escuro)
+const leftPanel  = { flex:'0 0 45%', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', background:'#1a1a2e' }
+
+// Lado direito (branco / cinza claro)
+const rightPanel = { flex:'0 0 55%', display:'flex', alignItems:'center', justifyContent:'center', padding:'28px 60px', overflowY:'auto', background:'#f5f4ff' }
+
+// Mobile
+const mobPage    = { minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 20px 40px', background:'#1a1a2e', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased', position:'relative' }
 const mobCard    = { width:'100%', maxWidth:400 }
 const fbox       = { width:'100%', maxWidth:380 }
-const formTitle  = { fontSize:28, fontWeight:900, color:'#f5f4ff', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
-const formSub    = { fontSize:14, color:'rgba(245,244,255,0.5)', lineHeight:1.5, marginBottom:20 }
-const field      = { marginBottom:14 }
-const lbl        = { display:'block', fontSize:12.5, fontWeight:600, color:'rgba(245,244,255,0.45)', letterSpacing:'0.2px', marginBottom:6 }
-const inp        = { width:'100%', background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#f5f4ff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
-const eyeBtn     = { position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:6, color:'rgba(245,244,255,0.35)', display:'flex', alignItems:'center', borderRadius:6, zIndex:2 }
-const forgotLnk  = { fontSize:12.5, fontWeight:600, color:'#9ab4ff', textDecoration:'none' }
-const errBox     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#f06a6a', lineHeight:1.45, marginBottom:13 }
-const btnPrimary = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
-const btnGoogle  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#f5f4ff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
-const footTxt    = { fontSize:13.5, color:'rgba(245,244,255,0.45)', textAlign:'center', marginTop:24 }
-const footLnk    = { color:'#9ab4ff', fontWeight:700, textDecoration:'none' }
+
+// ----- ESTILOS PARA O LADO CLARO (direito) -----
+const formTitleLight  = { fontSize:28, fontWeight:900, color:'#1a1a2e', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
+const formSubLight    = { fontSize:14, color:'#6b6b8a', lineHeight:1.5, marginBottom:20 }
+const fieldLight      = { marginBottom:14 }
+const lblLight        = { display:'block', fontSize:12.5, fontWeight:600, color:'#6b6b8a', letterSpacing:'0.2px', marginBottom:6 }
+const inpLight        = { width:'100%', background:'#fff', border:'1.5px solid #d0d0e0', borderRadius:10, color:'#1a1a2e', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
+const forgotLnkLight  = { fontSize:12.5, fontWeight:600, color:'#6382ff', textDecoration:'none' }
+const errBoxLight     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#d14c4c', lineHeight:1.45, marginBottom:13 }
+const btnPrimaryLight = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
+const btnGoogleLight  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid #d0d0e0', background:'#fff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#1a1a2e', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
+const footTxtLight    = { fontSize:13.5, color:'#6b6b8a', textAlign:'center', marginTop:24 }
+const footLnkLight    = { color:'#6382ff', fontWeight:700, textDecoration:'none' }
+
+// ----- ESTILOS PARA O LADO ESCURO (mobile e esquerda) -----
+const formTitleDark  = { fontSize:28, fontWeight:900, color:'#f5f4ff', letterSpacing:'-0.5px', lineHeight:1.2, marginBottom:6 }
+const formSubDark    = { fontSize:14, color:'rgba(245,244,255,0.5)', lineHeight:1.5, marginBottom:20 }
+const fieldDark      = { marginBottom:14 }
+const lblDark        = { display:'block', fontSize:12.5, fontWeight:600, color:'rgba(245,244,255,0.45)', letterSpacing:'0.2px', marginBottom:6 }
+const inpDark        = { width:'100%', background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#f5f4ff', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, padding:'12px 14px', outline:'none', transition:'border-color .2s, box-shadow .2s', WebkitAppearance:'none', appearance:'none', boxSizing:'border-box' }
+const forgotLnkDark  = { fontSize:12.5, fontWeight:600, color:'#9ab4ff', textDecoration:'none' }
+const errBoxDark     = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, fontWeight:500, color:'#f06a6a', lineHeight:1.45, marginBottom:13 }
+const btnPrimaryDark = { width:'100%', padding:'13px', border:'none', borderRadius:10, fontFamily:"'Inter',-apple-system,sans-serif", fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#6382ff', color:'#fff', transition:'all .2s' }
+const btnGoogleDark  = { width:'100%', padding:'13px', borderRadius:10, border:'1.5px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', fontFamily:"'Inter',-apple-system,sans-serif", fontSize:14, fontWeight:600, color:'#f5f4ff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'background .2s' }
+const footTxtDark    = { fontSize:13.5, color:'rgba(245,244,255,0.45)', textAlign:'center', marginTop:24 }
+const footLnkDark    = { color:'#9ab4ff', fontWeight:700, textDecoration:'none' }
+
+// Olho de senha (comum)
+const eyeBtn = { position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:6, display:'flex', alignItems:'center', borderRadius:6, zIndex:2 }
