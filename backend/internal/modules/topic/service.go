@@ -13,7 +13,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
-)
+)	
 
 type TopicService interface {
 	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
@@ -28,6 +28,7 @@ type topicService struct {
 	cfg          *config.Config
 	progressRepo TopicProgressRepository
 }
+
 
 func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config, pr TopicProgressRepository) TopicService {
 	return topicService{
@@ -58,6 +59,9 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 	}
 
 	roadmapJSON, err := s.ai.Generate(c, prompt)
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := parseRoadmapJSON(string(roadmapJSON))
 	if err != nil {
@@ -163,6 +167,25 @@ func (s topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) 
 	return s.repo.Get(c, topicID)
 }
 
+func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
+	topics, err := s.repo.GetByGoalID(c, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	topicIDs := make([]uuid.UUID, 0, len(topics))
+	for _, topic := range topics {
+		topicIDs = append(topicIDs, topic.ID)
+	}
+
+	dependencies, err := s.deps.GetByTopicIDs(c, topicIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Roadmap{Topics: topics, Dependencies: dependencies}, nil
+}
+
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 	cleaned := strings.TrimSpace(roadmapStr)
 	cleaned = strings.TrimPrefix(cleaned, "```json")
@@ -176,55 +199,5 @@ func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, fmt.Sprintf("invalid json: %s", err.Error()), err)
 	}
 
-	validNodes := make([]dto.TopicNode, 0, len(roadmap.Nodes))
-	for i := range roadmap.Nodes {
-		node := &roadmap.Nodes[i]
-		node.Title = strings.TrimSpace(node.Title)
-		node.NameID = strings.TrimSpace(node.NameID)
-		node.Description = strings.TrimSpace(node.Description)
-
-		if node.Title == "" {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("topic node at index %d has an empty title", i),
-				nil,
-			)
-		}
-		if node.NameID == "" {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("topic node at index %d has an empty id", i),
-				nil,
-			)
-		}
-		validNodes = append(validNodes, *node)
-	}
-	roadmap.Nodes = validNodes
-
 	return &roadmap, nil
-}
-
-func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
-	topics, err := s.repo.GetByGoalID(c, goalID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get topic dependencies
-	var topicIDs []uuid.UUID
-	for _, topic := range topics {
-		topicIDs = append(topicIDs, topic.ID)
-	}
-
-	dependencies, err := s.deps.GetByTopicIDs(c, topicIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	roadmap := &Roadmap{
-		Topics:       topics,
-		Dependencies: dependencies,
-	}
-
-	return roadmap, nil
 }
