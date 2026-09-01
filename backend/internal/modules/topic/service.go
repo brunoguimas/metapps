@@ -52,111 +52,153 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 		RoadmapSchema: string(b),
 	}
 
-	prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
-	if err != nil {
-		return nil, err
-	}
-
-	roadmapJSON, err := s.ai.Generate(c, prompt)
-
-	r, err := parseRoadmapJSON(string(roadmapJSON))
-	if err != nil {
-		return nil, err
-	}
-
-	var roadmap Roadmap
-	topics := make(map[string]*Topic)
-
-	// passa por todos os nodes, se for root (tópico) guarda no banco
-	for _, node := range r.Nodes {
-		if node.ParentID != nil {
-			continue // temos que guardar os pais no banco primeiro, depois os subtópicos referenciando esses tópicos
-		}
-
-		topic := &Topic{
-			GoalID:          g.ID,
-			ParentTopicID:   uuid.NullUUID{Valid: false},
-			Title:           node.Title,
-			Description:     node.Description,
-			RequiredMastery: node.RequiredMastery,
-			Weight:          node.Weight,
-			OrderIndex:      node.OrderIndex,
-		}
-
-		t, err := s.repo.Create(c, topic)
+	// Try up to 3 times with improving prompts
+	var lastError error
+	for attempt := 0; attempt < 3; attempt++ {
+		prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
 		if err != nil {
 			return nil, err
 		}
-		topics[node.NameID] = t
-		roadmap.Topics = append(roadmap.Topics, t)
-	}
 
-	// guarda cada subtópico no banco
-	for _, node := range r.Nodes {
-		if node.ParentID == nil {
+		// On retry attempts, add feedback about what went wrong
+		if attempt > 0 && lastError != nil {
+			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastError)
+		}
+
+		roadmapJSON, err := s.ai.Generate(c, prompt)
+		if err != nil {
+			lastError = err
+			continue // Try again
+		}
+
+		r, err := parseRoadmapJSON(string(roadmapJSON))
+		if err != nil {
+			lastError = err
+			continue // Try again with enhanced prompt
+		}
+
+		// Success! Process the roadmap
+		var roadmap Roadmap
+		topics := make(map[string]*Topic)
+
+		// passa por todos os nodes, se for root (tópico) guarda no banco
+		for _, node := range r.Nodes {
+			if node.ParentID != nil {
+				continue // temos que guardar os pais no banco primeiro, depois os subtópicos referenciando esses tópicos
+			}
+
+			topic := &Topic{
+				GoalID:          g.ID,
+				ParentTopicID:   uuid.NullUUID{Valid: false},
+				Title:           node.Title,
+				Description:     node.Description,
+				RequiredMastery: node.RequiredMastery,
+				Weight:          node.Weight,
+				OrderIndex:      node.OrderIndex,
+			}
+
+			t, err := s.repo.Create(c, topic)
+			if err != nil {
+				return nil, err
+			}
+			topics[node.NameID] = t
+			roadmap.Topics = append(roadmap.Topics, t)
+		}
+
+		// guarda cada subtópico no banco
+		for _, node := range r.Nodes {
+			if node.ParentID == nil {
+				continue
+			}
+
+			if topics[*node.ParentID] == nil {
+				lastError = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+				continue // Try again
+			}
+
+			topic := &Topic{
+				GoalID: g.ID,
+				ParentTopicID: uuid.NullUUID{
+					Valid: true,
+					// puxa o id do pai do mapa
+					UUID: topics[*node.ParentID].ID,
+				},
+				Title:           node.Title,
+				Description:     node.Description,
+				RequiredMastery: node.RequiredMastery,
+				Weight:          node.Weight,
+				OrderIndex:      node.OrderIndex,
+			}
+
+			t, err := s.repo.Create(c, topic)
+			if err != nil {
+				return nil, err
+			}
+
+			topics[node.NameID] = t
+			roadmap.Topics = append(roadmap.Topics, t)
+		}
+
+		// If we had any errors in processing subtopics, retry
+		if lastError != nil {
 			continue
 		}
 
-		if topics[*node.ParentID] == nil {
-			return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+		for _, edge := range r.Edges {
+			from, ok := topics[edge.From]
+			if !ok {
+				lastError = apperrors.NewAppError(
+					apperrors.ErrInvalidAIResponse,
+					fmt.Sprintf("dependency source '%s' not found", edge.From),
+					nil,
+				)
+				break // Try again
+			}
+
+			to, ok := topics[edge.To]
+			if !ok {
+				lastError = apperrors.NewAppError(
+					apperrors.ErrInvalidAIResponse,
+					fmt.Sprintf("dependency source '%s' not found", edge.From),
+					nil,
+				)
+				break // Try again
+			}
+
+			d := &topic_dependency.TopicDependency{
+				TopicID:          to.ID,
+				DependsOnTopicID: from.ID,
+			}
+
+			dependency, err := s.deps.Create(c, d)
+			if err != nil {
+				lastError = err
+				break // Try again
+			}
+
+			roadmap.Dependencies = append(roadmap.Dependencies, dependency)
 		}
 
-		topic := &Topic{
-			GoalID: g.ID,
-			ParentTopicID: uuid.NullUUID{
-				Valid: true,
-				// puxa o id do pai do map
-				UUID: topics[*node.ParentID].ID,
-			},
-			Title:           node.Title,
-			Description:     node.Description,
-			RequiredMastery: node.RequiredMastery,
-			Weight:          node.Weight,
-			OrderIndex:      node.OrderIndex,
+		// If we succeeded in processing all edges, return the roadmap
+		if lastError == nil {
+			return &roadmap, nil
 		}
-
-		t, err := s.repo.Create(c, topic)
-		if err != nil {
-			return nil, err
-		}
-
-		topics[node.NameID] = t
-		roadmap.Topics = append(roadmap.Topics, t)
+		// Otherwise loop will continue for another attempt
 	}
 
-	for _, edge := range r.Edges {
-		from, ok := topics[edge.From]
-		if !ok {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("dependency source '%s' not found", edge.From),
-				nil,
-			)
-		}
+	// If we got here, all attempts failed
+	return nil, lastError
+}
 
-		to, ok := topics[edge.To]
-		if !ok {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("dependency source '%s' not found", edge.From),
-				nil,
-			)
-		}
+// enhanceRoadmapPromptWithFeedback adds specific guidance based on the previous error
+func enhanceRoadmapPromptWithFeedback(originalPrompt string, prevErr error) string {
+	feedback := "\n\n## FEEDBACK DA TENTATIVA ANTERIOR\n"
+	feedback += "Na tentativa anterior, seu response foi inválido pelo seguinte motivo:\n"
+	feedback += "- " + strings.ReplaceAll(prevErr.Error(), "\n", "\n- ") + "\n"
+	feedback += "\nPor favor, corrija estes problemas específicos e tente novamente, seguindo TODAS as regras do prompt original."
+	feedback += "\nLembre-se: RETORNE APENAS JSON VÁLIDO, nenhum texto adicional."
 
-		d := &topic_dependency.TopicDependency{
-			TopicID:          to.ID,
-			DependsOnTopicID: from.ID,
-		}
-
-		dependency, err := s.deps.Create(c, d)
-		if err != nil {
-			return nil, err
-		}
-
-		roadmap.Dependencies = append(roadmap.Dependencies, dependency)
-	}
-
-	return &roadmap, nil
+	return originalPrompt + feedback
 }
 
 func (s topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) {
