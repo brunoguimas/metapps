@@ -10,21 +10,21 @@ import (
 )
 
 type Module struct {
-	Service  Service
-	Handler  *Handler
 	Repository Repository
+	Service    Service
+	Handler    *Handler
 }
 
-func NewModule(q *db.Queries, taskAttemptRepo task_attempt.Repository, taskRepo task.TaskRepository, aiClient ai.Client, jwtService jwt.JWTService) *Module {
+func NewModule(q *db.Queries, taskAttemptRepo task_attempt.Repository, taskRepo task.Repository, aiClient ai.Client, jwtService jwt.Service) *Module {
 	repo := NewRepository(q)
-	topicRepo := topic.NewTopicRepository(q)
-	progressRepo := topic.NewTopicProgressRepository(q)
+	topicRepo := topic.NewRepository(q)
+	progressRepo := topic.NewProgressRepository(q)
 	service := NewService(repo, taskAttemptRepo, taskRepo, topicRepo, progressRepo, aiClient)
 	handler := NewHandler(service, jwtService)
 
 	return &Module{
-		Service:  service,
-		Handler:  handler,
 		Repository: repo,
+		Service:    service,
+		Handler:    handler,
 	}
 }

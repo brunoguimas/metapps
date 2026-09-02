@@ -82,14 +82,13 @@ func (q *QuizQuestion) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// Try the expected shape first: []Material
+	// Accept either []Material or a bare string (single text material).
 	var materials []Material
 	if err := json.Unmarshal(aux.Materials, &materials); err == nil {
 		q.Materials = materials
 		return nil
 	}
 
-	// Fall back: bare string -> single text Material
 	var text string
 	if err := json.Unmarshal(aux.Materials, &text); err == nil {
 		if text != "" {

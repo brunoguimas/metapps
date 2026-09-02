@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-type GoalRepository interface {
+type Repository interface {
 	Create(c context.Context, g *Goal) (*Goal, error)
 	ListByUserID(c context.Context, userID uuid.UUID) ([]*Goal, error)
 	GetByID(c context.Context, userID, goalID uuid.UUID) (*Goal, error)
@@ -23,7 +23,7 @@ type goalRepository struct {
 	queries *db.Queries
 }
 
-func NewGoalRepository(q *db.Queries) GoalRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &goalRepository{queries: q}
 }
 

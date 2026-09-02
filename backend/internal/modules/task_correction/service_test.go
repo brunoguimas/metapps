@@ -26,17 +26,17 @@ func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, err
 	return `{"feedback":"Excelente redação!","score":90}`, nil
 }
 
-type fakeTaskCorrectionRepository struct {
+type fakeRepository struct {
 	corrections map[uuid.UUID]*TaskCorrection
 }
 
-func newFakeRepo() *fakeTaskCorrectionRepository {
-	return &fakeTaskCorrectionRepository{
+func newFakeRepo() *fakeRepository {
+	return &fakeRepository{
 		corrections: make(map[uuid.UUID]*TaskCorrection),
 	}
 }
 
-func (r *fakeTaskCorrectionRepository) Create(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
+func (r *fakeRepository) Create(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	if correction.ID == uuid.Nil {
 		correction.ID = uuid.New()
 	}
@@ -46,7 +46,7 @@ func (r *fakeTaskCorrectionRepository) Create(c context.Context, correction *Tas
 	return correction, nil
 }
 
-func (r *fakeTaskCorrectionRepository) GetByID(c context.Context, id uuid.UUID) (*TaskCorrection, error) {
+func (r *fakeRepository) GetByID(c context.Context, id uuid.UUID) (*TaskCorrection, error) {
 	for _, corr := range r.corrections {
 		if corr.ID == id {
 			return corr, nil
@@ -55,14 +55,14 @@ func (r *fakeTaskCorrectionRepository) GetByID(c context.Context, id uuid.UUID) 
 	return nil, apperrors.NewAppError(apperrors.ErrTaskCorrectionNotFound, "correction not found", nil)
 }
 
-func (r *fakeTaskCorrectionRepository) GetByAttemptID(c context.Context, attemptID uuid.UUID) (*TaskCorrection, error) {
+func (r *fakeRepository) GetByAttemptID(c context.Context, attemptID uuid.UUID) (*TaskCorrection, error) {
 	if corr, ok := r.corrections[attemptID]; ok {
 		return corr, nil
 	}
 	return nil, apperrors.NewAppError(apperrors.ErrTaskCorrectionNotFound, "correction not found for attempt", nil)
 }
 
-func (r *fakeTaskCorrectionRepository) Update(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
+func (r *fakeRepository) Update(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	r.corrections[correction.AttemptID] = correction
 	return correction, nil
 }
@@ -117,49 +117,41 @@ func (r *fakeTaskRepository) MarkDone(c context.Context, userID, id uuid.UUID) (
 	return nil, nil
 }
 
-// fakeTopicRepository implements topic.TopicRepository.
 type fakeTopicRepository struct {
 }
 
-// Get returns a dummy topic.
 func (r *fakeTopicRepository) Get(c context.Context, topicID uuid.UUID) (*topic.Topic, error) {
 	return &topic.Topic{ID: topicID}, nil
 }
 
-// GetByGoalID returns a dummy list.
 func (r *fakeTopicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*topic.Topic, error) {
 	return []*topic.Topic{{ID: goalID}}, nil
 }
 
-// Create creates and returns a dummy topic.
 func (r *fakeTopicRepository) Create(c context.Context, t *topic.Topic) (*topic.Topic, error) {
 	t.ID = uuid.New()
 	return t, nil
 }
 
-// DeleteByGoalID deletes topics by goal ID.
 func (r *fakeTopicRepository) DeleteByGoalID(c context.Context, goalID uuid.UUID) error {
 	return nil
 }
 
-// fakeTopicProgressRepository implements topic.TopicProgressRepository.
 type fakeTopicProgressRepository struct {
 }
 
-// GetOrCreate returns a dummy progress.
 func (r *fakeTopicProgressRepository) GetOrCreate(c context.Context, userID, topicID uuid.UUID) (*topic.TopicProgress, error) {
 	return &topic.TopicProgress{
-		ID:           uuid.New(),
-		UserID:       userID,
-		TopicID:      topicID,
-		MasteryScore: 0,
+		ID:              uuid.New(),
+		UserID:          userID,
+		TopicID:         topicID,
+		MasteryScore:    0,
 		ConfidenceScore: 0,
-		AttemptsCount: 0,
-		Status:       topic.TopicStatusLocked,
+		AttemptsCount:   0,
+		Status:          topic.TopicStatusLocked,
 	}, nil
 }
 
-// Update does nothing.
 func (r *fakeTopicProgressRepository) Update(c context.Context, progress *topic.TopicProgress) error {
 	return nil
 }
@@ -376,7 +368,6 @@ func TestGenerateEssayCorrection_NotEssay(t *testing.T) {
 	assert.Equal(t, apperrors.ErrTaskAttemptTypeMismatch, appErr.Code())
 }
 
-// TestGenerateQuizCorrection_Success tests successful generation of quiz correction.
 func TestGenerateQuizCorrection_Success(t *testing.T) {
 	userID := uuid.New()
 	taskID := uuid.New()
@@ -385,16 +376,16 @@ func TestGenerateQuizCorrection_Success(t *testing.T) {
 	quizContent := task.QuizContent{
 		Questions: []task.QuizQuestion{
 			{
-				Statement:     "Qual é a capital do Brasil?",
-				Alternatives:  []string{"São Paulo", "Rio de Janeiro", "Brasília", "Salvador"},
-				Answer:        2, // Brasília
-				Explanation:   "Brasília é a capital do Brasil desde 1960.",
+				Statement:    "Qual é a capital do Brasil?",
+				Alternatives: []string{"São Paulo", "Rio de Janeiro", "Brasília", "Salvador"},
+				Answer:       2, // Brasília
+				Explanation:  "Brasília é a capital do Brasil desde 1960.",
 			},
 			{
-				Statement:     "Quanto é 2 + 2?",
-				Alternatives:  []string{"3", "4", "5", "6"},
-				Answer:        1, // 4
-				Explanation:   "2 + 2 igual a 4.",
+				Statement:    "Quanto é 2 + 2?",
+				Alternatives: []string{"3", "4", "5", "6"},
+				Answer:       1, // 4
+				Explanation:  "2 + 2 igual a 4.",
 			},
 		},
 	}
@@ -454,7 +445,6 @@ func TestGenerateQuizCorrection_Success(t *testing.T) {
 	assert.Equal(t, 1.0, *corr.Score) // Todas as questões corretas
 }
 
-// TestGenerateQuizCorrection_NotQuiz tests that GenerateQuizCorrection returns an error when the task is not a quiz.
 func TestGenerateQuizCorrection_NotQuiz(t *testing.T) {
 	userID := uuid.New()
 	taskID := uuid.New()

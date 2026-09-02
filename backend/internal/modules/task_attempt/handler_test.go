@@ -16,27 +16,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeTaskAttemptServiceHandler struct {
+type fakeServiceHandler struct {
 	submitFn func(context.Context, uuid.UUID, uuid.UUID, *CreateAttemptInput) (*TaskAttempt, *task.Task, error)
 }
 
-func (s *fakeTaskAttemptServiceHandler) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
+func (s *fakeServiceHandler) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 	return s.submitFn(c, userID, taskID, input)
 }
 
-func (s *fakeTaskAttemptServiceHandler) ListByUser(context.Context, uuid.UUID) ([]*TaskAttempt, error) {
+func (s *fakeServiceHandler) ListByUser(context.Context, uuid.UUID) ([]*TaskAttempt, error) {
 	return nil, nil
 }
-func (s *fakeTaskAttemptServiceHandler) ListByUserAndTask(context.Context, uuid.UUID, uuid.UUID) ([]*TaskAttempt, error) {
+func (s *fakeServiceHandler) ListByUserAndTask(context.Context, uuid.UUID, uuid.UUID) ([]*TaskAttempt, error) {
 	return nil, nil
 }
 
-func TestTaskAttemptHandlerSubmit_Success(t *testing.T) {
+func TestHandlerSubmit_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userID := uuid.New()
 	taskID := uuid.New()
 
-	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		submitFn: func(_ context.Context, gotUserID, gotTaskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, taskID, gotTaskID)
@@ -67,9 +67,9 @@ func TestTaskAttemptHandlerSubmit_Success(t *testing.T) {
 	assert.Equal(t, taskID, resp.Task.ID)
 }
 
-func TestTaskAttemptHandlerSubmit_Fail(t *testing.T) {
+func TestHandlerSubmit_Fail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		submitFn: func(context.Context, uuid.UUID, uuid.UUID, *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			t.Fatal("Submit should not be called on invalid payload")
 			return nil, nil, nil
@@ -95,9 +95,9 @@ func TestTaskAttemptHandlerSubmit_Fail(t *testing.T) {
 	assert.Equal(t, string(apperrors.ErrInvalidInput), resp.Code)
 }
 
-func TestTaskAttemptHandlerSubmit_FailInvalidTaskID(t *testing.T) {
+func TestHandlerSubmit_FailInvalidTaskID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		submitFn: func(context.Context, uuid.UUID, uuid.UUID, *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			t.Fatal("Submit should not be called with invalid task id")
 			return nil, nil, nil
@@ -123,12 +123,12 @@ func TestTaskAttemptHandlerSubmit_FailInvalidTaskID(t *testing.T) {
 	assert.Equal(t, string(apperrors.ErrInvalidInput), resp.Code)
 }
 
-func TestTaskAttemptHandlerSubmit_AcceptsTaskIDParamAlias(t *testing.T) {
+func TestHandlerSubmit_AcceptsTaskIDParamAlias(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userID := uuid.New()
 	taskID := uuid.New()
 
-	handler := NewHandler(&fakeTaskAttemptServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		submitFn: func(_ context.Context, gotUserID, gotTaskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, taskID, gotTaskID)

@@ -8,16 +8,16 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-type OAuthAccountService interface {
+type Service interface {
 	CreateAccount(c context.Context, p *idtoken.Payload) (*OAuthAccount, error)
 }
 
 type oauthAccountService struct {
-	accountRepo OAuthAccountRepository
-	userRepo    user.UserRepository
+	accountRepo Repository
+	userRepo    user.Repository
 }
 
-func NewOAuthService(accountRepo OAuthAccountRepository, userRepo user.UserRepository) OAuthAccountService {
+func NewService(accountRepo Repository, userRepo user.Repository) Service {
 	return &oauthAccountService{
 		accountRepo: accountRepo,
 		userRepo:    userRepo,

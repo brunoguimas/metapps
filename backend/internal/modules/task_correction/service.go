@@ -23,28 +23,27 @@ type Service interface {
 	GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 }
 
-type service struct {
-	repo        Repository
-	attemptRepo task_attempt.Repository
-	taskRepo    task.TaskRepository
-	topicRepo   topic.TopicRepository
-	progressRepo topic.TopicProgressRepository
-	client      ai.Client
+type taskCorrectionService struct {
+	repo         Repository
+	attemptRepo  task_attempt.Repository
+	taskRepo     task.Repository
+	topicRepo    topic.Repository
+	progressRepo topic.ProgressRepository
+	client       ai.Client
 }
 
-func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.TaskRepository, topicRepo topic.TopicRepository, progressRepo topic.TopicProgressRepository, client ai.Client) Service {
-	return &service{
-		repo:        r,
-		attemptRepo: attemptRepo,
-		taskRepo:    taskRepo,
-		topicRepo:   topicRepo,
+func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.Repository, topicRepo topic.Repository, progressRepo topic.ProgressRepository, client ai.Client) Service {
+	return &taskCorrectionService{
+		repo:         r,
+		attemptRepo:  attemptRepo,
+		taskRepo:     taskRepo,
+		topicRepo:    topicRepo,
 		progressRepo: progressRepo,
-		client:      client,
+		client:       client,
 	}
 }
 
-func (s *service) CreateCorrection(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error) {
-	// Verify the attempt exists and belongs to the user
+func (s *taskCorrectionService) CreateCorrection(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
 		return nil, err
@@ -75,8 +74,7 @@ func (s *service) CreateCorrection(ctx context.Context, userID, attemptID uuid.U
 	return createdCorrection, nil
 }
 
-func (s *service) GetCorrectionByAttemptID(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
-	// Verify the attempt exists and belongs to the user
+func (s *taskCorrectionService) GetCorrectionByAttemptID(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
 		return nil, err
@@ -89,47 +87,40 @@ func (s *service) GetCorrectionByAttemptID(ctx context.Context, userID, attemptI
 	return s.repo.GetByAttemptID(ctx, attemptID)
 }
 
-func (s *service) UpdateCorrection(ctx context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
+func (s *taskCorrectionService) UpdateCorrection(ctx context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	return s.repo.Update(ctx, correction)
 }
 
 // updateProgress updates the topic progress for the user based on the attempt and correction score.
-func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUID, score float64) {
-	// Get the attempt to get the task ID.
+func (s *taskCorrectionService) updateProgress(ctx context.Context, userID, attemptID uuid.UUID, score float64) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
 		slog.Error("failed to get attempt for progress update", "attempt_id", attemptID, "error", err)
 		return
 	}
 
-	// Get the task to get the topic ID and task details.
 	taskObj, err := s.taskRepo.GetByID(ctx, userID, attempt.TaskID)
 	if err != nil {
 		slog.Error("failed to get task for progress update", "task_id", attempt.TaskID, "error", err)
 		return
 	}
 
-	// Get the topic to get the required mastery.
 	topicObj, err := s.topicRepo.Get(ctx, taskObj.TopicID)
 	if err != nil {
 		slog.Error("failed to get topic for progress update", "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 
-	// Get or create the topic progress for the user and topic.
 	progress, err := s.progressRepo.GetOrCreate(ctx, userID, taskObj.TopicID)
 	if err != nil {
 		slog.Error("failed to get or create topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 
-	// Calculate new mastery and confidence scores as a running average.
-	// We'll update both mastery and confidence to the same value for simplicity.
 	newAttempts := progress.AttemptsCount + 1
 	newMastery := (progress.MasteryScore*float64(progress.AttemptsCount) + score) / float64(newAttempts)
-	newConfidence := newMastery // For now, set confidence to the same as mastery.
+	newConfidence := newMastery
 
-	// Determine the new status based on the new mastery and the topic's required mastery.
 	var newStatus topic.TopicStatus
 	if newMastery >= topicObj.RequiredMastery {
 		newStatus = topic.TopicStatusMastered
@@ -139,7 +130,6 @@ func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUI
 		newStatus = topic.TopicStatusLocked
 	}
 
-	// Determine the evolution stage based on the new mastery score.
 	var evolutionStage string
 	switch {
 	case newMastery < 0.2:
@@ -154,22 +144,19 @@ func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUI
 		evolutionStage = "Adulto"
 	}
 
-	// Update the progress.
 	progress.MasteryScore = newMastery
 	progress.ConfidenceScore = newConfidence
 	progress.AttemptsCount = int32(newAttempts)
 	progress.Status = newStatus
 	progress.EvolutionStage = evolutionStage
 
-	// Save the updated progress.
 	if err := s.progressRepo.Update(ctx, progress); err != nil {
 		slog.Error("failed to update topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 }
 
-// GenerateEssayCorrection generates an AI-powered correction for an essay attempt using correct_essay.txt template
-func (s *service) GenerateEssayCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
+func (s *taskCorrectionService) GenerateEssayCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
 		return nil, err
@@ -260,8 +247,7 @@ func (s *service) GenerateEssayCorrection(ctx context.Context, userID, attemptID
 	return createdCorrection, nil
 }
 
-// GenerateQuizCorrection evaluates a quiz attempt deterministically and generates AI text feedback using correct_quiz.txt template
-func (s *service) GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
+func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
 		return nil, err

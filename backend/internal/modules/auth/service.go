@@ -10,17 +10,17 @@ import (
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 )
 
-type AuthService interface {
+type Service interface {
 	Login(c context.Context, u *dto.LoginRequest) (*user.User, error)
 	Register(c context.Context, u *dto.RegisterRequest) (*user.User, error)
 }
 
 type authService struct {
-	userRepo       user.UserRepository
-	profileService profile.ProfileService
+	userRepo       user.Repository
+	profileService profile.Service
 }
 
-func NewAuthService(r user.UserRepository, p profile.ProfileService) AuthService {
+func NewService(r user.Repository, p profile.Service) Service {
 	return &authService{
 		userRepo:       r,
 		profileService: p,

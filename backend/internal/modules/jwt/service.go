@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type JWTService interface {
+type Service interface {
 	GenerateAccessToken(userID uuid.UUID) (string, error)
 	GenerateRefreshToken(c context.Context, userID uuid.UUID) (string, error)
 	ValidateAccessToken(tokenStr string) (*claims, error)
@@ -21,14 +21,14 @@ type JWTService interface {
 }
 
 type jwtService struct {
-	repo            JWTRepository
+	repo            Repository
 	secretKey       string
 	issuer          string
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
 
-func NewJWTService(repo JWTRepository, secretKey, issuer string, accessTokenTTL, refreshTokenTTL time.Duration) JWTService {
+func NewService(repo Repository, secretKey, issuer string, accessTokenTTL, refreshTokenTTL time.Duration) Service {
 	return &jwtService{
 		repo:            repo,
 		secretKey:       secretKey,

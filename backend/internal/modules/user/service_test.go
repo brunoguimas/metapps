@@ -10,22 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeUserRepositoryService struct {
+type fakeRepositoryService struct {
 	getByEmailFn func(context.Context, string) (*User, error)
 }
 
-func (r *fakeUserRepositoryService) Create(context.Context, *User) (*User, error) { return nil, nil }
-func (r *fakeUserRepositoryService) GetByEmail(c context.Context, email string) (*User, error) {
+func (r *fakeRepositoryService) Create(context.Context, *User) (*User, error) { return nil, nil }
+func (r *fakeRepositoryService) GetByEmail(c context.Context, email string) (*User, error) {
 	return r.getByEmailFn(c, email)
 }
-func (r *fakeUserRepositoryService) VerifyUser(context.Context, uuid.UUID) error { return nil }
-func (r *fakeUserRepositoryService) GetByID(context.Context, uuid.UUID) (*User, error) {
+func (r *fakeRepositoryService) VerifyUser(context.Context, uuid.UUID) error { return nil }
+func (r *fakeRepositoryService) GetByID(context.Context, uuid.UUID) (*User, error) {
 	return nil, nil
 }
-func (r *fakeUserRepositoryService) UpdatePassword(context.Context, uuid.UUID, string) error { return nil }
+func (r *fakeRepositoryService) UpdatePassword(context.Context, uuid.UUID, string) error {
+	return nil
+}
 
-func TestUserServiceGetUserByEmail_Success(t *testing.T) {
-	service := NewUserService(&fakeUserRepositoryService{
+func TestServiceGetUserByEmail_Success(t *testing.T) {
+	service := NewService(&fakeRepositoryService{
 		getByEmailFn: func(_ context.Context, email string) (*User, error) {
 			return &User{Email: email}, nil
 		},
@@ -37,8 +39,8 @@ func TestUserServiceGetUserByEmail_Success(t *testing.T) {
 	assert.Equal(t, "bruno@test.com", result.Email)
 }
 
-func TestUserServiceGetUserByEmail_Fail(t *testing.T) {
-	service := NewUserService(&fakeUserRepositoryService{
+func TestServiceGetUserByEmail_Fail(t *testing.T) {
+	service := NewService(&fakeRepositoryService{
 		getByEmailFn: func(context.Context, string) (*User, error) {
 			return nil, apperrors.NewAppError(apperrors.ErrUserNotFound, "user not found", nil)
 		},

@@ -2,104 +2,85 @@ package profile
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 	"github.com/google/uuid"
-	"database/sql"
 )
 
-// ProfileRepository defines the interface for profile storage.
-type ProfileRepository interface {
+type Repository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	Create(ctx context.Context, profile *Profile) (*Profile, error)
 	Update(ctx context.Context, profile *Profile) (*Profile, error)
 }
 
-// profileRepository implements ProfileRepository using database queries.
 type profileRepository struct {
 	queries *db.Queries
 }
 
-// NewProfileRepository creates a new ProfileRepository.
-func NewProfileRepository(queries *db.Queries) ProfileRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &profileRepository{
-		queries: queries,
+		queries: q,
 	}
 }
 
-// GetByUserID returns the profile for the given user ID.
 func (r *profileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Profile, error) {
-	dbProfile, err := r.queries.GetProfileByUserID(ctx, userID)
+	row, err := r.queries.GetProfileByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return dbProfileToModel(&dbProfile), nil
+
+	return mapProfile(row), nil
 }
 
-// Create creates a new profile.
 func (r *profileRepository) Create(ctx context.Context, profile *Profile) (*Profile, error) {
-	dbProfile := modelToCreateParams(profile)
-	createdDBProfile, err := r.queries.CreateProfile(ctx, dbProfile)
+	row, err := r.queries.CreateProfile(ctx, db.CreateProfileParams{
+		ID:               profile.ID,
+		UserID:           profile.UserID,
+		Xp:               int32(profile.XP),
+		Streak:           int32(profile.Streak),
+		LastActivityDate: profile.LastActivityDate,
+		AvatarUrl:        sql.NullString{String: profile.AvatarURL, Valid: profile.AvatarURL != ""},
+		CreatedAt:        profile.CreatedAt,
+		UpdatedAt:        profile.UpdatedAt,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return dbProfileToModel(&createdDBProfile), nil
+
+	return mapProfile(row), nil
 }
 
-// Update updates an existing profile.
 func (r *profileRepository) Update(ctx context.Context, profile *Profile) (*Profile, error) {
-	dbProfile := modelToUpdateParams(profile)
-	updatedDBProfile, err := r.queries.UpdateProfile(ctx, dbProfile)
+	row, err := r.queries.UpdateProfile(ctx, db.UpdateProfileParams{
+		ID:               profile.ID,
+		Xp:               int32(profile.XP),
+		Streak:           int32(profile.Streak),
+		LastActivityDate: profile.LastActivityDate,
+		AvatarUrl:        sql.NullString{String: profile.AvatarURL, Valid: profile.AvatarURL != ""},
+		UpdatedAt:        profile.UpdatedAt,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return dbProfileToModel(&updatedDBProfile), nil
+
+	return mapProfile(row), nil
 }
 
-// dbProfileToModel converts a db.Profile to a module Profile.
-func dbProfileToModel(db *db.Profile) *Profile {
-	if db == nil {
-		return nil
-	}
+func mapProfile(row db.Profile) *Profile {
 	avatarURL := ""
-	if db.AvatarUrl.Valid {
-		avatarURL = db.AvatarUrl.String
+	if row.AvatarUrl.Valid {
+		avatarURL = row.AvatarUrl.String
 	}
+
 	return &Profile{
-		ID:             db.ID,
-		UserID:         db.UserID,
-		XP:             int(db.Xp),
-		Streak:         int(db.Streak),
-		LastActivityDate: db.LastActivityDate,
-		AvatarURL:      avatarURL,
-		CreatedAt:      db.CreatedAt,
-		UpdatedAt:      db.UpdatedAt,
-	}
-}
-
-// modelToCreateParams converts a module Profile to db.CreateProfileParams.
-func modelToCreateParams(p *Profile) db.CreateProfileParams {
-	return db.CreateProfileParams{
-		ID:                p.ID,
-		UserID:            p.UserID,
-		Xp:                int32(p.XP),
-		Streak:            int32(p.Streak),
-		LastActivityDate:  p.LastActivityDate,
-		AvatarUrl:         sql.NullString{String: p.AvatarURL, Valid: p.AvatarURL != ""},
-		CreatedAt:         p.CreatedAt,
-		UpdatedAt:         p.UpdatedAt,
-	}
-}
-
-// modelToUpdateParams converts a module Profile to db.UpdateProfileParams.
-// Note: UpdateProfileParams does not include UserID or CreatedAt.
-func modelToUpdateParams(p *Profile) db.UpdateProfileParams {
-	return db.UpdateProfileParams{
-		ID:                p.ID,
-		Xp:                int32(p.XP),
-		Streak:            int32(p.Streak),
-		LastActivityDate:  p.LastActivityDate,
-		AvatarUrl:         sql.NullString{String: p.AvatarURL, Valid: p.AvatarURL != ""},
-		UpdatedAt:         p.UpdatedAt,
+		ID:               row.ID,
+		UserID:           row.UserID,
+		XP:               int(row.Xp),
+		Streak:           int(row.Streak),
+		LastActivityDate: row.LastActivityDate,
+		AvatarURL:        avatarURL,
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
 	}
 }

@@ -17,25 +17,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeTaskServiceHandler struct {
+type fakeServiceHandler struct {
 	createFn func(context.Context, uuid.UUID, uuid.UUID) (*Task, error)
 }
 
-func (s *fakeTaskServiceHandler) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
+func (s *fakeServiceHandler) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
 	return s.createFn(c, userID, topicID)
 }
 
-func (s *fakeTaskServiceHandler) GetByUserID(context.Context, uuid.UUID) ([]*Task, error) { return nil, nil }
-func (s *fakeTaskServiceHandler) GetByID(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
+func (s *fakeServiceHandler) GetByUserID(context.Context, uuid.UUID) ([]*Task, error) {
+	return nil, nil
+}
+func (s *fakeServiceHandler) GetByID(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
 	return nil, nil
 }
 
-func TestTaskHandlerGenerate_Success(t *testing.T) {
+func TestHandlerGenerate_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userID := uuid.New()
 	topicID := uuid.New()
 
-	handler := NewTaskHandler(&fakeTaskServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		createFn: func(_ context.Context, gotUserID, gotTopicID uuid.UUID) (*Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, topicID, gotTopicID)
@@ -63,9 +65,9 @@ func TestTaskHandlerGenerate_Success(t *testing.T) {
 	assert.Equal(t, topicID, resp.Task.TopicID)
 }
 
-func TestTaskHandlerGenerate_Fail(t *testing.T) {
+func TestHandlerGenerate_Fail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewTaskHandler(&fakeTaskServiceHandler{
+	handler := NewHandler(&fakeServiceHandler{
 		createFn: func(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
 			t.Fatal("Create should not be called on invalid payload")
 			return nil, nil
@@ -90,4 +92,4 @@ func TestTaskHandlerGenerate_Fail(t *testing.T) {
 	assert.Equal(t, string(apperrors.ErrInvalidInput), resp.Code)
 }
 
-var _ goal.GoalService = nil
+var _ goal.Service = nil

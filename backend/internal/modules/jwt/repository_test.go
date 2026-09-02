@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
+	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestJWTRepositoryCreateRefreshToken_Success(t *testing.T) {
+func TestRepositoryCreateRefreshToken_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewJWTRepository(queries)
+	repo := NewRepository(queries)
 
 	id, err := repo.CreateRefreshToken(context.Background(), user.ID, time.Now().Add(time.Hour))
 
@@ -25,11 +25,11 @@ func TestJWTRepositoryCreateRefreshToken_Success(t *testing.T) {
 	assert.NotEqual(t, uuid.Nil, id)
 }
 
-func TestJWTRepositoryGetRefreshToken_FailNotFound(t *testing.T) {
+func TestRepositoryGetRefreshToken_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
-	repo := NewJWTRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.GetRefreshToken(context.Background(), uuid.New())
 
@@ -40,12 +40,12 @@ func TestJWTRepositoryGetRefreshToken_FailNotFound(t *testing.T) {
 	assert.Equal(t, apperrors.ErrInvalidToken, appErr.Code())
 }
 
-func TestJWTRepositoryRevokeRefreshToken_Success(t *testing.T) {
+func TestRepositoryRevokeRefreshToken_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewJWTRepository(queries)
+	repo := NewRepository(queries)
 	id, err := repo.CreateRefreshToken(context.Background(), user.ID, time.Now().Add(time.Hour))
 	require.NoError(t, err)
 

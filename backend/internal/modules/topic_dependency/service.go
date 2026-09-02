@@ -6,27 +6,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// TopicDependencyRepository defines the interface for topic dependency operations.
-type TopicDependencyRepository interface {
+type Repository interface {
 	Create(ctx context.Context, d *TopicDependency) (*TopicDependency, error)
 	GetByTopicIDs(ctx context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error)
 }
 
-type TopicDependencyService struct {
-	repo TopicDependencyRepository
+type Service interface {
+	Create(c context.Context, d *TopicDependency) (*TopicDependency, error)
+	GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error)
 }
 
-// nome longo da porra
-func NewTopicDependencyService(r TopicDependencyRepository) TopicDependencyService {
-	return TopicDependencyService{
+type topicDependencyService struct {
+	repo Repository
+}
+
+func NewService(r Repository) Service {
+	return &topicDependencyService{
 		repo: r,
 	}
 }
 
-func (s *TopicDependencyService) Create(c context.Context, d *TopicDependency) (*TopicDependency, error) {
+func (s *topicDependencyService) Create(c context.Context, d *TopicDependency) (*TopicDependency, error) {
 	return s.repo.Create(c, d)
 }
 
-func (s *TopicDependencyService) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
+func (s *topicDependencyService) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
 	return s.repo.GetByTopicIDs(c, topicIDs)
 }

@@ -9,15 +9,15 @@ import (
 )
 
 type Module struct {
-	Service AuthService
-	Handler *AuthHandler
+	Service Service
+	Handler *Handler
 }
 
-func NewModule(repo user.UserRepository, users user.UserService, tokens jwt.JWTService, emails mail.EmailService, profileService profile.ProfileService, c *config.Config) *Module {
-	service := NewAuthService(repo, profileService)
+func NewModule(repo user.Repository, users user.Service, tokens jwt.Service, emails mail.Service, profileService profile.Service, c *config.Config) *Module {
+	service := NewService(repo, profileService)
 
 	return &Module{
 		Service: service,
-		Handler: NewAuthHandler(service, users, tokens, emails, *c),
+		Handler: NewHandler(service, users, tokens, emails, *c),
 	}
 }

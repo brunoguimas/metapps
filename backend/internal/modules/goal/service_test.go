@@ -9,29 +9,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeGoalRepository struct {
+type fakeRepository struct {
 	createFn func(context.Context, *Goal) (*Goal, error)
 }
 
-func (r *fakeGoalRepository) Create(c context.Context, g *Goal) (*Goal, error) {
+func (r *fakeRepository) Create(c context.Context, g *Goal) (*Goal, error) {
 	return r.createFn(c, g)
 }
 
-func (r *fakeGoalRepository) ListByUserID(context.Context, uuid.UUID) ([]*Goal, error) {
+func (r *fakeRepository) ListByUserID(context.Context, uuid.UUID) ([]*Goal, error) {
 	return nil, nil
 }
-func (r *fakeGoalRepository) GetByID(context.Context, uuid.UUID, uuid.UUID) (*Goal, error) {
+func (r *fakeRepository) GetByID(context.Context, uuid.UUID, uuid.UUID) (*Goal, error) {
 	return nil, nil
 }
-func (r *fakeGoalRepository) Update(context.Context, *Goal) error                { return nil }
-func (r *fakeGoalRepository) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
+func (r *fakeRepository) Update(context.Context, *Goal) error                { return nil }
+func (r *fakeRepository) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 
-func TestGoalServiceCreate_Success(t *testing.T) {
+func TestServiceCreate_Success(t *testing.T) {
 	userID := uuid.New()
 	settings := GoalSettings{Motivation: "passar no vestibular"}
 	var received *Goal
 
-	service := NewGoalService(&fakeGoalRepository{
+	service := NewService(&fakeRepository{
 		createFn: func(_ context.Context, g *Goal) (*Goal, error) {
 			received = g
 			return &Goal{
@@ -43,7 +43,7 @@ func TestGoalServiceCreate_Success(t *testing.T) {
 		},
 	})
 
-	result, err := service.Create(context.Background(), userID, &GoalRequest{
+	result, err := service.Create(context.Background(), userID, &Request{
 		Title:       "Vestibular",
 		Settings:    settings,
 		hasSettings: true,

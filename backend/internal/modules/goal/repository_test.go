@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGoalRepositoryCreate_Success(t *testing.T) {
+func TestRepositoryCreate_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewGoalRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.Create(context.Background(), &Goal{
 		UserID:   user.ID,
@@ -30,12 +30,12 @@ func TestGoalRepositoryCreate_Success(t *testing.T) {
 	assert.Equal(t, "ENEM", result.Title)
 }
 
-func TestGoalRepositoryCreate_FailDuplicate(t *testing.T) {
+func TestRepositoryCreate_FailDuplicate(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewGoalRepository(queries)
+	repo := NewRepository(queries)
 
 	_, err := repo.Create(context.Background(), &Goal{
 		UserID:   user.ID,
@@ -57,12 +57,12 @@ func TestGoalRepositoryCreate_FailDuplicate(t *testing.T) {
 	assert.Equal(t, apperrors.ErrGoalAlreadyExists, appErr.Code())
 }
 
-func TestGoalRepositoryGetByID_FailNotFound(t *testing.T) {
+func TestRepositoryGetByID_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewGoalRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.GetByID(context.Background(), user.ID, uuid.New())
 

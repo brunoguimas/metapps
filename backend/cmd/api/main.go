@@ -42,9 +42,9 @@ type AppModules struct {
 	AIClient             ai.Client
 	GroqClient           *groq.Client
 	HealthModule         *health.Module
-	TopicDependencySvc   topic_dependency.TopicDependencyService
-	TopicModule          *topic.TopicModule
-	TaskModule           *task.TaskModule
+	TopicDependencySvc   topic_dependency.Service
+	TopicModule          *topic.Module
+	TaskModule           *task.Module
 	TaskAttemptModule    *task_attempt.Module
 	TaskCorrectionModule *task_correction.Module
 }
@@ -69,7 +69,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
 
 	// Profile module
-	profileModule := profile.NewProfileModule(queries, cfg)
+	profileModule := profile.NewModule(queries, cfg)
 
 	// Auth module
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
@@ -84,14 +84,14 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	healthModule := health.NewModule(queries, geminiClient, time.Now())
 
 	// Topic dependency service
-	topicDependencyRepo := topic_dependency.NewTopicDependencyRepository(queries)
-	topicDependencyService := topic_dependency.NewTopicDependencyService(topicDependencyRepo)
+	topicDependencyRepo := topic_dependency.NewRepository(queries)
+	topicDependencyService := topic_dependency.NewService(topicDependencyRepo)
 
 	// Topic module
 	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, geminiClient, queries, cfg)
 
 	// Task module
-	taskModule := task.NewTaskModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
+	taskModule := task.NewModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
 
 	// Task attempt module
 	taskAttemptModule := task_attempt.NewModule(queries, taskModule)

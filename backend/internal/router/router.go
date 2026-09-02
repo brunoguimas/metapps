@@ -20,17 +20,17 @@ import (
 )
 
 func NewRouter(
-a *auth.AuthHandler,
-o *oauth.OAuthHandler,
-h *health.HealthHandler,
-g *goal.GoalHandler,
-tp *topic.TopicHandler,
-t *task.TaskHandler,
-ta *task_attempt.Handler,
-tcHandler *task_correction.Handler,
-	p *profile.ProfileHandler,
-jwtService jwt.JWTService,
-cfg *config.Config,
+	a *auth.Handler,
+	o *oauth.Handler,
+	h *health.Handler,
+	g *goal.Handler,
+	tp *topic.Handler,
+	t *task.Handler,
+	ta *task_attempt.Handler,
+	tcHandler *task_correction.Handler,
+	p *profile.Handler,
+	jwtService jwt.Service,
+	cfg *config.Config,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -93,13 +93,13 @@ cfg *config.Config,
 			corrections.POST("/quiz/:attemptID", tcHandler.GenerateQuizCorrection)
 		}
 		profile := protected.Group("/profile")
-			{
-				profile.GET("", p.GetProfile)
-				profile.POST("/xp", p.AddXP)
-				profile.POST("/avatar", p.UpdateAvatar)
-			}
+		{
+			profile.GET("", p.GetProfile)
+			profile.POST("/xp", p.AddXP)
+			profile.POST("/avatar", p.UpdateAvatar)
+		}
 
-			protected.GET("/task-attempts", ta.ListByUser)
+		protected.GET("/task-attempts", ta.ListByUser)
 	}
 
 	return r

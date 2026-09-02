@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserService interface {
+type Service interface {
 	GetUserByEmail(c context.Context, email string) (*User, error)
 	CheckUserExists(c context.Context, email string) error
 	VerifyUser(c context.Context, userID uuid.UUID) error
@@ -16,10 +16,10 @@ type UserService interface {
 }
 
 type userService struct {
-	repo UserRepository
+	repo Repository
 }
 
-func NewUserService(repo UserRepository) UserService {
+func NewService(repo Repository) Service {
 	return &userService{repo}
 }
 

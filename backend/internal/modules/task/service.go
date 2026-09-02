@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type TaskService interface {
+type Service interface {
 	Create(c context.Context, userID, topicID uuid.UUID) (*Task, error)
 	GetByUserID(c context.Context, userID uuid.UUID) ([]*Task, error)
 	GetByID(c context.Context, userID, topicID uuid.UUID) (*Task, error)
@@ -23,16 +23,16 @@ type TaskService interface {
 
 type taskService struct {
 	ai           ai.Client
-	repo         TaskRepository
-	topics       topic.TopicService
-	topicRepo    topic.TopicRepository
-	progressRepo topic.TopicProgressRepository
-	deps         topic_dependency.TopicDependencyService
-	goals        goal.GoalService
+	repo         Repository
+	topics       topic.Service
+	topicRepo    topic.Repository
+	progressRepo topic.ProgressRepository
+	deps         topic_dependency.Service
+	goals        goal.Service
 	cfg          *config.Config
 }
 
-func NewTaskService(a ai.Client, r TaskRepository, t topic.TopicService, tr topic.TopicRepository, pr topic.TopicProgressRepository, d topic_dependency.TopicDependencyService, g goal.GoalService, c *config.Config) TaskService {
+func NewService(a ai.Client, r Repository, t topic.Service, tr topic.Repository, pr topic.ProgressRepository, d topic_dependency.Service, g goal.Service, c *config.Config) Service {
 	return &taskService{
 		ai:           a,
 		repo:         r,
@@ -68,7 +68,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic", err)
 	}
 
-	// Check if the topic is a parent topic (has children)
 	goalID := t.GoalID
 	allTopics, err := s.topicRepo.GetByGoalID(c, goalID)
 	if err != nil {
@@ -109,7 +108,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		}
 	}
 
-	// Get the goal for the topic
 	goal, err := s.goals.Get(c, userID, t.GoalID)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
@@ -118,7 +116,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get goal", err)
 	}
 
-	// Get the progress for the topic and user
 	progress, err := s.progressRepo.GetOrCreate(c, userID, t.ID)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {
@@ -182,7 +179,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 			)
 		}
 
-		// On retry attempts, add feedback about what went wrong
 		if attempt > 0 && lastError != nil {
 			prompt = enhanceTaskPromptWithFeedback(prompt, lastError)
 		}
@@ -190,7 +186,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		raw, err := s.ai.Generate(c, prompt)
 		if err != nil {
 			lastError = err
-			continue // Try again
+			continue
 		}
 
 		var aiResp struct {
@@ -205,7 +201,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 				"invalid AI response format",
 				err,
 			)
-			continue // Try again
+			continue
 		}
 
 		if aiResp.Type != TaskQuiz && aiResp.Type != TaskEssay {
@@ -214,7 +210,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 				"invalid task type returned by AI",
 				nil,
 			)
-			continue // Try again
+			continue
 		}
 
 		if aiResp.Meta.Title == "" || aiResp.Meta.Description == "" || aiResp.Meta.Expectations == "" {
@@ -223,10 +219,9 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 				"invalid task meta returned by AI",
 				nil,
 			)
-			continue // Try again
+			continue
 		}
 
-		// Success! Create the task
 		task := &Task{
 			UserID:  userID,
 			TopicID: topicID,
@@ -246,13 +241,12 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 				"couldn't create task",
 				err,
 			)
-			continue // Try again
+			continue
 		}
 
 		return created, nil
 	}
 
-	// If we got here, all attempts failed
 	return nil, lastError
 }
 

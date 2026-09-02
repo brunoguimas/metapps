@@ -12,53 +12,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeTaskAttemptRepository struct {
+type fakeRepository struct {
 	createFn func(context.Context, *TaskAttempt) (*TaskAttempt, error)
 }
 
-func (r *fakeTaskAttemptRepository) Create(c context.Context, attempt *TaskAttempt) (*TaskAttempt, error) {
+func (r *fakeRepository) Create(c context.Context, attempt *TaskAttempt) (*TaskAttempt, error) {
 	return r.createFn(c, attempt)
 }
 
-func (r *fakeTaskAttemptRepository) GetByID(context.Context, uuid.UUID) (*TaskAttempt, error) { return nil, nil }
-func (r *fakeTaskAttemptRepository) ListByUser(context.Context, uuid.UUID) ([]*TaskAttempt, error) {
+func (r *fakeRepository) GetByID(context.Context, uuid.UUID) (*TaskAttempt, error) {
 	return nil, nil
 }
-func (r *fakeTaskAttemptRepository) ListByUserAndTask(context.Context, uuid.UUID, uuid.UUID) ([]*TaskAttempt, error) {
+func (r *fakeRepository) ListByUser(context.Context, uuid.UUID) ([]*TaskAttempt, error) {
+	return nil, nil
+}
+func (r *fakeRepository) ListByUserAndTask(context.Context, uuid.UUID, uuid.UUID) ([]*TaskAttempt, error) {
 	return nil, nil
 }
 
-type fakeTaskRepositoryAttempt struct {
+type fakeRepositoryAttempt struct {
 	getByIDFn  func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error)
 	markDoneFn func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error)
 }
 
-func (r *fakeTaskRepositoryAttempt) Create(context.Context, *task.Task) (*task.Task, error) { return nil, nil }
-func (r *fakeTaskRepositoryAttempt) GetByUserID(context.Context, uuid.UUID) ([]*task.Task, error) {
+func (r *fakeRepositoryAttempt) Create(context.Context, *task.Task) (*task.Task, error) {
 	return nil, nil
 }
-func (r *fakeTaskRepositoryAttempt) GetByID(c context.Context, userID, id uuid.UUID) (*task.Task, error) {
+func (r *fakeRepositoryAttempt) GetByUserID(context.Context, uuid.UUID) ([]*task.Task, error) {
+	return nil, nil
+}
+func (r *fakeRepositoryAttempt) GetByID(c context.Context, userID, id uuid.UUID) (*task.Task, error) {
 	return r.getByIDFn(c, userID, id)
 }
-func (r *fakeTaskRepositoryAttempt) MarkDone(c context.Context, userID, id uuid.UUID) (*task.Task, error) {
+func (r *fakeRepositoryAttempt) MarkDone(c context.Context, userID, id uuid.UUID) (*task.Task, error) {
 	return r.markDoneFn(c, userID, id)
 }
 
-func TestTaskAttemptServiceSubmit_Success(t *testing.T) {
+func TestServiceSubmit_Success(t *testing.T) {
 	userID := uuid.New()
 	taskID := uuid.New()
 	score := 1.0
 	var created *TaskAttempt
 
 	service := NewService(
-		&fakeTaskAttemptRepository{
+		&fakeRepository{
 			createFn: func(_ context.Context, attempt *TaskAttempt) (*TaskAttempt, error) {
 				created = attempt
 				attempt.ID = uuid.New()
 				return attempt, nil
 			},
 		},
-		&fakeTaskRepositoryAttempt{
+		&fakeRepositoryAttempt{
 			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error) {
 				return &task.Task{
 					ID:      taskID,
@@ -88,15 +92,15 @@ func TestTaskAttemptServiceSubmit_Success(t *testing.T) {
 	assert.True(t, updatedTask.Done)
 }
 
-func TestTaskAttemptServiceSubmit_Fail(t *testing.T) {
+func TestServiceSubmit_Fail(t *testing.T) {
 	service := NewService(
-		&fakeTaskAttemptRepository{
+		&fakeRepository{
 			createFn: func(context.Context, *TaskAttempt) (*TaskAttempt, error) {
 				t.Fatal("Create should not be called")
 				return nil, nil
 			},
 		},
-		&fakeTaskRepositoryAttempt{
+		&fakeRepositoryAttempt{
 			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error) {
 				return &task.Task{Type: task.TaskEssay}, nil
 			},

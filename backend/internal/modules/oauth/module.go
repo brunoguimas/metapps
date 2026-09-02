@@ -8,15 +8,15 @@ import (
 )
 
 type Module struct {
-	Repository OAuthAccountRepository
-	Service    OAuthAccountService
-	Handler    *OAuthHandler
+	Repository Repository
+	Service    Service
+	Handler    *Handler
 }
 
-func NewModule(q *db.Queries, users user.UserRepository, tokens jwt.JWTService, c *config.Config) *Module {
-	r := NewOAuthAccountRepository(q)
-	s := NewOAuthService(r, users)
-	h := NewOAuthHandler(s, tokens, *c)
+func NewModule(q *db.Queries, users user.Repository, tokens jwt.Service, c *config.Config) *Module {
+	r := NewRepository(q)
+	s := NewService(r, users)
+	h := NewHandler(s, tokens, *c)
 
 	return &Module{
 		Repository: r,

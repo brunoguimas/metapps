@@ -15,22 +15,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type TopicService interface {
+type Service interface {
 	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
 	GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 }
 
 type topicService struct {
-	repo         TopicRepository
-	deps         topic_dependency.TopicDependencyService
+	repo         Repository
+	deps         topic_dependency.Service
 	ai           ai.Client
 	cfg          *config.Config
-	progressRepo TopicProgressRepository
+	progressRepo ProgressRepository
 }
 
-func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyService, a ai.Client, c *config.Config, pr TopicProgressRepository) TopicService {
-	return topicService{
+func NewService(r Repository, d topic_dependency.Service, a ai.Client, c *config.Config, pr ProgressRepository) Service {
+	return &topicService{
 		repo:         r,
 		deps:         d,
 		ai:           a,
@@ -39,10 +39,10 @@ func NewTopicService(r TopicRepository, d topic_dependency.TopicDependencyServic
 	}
 }
 
-func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
+func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
 	b, err := ai.FS.ReadFile("schemas/roadmap.schema.json")
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read roadmap schema", err)
 	}
 	data := struct {
 		GoalTitle     string
@@ -52,15 +52,13 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 		RoadmapSchema: string(b),
 	}
 
-	// Try up to 3 times with improving prompts
 	var lastError error
 	for attempt := 0; attempt < 3; attempt++ {
 		prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
 		if err != nil {
-			return nil, err
+			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't render prompt", err)
 		}
 
-		// On retry attempts, add feedback about what went wrong
 		if attempt > 0 && lastError != nil {
 			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastError)
 		}
@@ -68,23 +66,21 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 		roadmapJSON, err := s.ai.Generate(c, prompt)
 		if err != nil {
 			lastError = err
-			continue // Try again
+			continue
 		}
 
 		r, err := parseRoadmapJSON(string(roadmapJSON))
 		if err != nil {
 			lastError = err
-			continue // Try again with enhanced prompt
+			continue
 		}
 
-		// Success! Process the roadmap
 		var roadmap Roadmap
 		topics := make(map[string]*Topic)
 
-		// passa por todos os nodes, se for root (tópico) guarda no banco
 		for _, node := range r.Nodes {
 			if node.ParentID != nil {
-				continue // temos que guardar os pais no banco primeiro, depois os subtópicos referenciando esses tópicos
+				continue
 			}
 
 			topic := &Topic{
@@ -105,7 +101,6 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 			roadmap.Topics = append(roadmap.Topics, t)
 		}
 
-		// guarda cada subtópico no banco
 		for _, node := range r.Nodes {
 			if node.ParentID == nil {
 				continue
@@ -113,15 +108,14 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 
 			if topics[*node.ParentID] == nil {
 				lastError = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
-				continue // Try again
+				continue
 			}
 
 			topic := &Topic{
 				GoalID: g.ID,
 				ParentTopicID: uuid.NullUUID{
 					Valid: true,
-					// puxa o id do pai do mapa
-					UUID: topics[*node.ParentID].ID,
+					UUID:  topics[*node.ParentID].ID,
 				},
 				Title:           node.Title,
 				Description:     node.Description,
@@ -139,7 +133,6 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 			roadmap.Topics = append(roadmap.Topics, t)
 		}
 
-		// If we had any errors in processing subtopics, clean up and retry
 		if lastError != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
@@ -153,7 +146,7 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 					fmt.Sprintf("dependency source '%s' not found", edge.From),
 					nil,
 				)
-				break // Try again
+				break
 			}
 
 			to, ok := topics[edge.To]
@@ -163,7 +156,7 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 					fmt.Sprintf("dependency source '%s' not found", edge.From),
 					nil,
 				)
-				break // Try again
+				break
 			}
 
 			d := &topic_dependency.TopicDependency{
@@ -174,27 +167,23 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 			dependency, err := s.deps.Create(c, d)
 			if err != nil {
 				lastError = err
-				break // Try again
+				break
 			}
 
 			roadmap.Dependencies = append(roadmap.Dependencies, dependency)
 		}
 
-		// If we had any errors in processing edges, clean up and retry
 		if lastError != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
 
-		// If we succeeded in processing all edges, return the roadmap
 		return &roadmap, nil
 	}
 
-	// If we got here, all attempts failed
 	return nil, lastError
 }
 
-// enhanceRoadmapPromptWithFeedback adds specific guidance based on the previous error
 func enhanceRoadmapPromptWithFeedback(originalPrompt string, prevErr error) string {
 	feedback := "\n\n## FEEDBACK DA TENTATIVA ANTERIOR\n"
 	feedback += "Na tentativa anterior, seu response foi inválido pelo seguinte motivo:\n"
@@ -205,8 +194,15 @@ func enhanceRoadmapPromptWithFeedback(originalPrompt string, prevErr error) stri
 	return originalPrompt + feedback
 }
 
-func (s topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) {
-	return s.repo.Get(c, topicID)
+func (s *topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error) {
+	t, err := s.repo.Get(c, topicID)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic", err)
+	}
+	return t, nil
 }
 
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
@@ -250,13 +246,12 @@ func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 	return &roadmap, nil
 }
 
-func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
+func (s *topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
 	topics, err := s.repo.GetByGoalID(c, goalID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get topic dependencies
 	var topicIDs []uuid.UUID
 	for _, topic := range topics {
 		topicIDs = append(topicIDs, topic.ID)

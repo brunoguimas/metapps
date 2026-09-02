@@ -5,18 +5,16 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 )
 
-// Module contains the dependencies for the profile module.
 type Module struct {
-	Repository ProfileRepository
-	Service    ProfileService
-	Handler    *ProfileHandler
+	Repository Repository
+	Service    Service
+	Handler    *Handler
 }
 
-// NewProfileModule returns a new ProfileModule with the given dependencies.
-func NewProfileModule(q *db.Queries, c *config.Config) *Module {
-	r := NewProfileRepository(q)
-	s := NewProfileService(r)
-	h := NewProfileHandler(s, c)
+func NewModule(q *db.Queries, c *config.Config) *Module {
+	r := NewRepository(q)
+	s := NewService(r)
+	h := NewHandler(s, c)
 
 	return &Module{
 		Repository: r,

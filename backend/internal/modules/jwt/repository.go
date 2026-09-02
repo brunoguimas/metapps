@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type JWTRepository interface {
+type Repository interface {
 	CreateRefreshToken(ctx context.Context, userID uuid.UUID, tokenTTL time.Time) (uuid.UUID, error)
 	GetRefreshToken(ctx context.Context, tokenID uuid.UUID) (*RefreshToken, error)
 	RevokeRefreshToken(ctx context.Context, tokenID uuid.UUID) error
@@ -20,7 +20,7 @@ type jwtRepository struct {
 	queries *db.Queries
 }
 
-func NewJWTRepository(q *db.Queries) JWTRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &jwtRepository{
 		queries: q,
 	}

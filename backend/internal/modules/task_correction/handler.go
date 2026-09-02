@@ -10,17 +10,16 @@ import (
 
 type Handler struct {
 	service Service
-	jwt     jwt.JWTService
+	jwt     jwt.Service
 }
 
-func NewHandler(s Service, jwt jwt.JWTService) *Handler {
+func NewHandler(s Service, jwt jwt.Service) *Handler {
 	return &Handler{
 		service: s,
 		jwt:     jwt,
 	}
 }
 
-// CreateCorrection handles POST /corrections
 func (h *Handler) CreateCorrection(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := httpx.GetFromContext(c, "user_id")
@@ -57,7 +56,6 @@ func (h *Handler) CreateCorrection(c *gin.Context) {
 	})
 }
 
-// GetCorrectionByAttemptID handles GET /corrections/attempt/:attemptID
 func (h *Handler) GetCorrectionByAttemptID(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := httpx.GetFromContext(c, "user_id")
@@ -83,7 +81,6 @@ func (h *Handler) GetCorrectionByAttemptID(c *gin.Context) {
 	})
 }
 
-// GenerateEssayCorrection handles POST /corrections/essay/:attemptID
 func (h *Handler) GenerateEssayCorrection(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := httpx.GetFromContext(c, "user_id")
@@ -109,7 +106,6 @@ func (h *Handler) GenerateEssayCorrection(c *gin.Context) {
 	})
 }
 
-// GenerateQuizCorrection handles POST /corrections/quiz/:attemptID
 func (h *Handler) GenerateQuizCorrection(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, err := httpx.GetFromContext(c, "user_id")

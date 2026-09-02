@@ -2,7 +2,7 @@ package dto
 
 type TopicNode struct {
 	NameID          string  `json:"id"`
-	ParentID        *string	`json:"parent_id"`
+	ParentID        *string `json:"parent_id"`
 	Title           string  `json:"title"`
 	RequiredMastery float64 `json:"required_mastery"`
 	Description     string  `json:"description"`

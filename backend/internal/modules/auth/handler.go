@@ -21,16 +21,16 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type AuthHandler struct {
-	auth   AuthService
-	users  user.UserService
-	jwt    jwt.JWTService
-	emails mail.EmailService
+type Handler struct {
+	auth   Service
+	users  user.Service
+	jwt    jwt.Service
+	emails mail.Service
 	cfg    config.Config
 }
 
-func NewAuthHandler(a AuthService, u user.UserService, j jwt.JWTService, e mail.EmailService, c config.Config) *AuthHandler {
-	return &AuthHandler{
+func NewHandler(a Service, u user.Service, j jwt.Service, e mail.Service, c config.Config) *Handler {
+	return &Handler{
 		auth:   a,
 		users:  u,
 		jwt:    j,
@@ -39,7 +39,7 @@ func NewAuthHandler(a AuthService, u user.UserService, j jwt.JWTService, e mail.
 	}
 }
 
-func (h *AuthHandler) Register(c *gin.Context) {
+func (h *Handler) Register(c *gin.Context) {
 	u, err := httpx.BindJSON[dto.RegisterRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request body", err))
@@ -72,7 +72,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	httpx.Created(c, gin.H{"message": "user registered with success", "user": gin.H{"id": user.ID, "email": user.Email}})
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 	u, err := httpx.BindJSON[dto.LoginRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request body", err))
@@ -112,7 +112,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) Refresh(c *gin.Context) {
+func (h *Handler) Refresh(c *gin.Context) {
 	token, err := c.Cookie("refresh_token")
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidToken, "refresh token not found", err))
@@ -158,7 +158,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 }
 
-func (h *AuthHandler) EmailVerify(c *gin.Context) {
+func (h *Handler) EmailVerify(c *gin.Context) {
 	req, err := httpx.BindJSON[dto.EmailVerifyRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -190,7 +190,7 @@ type emailResendRequest struct {
 	Email string `json:"email" binding:"required"`
 }
 
-func (h *AuthHandler) ResendEmailVerification(c *gin.Context) {
+func (h *Handler) ResendEmailVerification(c *gin.Context) {
 	var req emailResendRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -224,7 +224,7 @@ func (h *AuthHandler) ResendEmailVerification(c *gin.Context) {
 	httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
 }
 
-func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+func (h *Handler) ForgotPassword(c *gin.Context) {
 	req, err := httpx.BindJSON[dto.ForgotPasswordRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
@@ -256,7 +256,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	httpx.OK(c, gin.H{"message": "if account exists a email will be sent"})
 }
 
-func (h *AuthHandler) ResetPassword(c *gin.Context) {
+func (h *Handler) ResetPassword(c *gin.Context) {
 	req, err := httpx.BindJSON[dto.ResetPasswordRequest](c)
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
@@ -293,7 +293,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	httpx.OK(c, gin.H{"message": "password reset with success"})
 }
 
-func (h *AuthHandler) Me(c *gin.Context) {
+func (h *Handler) Me(c *gin.Context) {
 	t := c.GetHeader("Authorization")
 
 	parts := strings.SplitN(t, " ", 2)

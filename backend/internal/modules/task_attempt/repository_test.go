@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
-	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
+	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTaskAttemptRepositoryCreate_Success(t *testing.T) {
+func TestRepositoryCreate_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
@@ -40,7 +40,7 @@ func TestTaskAttemptRepositoryCreate_Success(t *testing.T) {
 	assert.Equal(t, score, *result.Score)
 }
 
-func TestTaskAttemptRepositoryCreate_FailInvalidContent(t *testing.T) {
+func TestRepositoryCreate_FailInvalidContent(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
@@ -64,7 +64,7 @@ func TestTaskAttemptRepositoryCreate_FailInvalidContent(t *testing.T) {
 	assert.Equal(t, apperrors.ErrInvalidInput, appErr.Code())
 }
 
-func TestTaskAttemptRepositoryGetByID_FailNotFound(t *testing.T) {
+func TestRepositoryGetByID_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 

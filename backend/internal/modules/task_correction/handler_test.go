@@ -16,10 +16,10 @@ import (
 )
 
 type fakeCorrectionService struct {
-	createFn  func(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error)
+	createFn   func(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error)
 	getByAttFn func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
-	essayFn   func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
-	quizFn    func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
+	essayFn    func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
+	quizFn     func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 }
 
 func (s *fakeCorrectionService) CreateCorrection(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error) {

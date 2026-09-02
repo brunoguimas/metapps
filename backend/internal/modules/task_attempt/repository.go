@@ -20,15 +20,15 @@ type Repository interface {
 	ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error)
 }
 
-type repository struct {
+type taskAttemptRepository struct {
 	queries *db.Queries
 }
 
 func NewRepository(q *db.Queries) Repository {
-	return &repository{queries: q}
+	return &taskAttemptRepository{queries: q}
 }
 
-func (r *repository) Create(c context.Context, attempt *TaskAttempt) (*TaskAttempt, error) {
+func (r *taskAttemptRepository) Create(c context.Context, attempt *TaskAttempt) (*TaskAttempt, error) {
 	content, err := normalizeJSON(attempt.Content, false)
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task attempt content", err)
@@ -60,7 +60,7 @@ func (r *repository) Create(c context.Context, attempt *TaskAttempt) (*TaskAttem
 	return mapTaskAttempt(row), nil
 }
 
-func (r *repository) GetByID(c context.Context, id uuid.UUID) (*TaskAttempt, error) {
+func (r *taskAttemptRepository) GetByID(c context.Context, id uuid.UUID) (*TaskAttempt, error) {
 	row, err := r.queries.GetTaskAttemptByID(c, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -72,7 +72,7 @@ func (r *repository) GetByID(c context.Context, id uuid.UUID) (*TaskAttempt, err
 	return mapTaskAttempt(row), nil
 }
 
-func (r *repository) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAttempt, error) {
+func (r *taskAttemptRepository) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAttempt, error) {
 	rows, err := r.queries.ListTaskAttemptsByUser(c, userID)
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't list task attempts", err)
@@ -85,7 +85,7 @@ func (r *repository) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAtt
 	return items, nil
 }
 
-func (r *repository) ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error) {
+func (r *taskAttemptRepository) ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error) {
 	rows, err := r.queries.ListTaskAttemptsByUserAndTask(c, db.ListTaskAttemptsByUserAndTaskParams{
 		UserID: userID,
 		TaskID: taskID,

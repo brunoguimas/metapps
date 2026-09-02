@@ -15,7 +15,7 @@ import (
 const emailVerificationCodeType = "email_verification"
 const passwordResetCodeType = "password_reset"
 
-type EmailService interface {
+type Service interface {
 	CreateEmailCode(c context.Context, userID uuid.UUID) (string, error)
 	VerifyEmailCode(c context.Context, userID uuid.UUID, code string) error
 	CreatePasswordResetCode(c context.Context, userID uuid.UUID) (string, error)
@@ -25,12 +25,12 @@ type EmailService interface {
 }
 
 type emailService struct {
-	repo   EmailRepository
+	repo   Repository
 	config *config.Config
 	mailer *Mailer
 }
 
-func NewEmailService(r EmailRepository, c *config.Config, m *Mailer) EmailService {
+func NewService(r Repository, c *config.Config, m *Mailer) Service {
 	return &emailService{
 		repo:   r,
 		config: c,

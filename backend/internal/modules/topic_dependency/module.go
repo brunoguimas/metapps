@@ -3,13 +3,13 @@ package topic_dependency
 import "github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 
 type Module struct {
-	Repository TopicDependencyRepository
-	Service    TopicDependencyService
+	Repository Repository
+	Service    Service
 }
 
 func NewModule(q *db.Queries) *Module {
-	r := NewTopicDependencyRepository(q)
-	s := NewTopicDependencyService(r)
+	r := NewRepository(q)
+	s := NewService(r)
 
 	return &Module{
 		Repository: r,

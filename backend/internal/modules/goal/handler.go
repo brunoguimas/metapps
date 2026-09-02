@@ -9,21 +9,21 @@ import (
 	"github.com/google/uuid"
 )
 
-type GoalHandler struct {
-	goals GoalService
+type Handler struct {
+	goals Service
 }
 
-func NewGoalHandler(s GoalService) *GoalHandler {
-	return &GoalHandler{goals: s}
+func NewHandler(s Service) *Handler {
+	return &Handler{goals: s}
 }
 
-type GoalRequest struct {
+type Request struct {
 	Title       string       `json:"title" binding:"required"`
 	Settings    GoalSettings `json:"settings"`
 	hasSettings bool
 }
 
-func (r *GoalRequest) UnmarshalJSON(data []byte) error {
+func (r *Request) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		Title        string        `json:"title"`
 		Settings     *GoalSettings `json:"settings"`
@@ -51,14 +51,14 @@ func (r *GoalRequest) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (h *GoalHandler) Create(c *gin.Context) {
+func (h *Handler) Create(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
-	var req GoalRequest
+	var req Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
@@ -77,7 +77,7 @@ func (h *GoalHandler) Create(c *gin.Context) {
 	httpx.Created(c, gin.H{"goal": goal})
 }
 
-func (h *GoalHandler) List(c *gin.Context) {
+func (h *Handler) List(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -93,7 +93,7 @@ func (h *GoalHandler) List(c *gin.Context) {
 	httpx.OK(c, gin.H{"goals": goals})
 }
 
-func (h *GoalHandler) Get(c *gin.Context) {
+func (h *Handler) Get(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -115,7 +115,7 @@ func (h *GoalHandler) Get(c *gin.Context) {
 	httpx.OK(c, gin.H{"goal": goal})
 }
 
-func (h *GoalHandler) Update(c *gin.Context) {
+func (h *Handler) Update(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -128,7 +128,7 @@ func (h *GoalHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var req GoalRequest
+	var req Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid payload", err))
 		return
@@ -146,7 +146,7 @@ func (h *GoalHandler) Update(c *gin.Context) {
 	httpx.OK(c, gin.H{"message": "goal updated"})
 }
 
-func (h *GoalHandler) Delete(c *gin.Context) {
+func (h *Handler) Delete(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)

@@ -12,21 +12,21 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-type OAuthHandler struct {
-	oauth OAuthAccountService
-	jwt   jwt.JWTService
+type Handler struct {
+	oauth Service
+	jwt   jwt.Service
 	cfg   config.Config
 }
 
-func NewOAuthHandler(s OAuthAccountService, j jwt.JWTService, c config.Config) *OAuthHandler {
-	return &OAuthHandler{
+func NewHandler(s Service, j jwt.Service, c config.Config) *Handler {
+	return &Handler{
 		oauth: s,
 		jwt:   j,
 		cfg:   c,
 	}
 }
 
-func (h *OAuthHandler) GoogleLogin(c *gin.Context) {
+func (h *Handler) GoogleLogin(c *gin.Context) {
 	state, err := generateState()
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInternal, "state generation failed", err))
@@ -39,7 +39,7 @@ func (h *OAuthHandler) GoogleLogin(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, url)
 }
 
-func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
+func (h *Handler) GoogleCallback(c *gin.Context) {
 	state := c.Query("state")
 	if state == "" {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "missing oauth state", nil))
