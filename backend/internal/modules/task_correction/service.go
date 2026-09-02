@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
@@ -97,28 +98,28 @@ func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUI
 	// Get the attempt to get the task ID.
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
-		fmt.Printf("ERROR: failed to get attempt for progress update: %v\n", err)
+		slog.Error("failed to get attempt for progress update", "attempt_id", attemptID, "error", err)
 		return
 	}
 
 	// Get the task to get the topic ID and task details.
 	taskObj, err := s.taskRepo.GetByID(ctx, userID, attempt.TaskID)
 	if err != nil {
-		fmt.Printf("ERROR: failed to get task for progress update: %v\n", err)
+		slog.Error("failed to get task for progress update", "task_id", attempt.TaskID, "error", err)
 		return
 	}
 
 	// Get the topic to get the required mastery.
 	topicObj, err := s.topicRepo.Get(ctx, taskObj.TopicID)
 	if err != nil {
-		fmt.Printf("ERROR: failed to get topic for progress update: %v\n", err)
+		slog.Error("failed to get topic for progress update", "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 
 	// Get or create the topic progress for the user and topic.
 	progress, err := s.progressRepo.GetOrCreate(ctx, userID, taskObj.TopicID)
 	if err != nil {
-		fmt.Printf("ERROR: failed to get or create topic progress: %v\n", err)
+		slog.Error("failed to get or create topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 
@@ -162,7 +163,7 @@ func (s *service) updateProgress(ctx context.Context, userID, attemptID uuid.UUI
 
 	// Save the updated progress.
 	if err := s.progressRepo.Update(ctx, progress); err != nil {
-		fmt.Printf("ERROR: failed to update topic progress: %v\n", err)
+		slog.Error("failed to update topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
 }

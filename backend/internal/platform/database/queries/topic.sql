@@ -10,3 +10,7 @@ WHERE id = $1;
 -- name: GetTopicByGoalID :many
 SELECT * FROM public.topics
 WHERE goal_id = $1;
+
+-- name: DeleteTopicsByGoalID :exec
+DELETE FROM public.topics
+WHERE goal_id = $1;

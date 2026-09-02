@@ -40,6 +40,9 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 	}
 
 	name, _ := p.Claims["name"].(string)
+	if name == "" {
+		name = "User"
+	}
 	account, err := s.accountRepo.GetAccountByProviderID(c, "google", p.Subject)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {

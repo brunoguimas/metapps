@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +24,7 @@ func (r *topicDependencyRepository) Create(ctx context.Context, d *TopicDependen
 		DependsOnTopicID: d.DependsOnTopicID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create topic dependency", err)
 	}
 
 	return &TopicDependency{
@@ -38,7 +39,7 @@ func (r *topicDependencyRepository) Create(ctx context.Context, d *TopicDependen
 func (r *topicDependencyRepository) GetByTopicIDs(c context.Context, topicIDs []uuid.UUID) ([]*TopicDependency, error) {
 	dependencies, err := r.queries.GetByTopicIDs(c, topicIDs)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic dependencies", err)
 	}
 
 	var result []*TopicDependency

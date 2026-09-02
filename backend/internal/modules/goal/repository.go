@@ -45,7 +45,7 @@ func (r *goalRepository) Create(c context.Context, g *Goal) (*Goal, error) {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create goal", err)
 	}
 
-	return mapGoal(goal), nil
+	return mapGoal(goal)
 }
 
 func (r *goalRepository) ListByUserID(c context.Context, userID uuid.UUID) ([]*Goal, error) {
@@ -56,7 +56,11 @@ func (r *goalRepository) ListByUserID(c context.Context, userID uuid.UUID) ([]*G
 
 	items := make([]*Goal, 0, len(goals))
 	for _, g := range goals {
-		items = append(items, mapGoal(g))
+		mapped, err := mapGoal(g)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, mapped)
 	}
 	return items, nil
 }
@@ -70,7 +74,7 @@ func (r *goalRepository) GetByID(c context.Context, userID, goalID uuid.UUID) (*
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get goal", err)
 	}
 
-	return mapGoal(g), nil
+	return mapGoal(g)
 }
 
 func (r *goalRepository) Update(c context.Context, g *Goal) error {
@@ -107,16 +111,18 @@ func (r *goalRepository) Delete(c context.Context, userID, goalID uuid.UUID) err
 	return nil
 }
 
-func mapGoal(g db.Goal) *Goal {
+func mapGoal(g db.Goal) (*Goal, error) {
 	var settings GoalSettings
-	json.Unmarshal(g.Settings, &settings)
+	if err := json.Unmarshal(g.Settings, &settings); err != nil {
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to unmarshal goal settings", err)
+	}
 	return &Goal{
 		ID:        g.ID,
 		UserID:    g.UserID,
 		Title:     g.Title,
 		Settings:  settings,
 		CreatedAt: g.CreatedAt,
-	}
+	}, nil
 }
 
 func settingsToRawMessage(s GoalSettings) (json.RawMessage, error) {

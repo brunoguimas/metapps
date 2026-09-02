@@ -67,9 +67,10 @@ func (s *fakeTopicService) Get(c context.Context, topicID uuid.UUID) (*topic.Top
 }
 
 type fakeTopicRepository struct {
-	createFn      func(context.Context, *topic.Topic) (*topic.Topic, error)
-	getFn         func(context.Context, uuid.UUID) (*topic.Topic, error)
-	getByGoalIDFn func(context.Context, uuid.UUID) ([]*topic.Topic, error)
+	createFn          func(context.Context, *topic.Topic) (*topic.Topic, error)
+	getFn             func(context.Context, uuid.UUID) (*topic.Topic, error)
+	getByGoalIDFn     func(context.Context, uuid.UUID) ([]*topic.Topic, error)
+	deleteByGoalIDFn  func(context.Context, uuid.UUID) error
 }
 
 func (r *fakeTopicRepository) Create(c context.Context, t *topic.Topic) (*topic.Topic, error) {
@@ -80,6 +81,12 @@ func (r *fakeTopicRepository) Get(c context.Context, topicID uuid.UUID) (*topic.
 }
 func (r *fakeTopicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*topic.Topic, error) {
 	return r.getByGoalIDFn(c, goalID)
+}
+func (r *fakeTopicRepository) DeleteByGoalID(c context.Context, goalID uuid.UUID) error {
+	if r.deleteByGoalIDFn != nil {
+		return r.deleteByGoalIDFn(c, goalID)
+	}
+	return nil
 }
 
 type fakeTopicProgressRepository struct {

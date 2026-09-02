@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -87,7 +88,9 @@ func (s *emailService) verifyCode(c context.Context, userID uuid.UUID, codeType,
 	}
 
 	if time.Now().After(emailCode.ExpiresAt) {
-		_ = s.repo.DeleteEmailCode(c, userID, codeType)
+		if err := s.repo.DeleteEmailCode(c, userID, codeType); err != nil {
+			slog.Error("failed to delete expired email code", "user_id", userID, "type", codeType, "error", err)
+		}
 		return apperrors.NewAppError(apperrors.ErrInvalidOrExpiredEmailCode, "invalid or expired code", nil)
 	}
 

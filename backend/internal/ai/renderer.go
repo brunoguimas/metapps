@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"text/template"
+
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 )
 
 //go:embed templates/*.txt
@@ -43,12 +45,12 @@ func toMap(v any) (map[string]any, error) {
 
 	b, err := json.Marshal(v)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to marshal data", err)
 	}
 
 	var result map[string]any
 	if err := json.Unmarshal(b, &result); err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to unmarshal data", err)
 	}
 
 	return result, nil

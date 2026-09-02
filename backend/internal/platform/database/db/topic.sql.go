@@ -53,6 +53,16 @@ func (q *Queries) CreateTopic(ctx context.Context, arg CreateTopicParams) (Topic
 	return i, err
 }
 
+const deleteTopicsByGoalID = `-- name: DeleteTopicsByGoalID :exec
+DELETE FROM public.topics
+WHERE goal_id = $1
+`
+
+func (q *Queries) DeleteTopicsByGoalID(ctx context.Context, goalID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteTopicsByGoalID, goalID)
+	return err
+}
+
 const getTopicByGoalID = `-- name: GetTopicByGoalID :many
 SELECT id, goal_id, parent_topic_id, title, description, required_mastery, weight, order_index, created_at, updated_at FROM public.topics
 WHERE goal_id = $1

@@ -139,8 +139,9 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 			roadmap.Topics = append(roadmap.Topics, t)
 		}
 
-		// If we had any errors in processing subtopics, retry
+		// If we had any errors in processing subtopics, clean up and retry
 		if lastError != nil {
+			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
 
@@ -179,11 +180,14 @@ func (s topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap
 			roadmap.Dependencies = append(roadmap.Dependencies, dependency)
 		}
 
-		// If we succeeded in processing all edges, return the roadmap
-		if lastError == nil {
-			return &roadmap, nil
+		// If we had any errors in processing edges, clean up and retry
+		if lastError != nil {
+			_ = s.repo.DeleteByGoalID(c, g.ID)
+			continue
 		}
-		// Otherwise loop will continue for another attempt
+
+		// If we succeeded in processing all edges, return the roadmap
+		return &roadmap, nil
 	}
 
 	// If we got here, all attempts failed

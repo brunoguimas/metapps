@@ -137,6 +137,11 @@ func (r *fakeTopicRepository) Create(c context.Context, t *topic.Topic) (*topic.
 	return t, nil
 }
 
+// DeleteByGoalID deletes topics by goal ID.
+func (r *fakeTopicRepository) DeleteByGoalID(c context.Context, goalID uuid.UUID) error {
+	return nil
+}
+
 // fakeTopicProgressRepository implements topic.TopicProgressRepository.
 type fakeTopicProgressRepository struct {
 }

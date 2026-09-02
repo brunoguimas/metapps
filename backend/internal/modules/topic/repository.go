@@ -2,8 +2,10 @@ package topic
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
 
@@ -11,6 +13,7 @@ type TopicRepository interface {
 	Create(c context.Context, t *Topic) (*Topic, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 	GetByGoalID(c context.Context, goalID uuid.UUID) ([]*Topic, error)
+	DeleteByGoalID(c context.Context, goalID uuid.UUID) error
 }
 
 type topicRepository struct {
@@ -34,7 +37,7 @@ func (r topicRepository) Create(c context.Context, t *Topic) (*Topic, error) {
 		OrderIndex:      t.OrderIndex,
 	})
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create topic", err)
 	}
 
 	return &Topic{
@@ -54,7 +57,10 @@ func (r topicRepository) Create(c context.Context, t *Topic) (*Topic, error) {
 func (r topicRepository) Get(c context.Context, topicID uuid.UUID) (*Topic, error) {
 	topic, err := r.queries.GetTopicByID(c, topicID)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			return nil, apperrors.NewAppError(apperrors.ErrTaskNotFound, "topic not found", err)
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic", err)
 	}
 
 	return &Topic{
@@ -74,7 +80,7 @@ func (r topicRepository) Get(c context.Context, topicID uuid.UUID) (*Topic, erro
 func (r topicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*Topic, error) {
 	dbTopics, err := r.queries.GetTopicByGoalID(c, goalID)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topics by goal", err)
 	}
 
 	topics := make([]*Topic, len(dbTopics))
@@ -94,4 +100,12 @@ func (r topicRepository) GetByGoalID(c context.Context, goalID uuid.UUID) ([]*To
 	}
 
 	return topics, nil
+}
+
+func (r topicRepository) DeleteByGoalID(c context.Context, goalID uuid.UUID) error {
+	err := r.queries.DeleteTopicsByGoalID(c, goalID)
+	if err != nil {
+		return apperrors.NewAppError(apperrors.ErrInternal, "couldn't delete topics by goal", err)
+	}
+	return nil
 }

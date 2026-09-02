@@ -10,7 +10,6 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
-	"github.com/brunoguimas/metapps/backend/internal/modules/topic/dto"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
@@ -63,14 +62,20 @@ func (s *taskService) computePerformanceSummary(p *topic.TopicProgress) string {
 func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
 	t, err := s.topics.Get(c, topicID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic", err)
 	}
 
 	// Check if the topic is a parent topic (has children)
 	goalID := t.GoalID
 	allTopics, err := s.topicRepo.GetByGoalID(c, goalID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topics by goal", err)
 	}
 	var children []*topic.Topic
 	for _, topic := range allTopics {
@@ -85,12 +90,18 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 	// Check dependencies: all prerequisite topics must be mastered
 	deps, err := s.deps.GetByTopicIDs(c, []uuid.UUID{t.ID})
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic dependencies", err)
 	}
 	for _, dep := range deps {
 		progress, err := s.progressRepo.GetOrCreate(c, userID, dep.DependsOnTopicID)
 		if err != nil {
-			return nil, err
+			if appErr, ok := apperrors.As(err); ok {
+				return nil, appErr
+			}
+			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic progress", err)
 		}
 		if progress.Status != topic.TopicStatusMastered {
 			return nil, apperrors.NewAppError(apperrors.ErrInvalidInput,
@@ -101,50 +112,62 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 	// Get the goal for the topic
 	goal, err := s.goals.Get(c, userID, t.GoalID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get goal", err)
 	}
 
 	// Get the progress for the topic and user
 	progress, err := s.progressRepo.GetOrCreate(c, userID, t.ID)
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't get topic progress", err)
 	}
 
 	quiz, err := ai.FS.ReadFile("schemas/quiz.schema.json")
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read quiz schema", err)
 	}
 	essay, err := ai.FS.ReadFile("schemas/essay.schema.json")
 	if err != nil {
-		return nil, err
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read essay schema", err)
 	}
 
 	data := struct {
-		TopicTitle       string
-		TopicDescription string
+		TopicTitle           string
+		TopicDescription     string
 		TopicRequiredMastery float64
-		TopicWeight      float64
-		GoalTitle        string
-		GoalMotivation   string
-		GoalSuccessCriteria string
-		GoalLearningStyle string
-		Difficulties     string
-		PerformanceSummary string
-		QuizSchema       string
-		EssaySchema      string
+		TopicWeight          float64
+		GoalTitle            string
+		GoalMotivation       string
+		GoalSuccessCriteria  string
+		GoalLearningStyle    string
+		Difficulties         string
+		PerformanceSummary   string
+		QuizSchema           string
+		EssaySchema          string
 	}{
-		TopicTitle:       t.Title,
-		TopicDescription: t.Description,
+		TopicTitle:           t.Title,
+		TopicDescription:     t.Description,
 		TopicRequiredMastery: t.RequiredMastery,
-		TopicWeight:      t.Weight,
-		GoalTitle:        goal.Title,
-		GoalMotivation:   goal.Settings.Motivation,
-		GoalSuccessCriteria: goal.Settings.SuccessCriteria,
-		GoalLearningStyle: goal.Settings.LearningStyle,
-		Difficulties:     s.computeDifficulties(progress),
-		PerformanceSummary: s.computePerformanceSummary(progress),
-		QuizSchema:       string(quiz),
-		EssaySchema:      string(essay),
+		TopicWeight:          t.Weight,
+		GoalTitle:            goal.Title,
+		GoalMotivation:       goal.Settings.Motivation,
+		GoalSuccessCriteria:  goal.Settings.SuccessCriteria,
+		GoalLearningStyle:    goal.Settings.LearningStyle,
+		Difficulties:         s.computeDifficulties(progress),
+		PerformanceSummary:   s.computePerformanceSummary(progress),
+		QuizSchema:           string(quiz),
+		EssaySchema:          string(essay),
 	}
 
 	// Try up to 3 times with improving prompts

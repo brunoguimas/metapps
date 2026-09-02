@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"fmt"
+
 	"github.com/jpoz/groq"
 )
 
@@ -37,6 +39,10 @@ func (g *GroqClient) Generate(prompt string) (string, error) {
 	})
 	if err != nil {
 		return "", err
+	}
+
+	if len(response.Choices) == 0 {
+		return "", fmt.Errorf("groq returned no choices")
 	}
 
 	return response.Choices[0].Message.Content, nil
