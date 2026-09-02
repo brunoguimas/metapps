@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic/dto"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
@@ -145,72 +147,101 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		EssaySchema:      string(essay),
 	}
 
-	prompt, err := ai.RenderPrompt("generate_task.txt", data)
-	if err != nil {
-		return nil, apperrors.NewAppError(
-			apperrors.ErrInternal,
-			"couldn't render prompt",
-			err,
-		)
-	}
-
-	raw, err := s.ai.Generate(c, prompt)
-	if err != nil {
-		return nil, err
-	}
-
-	var aiResp struct {
-		Type    TaskType        `json:"type"`
-		Meta    TaskMeta        `json:"meta"`
-		Content json.RawMessage `json:"content"`
-	}
-
-	if err := json.Unmarshal([]byte(raw), &aiResp); err != nil {
-		return nil, apperrors.NewAppError(
-			apperrors.ErrInvalidAIResponse,
-			"invalid AI response format",
-			err,
-		)
-	}
-
-	if aiResp.Type != TaskQuiz && aiResp.Type != TaskEssay {
-		return nil, apperrors.NewAppError(
-			apperrors.ErrInvalidAIResponse,
-			"invalid task type returned by AI",
-			nil,
-		)
-	}
-
-	if aiResp.Meta.Title == "" || aiResp.Meta.Description == "" || aiResp.Meta.Expectations == "" {
-		return nil, apperrors.NewAppError(
-			apperrors.ErrInvalidAIResponse,
-			"invalid task meta returned by AI",
-			nil,
-		)
-	}
-
-	task := &Task{
-		UserID:  userID,
-		TopicID: topicID,
-		Meta:    aiResp.Meta,
-		Type:    aiResp.Type,
-		Content: aiResp.Content,
-		Done:    false,
-	}
-
-	created, err := s.repo.Create(c, task)
-	if err != nil {
-		if appErr, ok := apperrors.As(err); ok {
-			return nil, appErr
+	// Try up to 3 times with improving prompts
+	var lastError error
+	for attempt := 0; attempt < 3; attempt++ {
+		prompt, err := ai.RenderPrompt("generate_task.txt", data)
+		if err != nil {
+			return nil, apperrors.NewAppError(
+				apperrors.ErrInternal,
+				"couldn't render prompt",
+				err,
+			)
 		}
-		return nil, apperrors.NewAppError(
-			apperrors.ErrInternal,
-			"couldn't create task",
-			err,
-		)
+
+		// On retry attempts, add feedback about what went wrong
+		if attempt > 0 && lastError != nil {
+			prompt = enhanceTaskPromptWithFeedback(prompt, lastError)
+		}
+
+		raw, err := s.ai.Generate(c, prompt)
+		if err != nil {
+			lastError = err
+			continue // Try again
+		}
+
+		var aiResp struct {
+			Type    TaskType        `json:"type"`
+			Meta    TaskMeta        `json:"meta"`
+			Content json.RawMessage `json:"content"`
+		}
+
+		if err := json.Unmarshal([]byte(raw), &aiResp); err != nil {
+			lastError = apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				"invalid AI response format",
+				err,
+			)
+			continue // Try again
+		}
+
+		if aiResp.Type != TaskQuiz && aiResp.Type != TaskEssay {
+			lastError = apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				"invalid task type returned by AI",
+				nil,
+			)
+			continue // Try again
+		}
+
+		if aiResp.Meta.Title == "" || aiResp.Meta.Description == "" || aiResp.Meta.Expectations == "" {
+			lastError = apperrors.NewAppError(
+				apperrors.ErrInvalidAIResponse,
+				"invalid task meta returned by AI",
+				nil,
+			)
+			continue // Try again
+		}
+
+		// Success! Create the task
+		task := &Task{
+			UserID:  userID,
+			TopicID: topicID,
+			Meta:    aiResp.Meta,
+			Type:    aiResp.Type,
+			Content: aiResp.Content,
+			Done:    false,
+		}
+
+		created, err := s.repo.Create(c, task)
+		if err != nil {
+			if appErr, ok := apperrors.As(err); ok {
+				return nil, appErr
+			}
+			lastError = apperrors.NewAppError(
+				apperrors.ErrInternal,
+				"couldn't create task",
+				err,
+			)
+			continue // Try again
+		}
+
+		return created, nil
 	}
 
-	return created, nil
+	// If we got here, all attempts failed
+	return nil, lastError
+}
+
+// enhanceTaskPromptWithFeedback adds specific guidance based on the previous error
+func enhanceTaskPromptWithFeedback(originalPrompt string, prevErr error) string {
+	feedback := "\n\n## FEEDBACK DA TENTATIVA ANTERIOR\n"
+	feedback += "Na tentativa anterior, seu response foi inválido pelo seguinte motivo:\n"
+	feedback += "- " + strings.ReplaceAll(prevErr.Error(), "\n", "\n- ") + "\n"
+	feedback += "\nPor favor, corrija estes problemas específicos e tente novamente, seguindo TODAS as regras do prompt original."
+	feedback += "\nLembre-se: RETORNE APENAS JSON VÁLIDO, nenhum texto adicional."
+
+	return originalPrompt + feedback
 }
 
 func (s *taskService) GetByUserID(c context.Context, userID uuid.UUID) ([]*Task, error) {

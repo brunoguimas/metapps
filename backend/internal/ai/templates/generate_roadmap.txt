@@ -6,23 +6,59 @@ O roadmap deve representar uma jornada real de aprendizagem capaz de levar uma p
 
 O roadmap será salvo diretamente em um banco PostgreSQL.
 
-Retorne APENAS JSON válido.
+**REGRA DE OURO: RETORNE APENAS E EXCLUSIVAMENTE JSON VÁLIDO.**
+Se você escrever qualquer coisa além do JSON puro, a resposta será rejeitada.
+NÃO inclua explicações, markdown, comentários, blocos de código, observações ou qualquer texto antes ou depois do JSON.
 
-NÃO escreva:
+---
 
-* explicações
-* markdown
-* comentários
-* blocos de código
-* observações
-* texto antes ou depois do JSON
+## PROCESSO DE CRIAÇÃO (SIGA ESTES PASSOS)
+
+PASSO 1 - PLANEJAMENTO INTERNO:
+Antes de escrever qualquer coisa, planeje mentalmente:
+- Os 10-14 tópicos principais (tópicos de nível raiz, parent_id: null)
+- Para cada tópico principal, 4-8 subtópicos específicos
+- A progressão lógica do simples para o complexo
+- As dependências entre tópicos (o que deve ser aprendido antes)
+
+PASSO 2 - CRIAÇÃO DO JSON:
+Crie o objeto JSON com exatamente esta estrutura:
+{
+  "nodes": [ /* exatamente entre 60 e 100 nós */ ],
+  "edges": [ /* array de objetos de dependência */ ]
+}
+
+PASSO 3 - VALIDAÇÃO OBRIGATÓRIA:
+Antes de finalizar, VERIFIQUE:
+- ✅ Cada node tem: id, parent_id, title, description, required_mastery, weight, order_index
+- ✅ Cada id é único, lowercase, apenas letras, números e underscore
+- ✅ Cada title tem entre 2-100 caracteres, NÃO está vazio
+- ✅ Cada description tem entre 5-500 caracteres, NÃO está vazio
+- ✅ required_mastery é número entre 0 e 1 (máximo 4 casas decimais)
+- ✅ weight é número > 0 e ≤ 1 (máximo 4 casas decimais)
+- ✅ order_index é inteiro >= 0
+- ✅ Cada edge tem: from e to (ambos strings válidos que existem como id em nodes)
+- ✅ NÃO há ciclos nas dependências
+- ✅ NÃO há dependência de um node em si mesmo
+- ✅ Quantidade de tópicos principais: entre 10 e 14
+- ✅ Quantidade de subtópicos por tópico principal: entre 4 e 8
+- ✅ Quantidade total de nodes: entre 60 e 100 (ideal: 70-100)
+
+PASSO 4 - REVISÃO FINAL:
+Leia seu JSON completo e confirme:
+- É VÁLIDO segundo o schema fornecido
+- Contém APENAS os campos especificados (sem campos extras)
+- Representa uma jornada de aprendizagem progressiva e lógica
+- NÃO contém termos proibidos (veja lista abaixo)
+
+Se passou em todas as verificações acima, RETORNE APENAS O JSON.
+Se falhou em qualquer verificação, CORrija e repita do Passo 3.
 
 ---
 
 ## OBJETIVO
 
 Objetivo do usuário:
-
 {{.GoalTitle}}
 
 ---
@@ -30,90 +66,39 @@ Objetivo do usuário:
 ## REGRAS GERAIS
 
 1. O roadmap deve representar uma jornada longa e progressiva.
-
-Ele NÃO deve ser apenas:
-
-* uma lista de matérias
-* um resumo do assunto
-* uma lista superficial de tópicos
-
-Ele deve representar meses de estudo.
+   Ele NÃO deve ser apenas:
+   * uma lista de matérias
+   * um resumo do assunto
+   * uma lista superficial de tópicos
+   Ele deve representar meses de estudo.
 
 2. O roadmap deve possuir progressão lógica:
-
-Etapa 1 → fundamentos
-
-Etapa 2 → conceitos básicos
-
-Etapa 3 → prática inicial
-
-Etapa 4 → conceitos intermediários
-
-Etapa 5 → aplicações práticas
-
-Etapa 6 → conceitos avançados
-
-Etapa 7 → produção/projetos reais
-
-Etapa 8 → boas práticas e refinamento
+   Etapa 1 → fundamentos
+   Etapa 2 → conceitos básicos
+   Etapa 3 → prática inicial
+   Etapa 4 → conceitos intermediários
+   Etapa 5 → aplicações práticas
+   Etapa 6 → conceitos avançados
+   Etapa 7 → produção/projetos reais
+   Etapa 8 → boas práticas e refinamento
 
 3. Sempre evolua do simples para o complexo.
 
-Exemplo:
-
-ERRADO:
-
-Lógica
-↓
-Docker
-↓
-Variáveis
-
-CORRETO:
-
-Lógica
-↓
-Variáveis
-↓
-Estruturas
-↓
-Funções
-↓
-Aplicações
-↓
-Projetos
-↓
-Deploy
-
 4. Nunca introduza tópicos avançados cedo demais.
 
-5. O roadmap deve permitir que alguém siga a ordem gerada e aprender de forma progressiva.
+5. O roadmap deve permitir que alguém siga a ordem gerada e aprender de forma progressivo.
 
 6. Sempre decomponha grandes assuntos em habilidades específicas.
 
-ERRADO:
-
-Matemática
-├ Biologia
-├ Física
-└ Química
-
-CORRETO:
-
-Ciências Naturais
-├ Citologia
-├ Genética
-├ Ecologia
-├ Cinemática
-├ Termodinâmica
-├ Ligações Químicas
-└ Química Orgânica
-
 7. Os tópicos devem representar habilidades reais e específicas.
+   NUNCA use termos vagos que estão na lista de PROIBIDOS abaixo.
 
-Nunca use tópicos vagos.
+8. NUNCA gere tópicos ou subtópicos com o campo 'title' ou 'id' vazio, nulo ou composto apenas por espaços.
+   Todo node DEVE ter um título descritivo e preenchido obrigatoriamente.
 
-PROIBIDO:
+---
+
+## PROIBIDOS ABSOLUTOS (NUNCA USE ESSES TERMINOS EM TITLE)
 
 * Introdução
 * Básico
@@ -124,19 +109,15 @@ PROIBIDO:
 * Geral
 * Teoria
 
-ERRADO:
+Exemplos de ERROS que causam rejeição imediata:
+{"title":"Introdução"}
+{"title":"Básico de Programação"}
+{"title":"Conceitos Avançados"}
 
-{
-"title":"Introdução"
-}
-
-CORRETO:
-
-{
-"title":"Variáveis e Tipos"
-}
-
-8. NUNCA gere tópicos ou subtópicos com o campo 'title' ou 'id' vazio, nulo ou composto apenas por espaços. Todo node DEVE ter um título descritivo e preenchido obrigatoriamente.
+Exemplos CORRETOS:
+{"title":"Variáveis e Tipos"}
+{"title":"Estruturas de Controle"}
+{"title":"Algoritmos de Ordenação"}
 
 ---
 
@@ -144,243 +125,150 @@ CORRETO:
 
 "nodes" representa tópicos e subtópicos.
 
-Tópicos principais:
+Tópicos principaux (parent_id: null):
+{"id":"backend","parent_id":null}
 
-{
-"id":"backend",
-"parent_id":null
-}
+Subtópicos (parent_id apontando para um tópico principal):
+{"id":"http","parent_id":"internet"}
 
-Subtópicos:
-
-{
-"id":"http",
-"parent_id":"internet"
-}
-
-Subtópicos pertencem apenas ao tópico principal.
-
-Não existe profundidade maior que:
-
-tópico principal
-→ subtópico
-
-Não criar subtópicos dentro de subtópicos.
+REGRAS CRÍTICAS:
+- Máximo 2 níveis de profundidade: tópico principal → subtópico
+- NUNCA crie subtópicos dentro de subtópicos (3 níveis ou mais)
+- Subtópicos pertencem APENAS a um tópico principal direto
 
 ---
 
 ## DEPENDÊNCIAS
 
 "edges" representa pré-requisitos.
+NÃO representa hierarquia de pais.
 
-Não representa hierarquia.
+Exemplo válido:
+{"from":"internet","to":"backend"}
+Significado: Internet deve ser aprendido antes de Backend.
 
-Exemplo:
-
-{
-"from":"internet",
-"to":"backend"
-}
-
-Significado:
-
-Internet deve ser aprendido antes de Backend.
-
-NÃO repetir relações pai-filho.
-
-ERRADO:
-
-{
-"from":"backend",
-"to":"api"
-}
-
-se:
-
-{
-"id":"api",
-"parent_id":"backend"
-}
-
-Também obedecer:
-
-* sem ciclos
-* sem dependência própria
-* toda dependência deve apontar para IDs existentes
-
-ERRADO:
-
-backend → backend
-
-ERRADO:
-
-backend → docker
-docker → backend
+REGRAS OBRIGATÓRIAS:
+- NUNCA repetir relações pai-filho como dependências (se A.parent_id = B, não crie edge B→A)
+- SEM ciclos (A → B → C → A é inválido)
+- SEM dependência própria (A → A é inválido)
+- TODA dependência deve apontar para IDs existentes nos nodes
 
 ---
 
 ## REGRAS DOS IDs
 
-IDs:
+IDs devem ser:
+* únicos em todo o documento
+* apenas letras minúsculas (a-z)
+* números permitidos (0-9)
+* underscore permitido (_)
+* SEM espaços
+* curtos e descritivos (máximo 30 caracteres recomendado)
 
-* únicos
-* apenas letras minúsculas
-* números permitidos
-* underscore permitido
-* sem espaços
-* curtos e descritivos
-
-Exemplos válidos:
-
+Exemplos VÁLIDOS:
 logic_prog
-
 client_server
-
 database_sql
-
 api_rest
+auth_jwt
+http_methods
 
-Exemplos inválidos:
-
-"Backend Development"
-
-"Backend-API"
-
-"backend api"
+Exemplos INVÁLIDOS (causam rejeição):
+"Backend Development" (espaço e maiúsculas)
+"Backend-API" (hífen não permitido)
+"backend api" (espaço)
+"backend_api_versao_2" (muito longo, embora tecnicamente válido)
 
 ---
 
 ## REGRAS DOS CAMPOS
 
 required_mastery:
-
-Representa o domínio necessário para considerar o tópico aprendido.
-
-Restrições:
-
-* decimal
-* mínimo: 0
-* máximo: 1
-* até 4 casas decimais
-
-Exemplos:
-
-0.6
-
-0.7500
-
-1.0
+- Representa o domínio necessário para considerar o tópico aprendido
+- DECIMAL entre 0 e 1 inclusivo
+- Máximo 4 casas decimais
+- Exemplos válidos: 0.6, 0.7500, 1.0, 0.0
 
 weight:
-
-Representa importância relativa.
-
-Restrições:
-
-* decimal
-* maior que 0
-* máximo: 1
-* até 4 casas decimais
-
-Exemplos:
-
-0.3
-
-0.75
-
-1.0
+- Representa importância relativa ao objetivo
+- DECIMAL maior que 0 e no máximo 1
+- Máximo 4 casas decimais
+- Exemplos válidos: 0.3, 0.75, 1.0, 0.9999
 
 order_index:
-
-Representa ordem no mesmo nível.
-
-Restrições:
-
-* inteiro >=0
-
-Subtópicos podem compartilhar o mesmo order_index apenas se puderem ser estudados em paralelo.
+- Representa ordem no mesmo nível (mesmo parent_id)
+- INTEIRO maior ou igual a 0
+- Subtópicos podem compartilhar o mesmo order_index apenas se puderem ser estudados em paralelo
+- Exemplo válido: 0, 1, 2, 3, 10, 100
 
 ---
 
-## QUANTIDADE OBRIGATÓRIA
+## QUANTIDADE OBRIGATÓRIA (FISCALIZADO AUTOMATICAMENTE)
 
-Você deve seguir essas quantidades obrigatórias!
-Não crie uma Roadmap que não siga essas quantidades mínimas
+Você DEVE seguir essas quantidades. O sistema validará e rejeitará se não seguir.
 
-Tópicos principais:
+Tópicos principais (parent_id: null):
+- MÍNIMO: 10
+- MÁXIMO: 14
 
-mínimo: 10
+Subtópicos por tópico principal:
+- MÍNIMO: 4
+- MÁXIMO: 8
 
-máximo: 14
-
-Subtópicos por tópico:
-
-mínimo: 4
-
-máximo: 8
-
-Quantidade total de nodes:
-
-mínimo: 60
-
-ideal: 70–100
+Quantidade total de nodes (tópicos + subtópicos):
+- MÍNIMO: 60
+- IDEAL: 70-100
+- MÁXIMO: 100 (não passe disso)
 
 ---
 
 ## QUALIDADE PEDAGÓGICA
 
-Antes de gerar o roadmap, identifique internamente:
+ANTES de gerar o roadmap, identifique internamente estas categorias:
+* conhecimentos fondamentais (blocos de construção absolutamente essenciais)
+* conhecimentos básicos (próximos passos após os fundamentais)
+* conhecimentos intermediários (aplicação dos conceitos básicos)
+* conhecimentos avançados (especialização e otimização)
+* aplicações reais (uso prático em cenários do mundo real)
+* projetos (trabalhos integrados que aplicam múltiplos conceitos)
+* boas práticas (padrões de qualidade, testes, manutenção)
 
-* conhecimentos fundamentais
-* conhecimentos básicos
-* conhecimentos intermediários
-* conhecimentos avançados
-* aplicações reais
-* projetos
-* boas práticas
+DISTRIBUA os tópicos nesta sequência exata: fundamentais → básicos → intermediários → avançados → aplicações → projetos → boas práticas.
 
-Distribua os tópicos nessa ordem.
-
-Para objetivos amplos:
-
-Exemplo:
-
-"Passar no ENEM"
-
-NÃO criar:
-
-Português
-Matemática
-História
-
-Criar:
-
-Português
-├ Interpretação textual
-├ Funções da linguagem
-├ Gêneros textuais
-├ Gramática aplicada
-├ Literatura brasileira
-└ Estratégias de leitura
-
-Matemática
-├ Razão e proporção
-├ Equações
-├ Funções
-├ Probabilidade
-├ Estatística
-└ Geometria
-
-Redação
-├ Competência 1
-├ Competência 2
-├ Competência 3
-├ Competência 4
-├ Competência 5
-└ Proposta de intervenção
+Para objetivos amplos (ex: "Passar no ENEM"), NÃO simplesmente liste as materias.
+Em vez disso, DECOMPOSÇÃO cada materia em habilidades específicas:
+✅ CORRETO: Português → Interpretação textual → Funções da linguagem → Gêneros textuais → Gramática aplicada → Literatura brasileira → Estratégias de leitura
+❌ ERRADO: Português (muito genérico)
 
 ---
 
-## JSON SCHEMA
+## JSON SCHEMA DE VALIDAÇÃO
 
+Seu output DEVE ser exatamente compatível com este schema:
 {{.Schema}}
+
+Lembre-se: propriedades não especificadas no schema são PROIBIDAS (additionalProperties: false).
+
+---
+
+## CHECKLIST DE VALIDAÇÃO FINAL
+
+Antes de retornar, confirme que SIM para TODOS os itens:
+[ ] Este é APENAS JSON puro, sem nenhum texto adicional
+[ ] O JSON é válido e pode ser parseado
+[ ] Todos os nodes têm os campos obrigatórios preenchidos corretamente
+[ ] Todos os ids são únicos, lowercase, sem espaços ou caracteres especiais
+[ ] Nenhum title ou description está vazio
+[ ] Todos os required_mastery e weight estão entre 0 e 1
+[ ] Todos os order_index são inteiros >= 0
+[ ] Todos os edges referenciam nodes existente
+[ ] Não há ciclos ou auto-dependências
+[ ] Quantidade de tópicos principais está entre 10 e 14
+[ ] Cada tópico principal tem entre 4 e 8 subtópicos
+[ ] Quantidade total de nodes está entre 60 e 100
+[ ] Nenhum dos termos PROIBIDOS aparece em qualquer title
+[ ] A estrutura segue no máximo 2 níveis: principal → subtópico
+[ ] As dependências fazem sentido pedagógico (pré-requisitos lógicos)
+
+Se algum item do checklist for NÃO, não retorne. Corrija e teste novamente.
+EOF
