@@ -534,8 +534,9 @@ export default function Homepage() {
   if (view === 'profile') {
     const level    = profile?.level || 1
     const xp       = profile?.xp    || 0
-    const xpNext   = level * 100
-    const pct      = Math.min(100, Math.round((xp % xpNext) / xpNext * 100))
+    const xpInLevel = xp % 100
+    const xpNext   = 100
+    const pct      = Math.min(100, Math.round(xpInLevel / xpNext * 100))
     const username = profile?.username || email?.split('@')[0] || 'Usuário'
     return (
       <div style={page}>
@@ -566,7 +567,7 @@ export default function Homepage() {
           </div>
           {err && <div style={errStyle}>{err}</div>}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:20 }}>
-            {[{l:'Nível',v:level,c:'#6382ff'},{l:'XP',v:xp,c:'#f5c542'},{l:'Próximo',v:`${Math.max(0,xpNext-xp)} XP`,c:'#3ecf8e'}].map(({l,v,c}) => (
+            {[{l:'Nível',v:level,c:'#6382ff'},{l:'XP',v:xp,c:'#f5c542'},{l:'Próximo',v:`${Math.max(0,xpNext-xpInLevel)} XP`,c:'#3ecf8e'}].map(({l,v,c}) => (
               <div key={l} style={{ padding:12, borderRadius:10, background:'#181b26', border:'1px solid rgba(255,255,255,0.07)', textAlign:'center' }}>
                 <div style={{ fontSize:20, fontWeight:900, color:c }}>{v}</div>
                 <div style={{ fontSize:11, color:'#7b82a0', marginTop:2 }}>{l}</div>

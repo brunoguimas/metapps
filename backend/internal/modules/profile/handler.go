@@ -27,6 +27,21 @@ func NewProfileHandler(service ProfileService, cfg *config.Config) *ProfileHandl
 	}
 }
 
+// profileResponse builds a JSON-compatible representation of a profile.
+func profileResponse(p *Profile) gin.H {
+	return gin.H{
+		"id":                 p.ID,
+		"user_id":            p.UserID,
+		"xp":                 p.XP,
+		"streak":             p.Streak,
+		"level":              p.Level(),
+		"last_activity_date": p.LastActivityDate,
+		"avatar_url":         p.AvatarURL,
+		"created_at":         p.CreatedAt,
+		"updated_at":         p.UpdatedAt,
+	}
+}
+
 // GetProfile returns the profile for the currently authenticated user.
 func (h *ProfileHandler) GetProfile(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
@@ -42,7 +57,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 	}
 
 	httpx.OK(c, gin.H{
-		"profile": profile,
+		"profile": profileResponse(profile),
 	})
 }
 
@@ -69,7 +84,7 @@ func (h *ProfileHandler) AddXP(c *gin.Context) {
 	}
 
 	httpx.OK(c, gin.H{
-		"profile": profile,
+		"profile": profileResponse(profile),
 	})
 }
 

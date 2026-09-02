@@ -34,6 +34,7 @@ cfg *config.Config,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Static("/avatars", "./avatars")
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

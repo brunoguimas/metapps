@@ -63,7 +63,7 @@ func Load() *Config {
 	smtpPass := getEnv("SMTP_PASS", "")
 	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
 	geminiKey := mustGetenv("GEMINI_API_KEY")
-	avatarBaseURL := getEnv("AVATAR_BASE_URL", "")
+	avatarBaseURL := getEnv("AVATAR_BASE_URL", "http://localhost:"+port)
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
