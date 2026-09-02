@@ -68,17 +68,17 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// OAuth module
 	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
 
+	// Profile module
+	profileModule := profile.NewProfileModule(queries, cfg)
+
 	// Auth module
-	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
+	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
 
 	// AI clients
 	geminiClient, err := ai.NewGeminiClient(context.Background(), *cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	// Profile module
-	profileModule := profile.NewProfileModule(queries, cfg)
 
 	// Health module
 	healthModule := health.NewModule(queries, geminiClient, time.Now())
@@ -163,4 +163,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-

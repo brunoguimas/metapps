@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth/dto"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/security"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -15,12 +16,14 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo user.UserRepository
+	userRepo       user.UserRepository
+	profileService profile.ProfileService
 }
 
-func NewAuthService(r user.UserRepository) AuthService {
+func NewAuthService(r user.UserRepository, p profile.ProfileService) AuthService {
 	return &authService{
-		userRepo: r,
+		userRepo:       r,
+		profileService: p,
 	}
 }
 
@@ -50,7 +53,22 @@ func (s *authService) Register(c context.Context, u *dto.RegisterRequest) (*user
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't check user", err)
 	}
 
-	return s.userRepo.Create(c, user)
+	res, err := s.userRepo.Create(c, user)
+	if err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
+	}
+
+	if _, err := s.profileService.CreateProfile(c, res.ID); err != nil {
+		if appErr, ok := apperrors.As(err); ok {
+			return nil, appErr
+		}
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user profile", err)
+	}
+
+	return res, nil
 }
 
 func (s *authService) Login(c context.Context, u *dto.LoginRequest) (*user.User, error) {

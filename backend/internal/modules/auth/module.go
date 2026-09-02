@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 )
@@ -12,8 +13,8 @@ type Module struct {
 	Handler *AuthHandler
 }
 
-func NewModule(repo user.UserRepository, users user.UserService, tokens jwt.JWTService, emails mail.EmailService, c *config.Config) *Module {
-	service := NewAuthService(repo)
+func NewModule(repo user.UserRepository, users user.UserService, tokens jwt.JWTService, emails mail.EmailService, profileService profile.ProfileService, c *config.Config) *Module {
+	service := NewAuthService(repo, profileService)
 
 	return &Module{
 		Service: service,
