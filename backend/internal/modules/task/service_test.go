@@ -214,7 +214,7 @@ func TestTaskServiceCreate_Success(t *testing.T) {
 				assert.Contains(t, prompt, "Baixa maestria no tópico")
 				assert.Contains(t, prompt, "Desempenho recente:")
 				assert.Contains(t, prompt, "Tentativas: 0, Mestria: 0%, Confiança: 0%")
-				assert.Contains(t, prompt, "Gere uma tarefa adaptada a esse contexto")
+				assert.Contains(t, prompt, "PASSO 1")
 				return `{"type":"essay","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}}`, nil
 			},
 		},

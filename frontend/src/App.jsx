@@ -28,4 +28,4 @@ export default function App() {
 
     // bandido n quer 67 resenha, bandido quer chocolex 😋
   )
-}
+}   

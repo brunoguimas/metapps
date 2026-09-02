@@ -10,7 +10,6 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
-	"github.com/brunoguimas/metapps/backend/internal/modules/topic/dto"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"

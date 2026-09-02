@@ -1,580 +1,547 @@
-// ─── REACT DO CELLBIT (CORRIGIDO - EXTRAÇÃO DE TÓPICOS) ────
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listGoals, createGoal, generateRoadmap, generateTask, submitAttempt, authFetch, logout as apiLogout, getAccessToken, refreshSession } from './api'
+import {
+  logout as apiLogout, refreshSession,
+  listGoals, createGoal, generateRoadmap, generateTask,
+  submitAttempt, getProfile, getMe, getRoadmap,
+  generateCorrection, addXP, uploadAvatar,
+  updateGoal, deleteGoal
+} from './api'
 
-// ─── ÍCONES ──────────────────────────────────────────────────
-const IcoHome   = ({s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-const IcoMap    = ({s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-const IcoUser   = ({s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-const IcoLogout = ({s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-const IcoSend   = ({s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-const IcoBack   = ({s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-const IcoPlus   = ({s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-const Spin      = ()       => <svg style={{animation:'spin .7s linear infinite'}} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="12" cy="12" r="10" strokeOpacity=".2"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-const IcoCheck  = ({s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-const IcoLock   = ({s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+// ── helpers ──
+const sa = v => Array.isArray(v) ? v : []
 
-// ─── PALETA ──────────────────────────────────────────────────
-const C = {
-  bg:      '#0f1117',
-  surface: '#181b26',
-  border:  'rgba(255,255,255,0.07)',
-  blue:    '#6382ff',
-  blueD:   '#3d5af1',
-  green:   '#3ecf8e',
-  yellow:  '#f5c542',
-  red:     '#f06a6a',
-  text:    '#f0f2ff',
-  muted:   '#7b82a0',
+// pais = tópicos sem parent_topic_id
+function getParents(topics) {
+  return sa(topics).filter(t => !t.parent_topic_id)
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────
-function toId(value) {
-  if (!value) return null
-  if (typeof value === 'string' || typeof value === 'number') return String(value)
-  return value.UUID || value.uuid || value.id || null
+// nós folha = tópicos cujo id NÃO aparece como parent_topic_id de nenhum
+// outro tópico. Cobre tanto subtópicos normais quanto o caso raro de um
+// tópico principal sem nenhum subtópico (que aí vira "folha" ele mesmo).
+function getLeafTopics(topics) {
+  const parentIds = new Set(sa(topics).map(t => t.parent_topic_id).filter(Boolean))
+  return sa(topics).filter(t => !parentIds.has(t.id))
 }
 
-function normalizeTopic(topic, index) {
-  const parent = topic.parent_topic_id ?? topic.parent_id ?? topic.parentTopicId
-  const parentId = parent && typeof parent === 'object' && parent.Valid === false
-    ? null
-    : toId(parent)
-  return {
-    ...topic,
-    id: toId(topic.id || topic.topic_id) || `topic-${index}`,
-    parent_topic_id: parentId,
-    title: String(topic.title || topic.name || topic.label || `Tópico ${index + 1}`),
-  }
-}
-
-function normalizeDependency(dependency) {
-  return {
-    ...dependency,
-    topic_id: toId(dependency.topic_id || dependency.topicId),
-    depends_on: toId(dependency.depends_on || dependency.depends_on_topic_id || dependency.dependsOnTopicId),
-  }
-}
-
-function getChildren(topics, parentId) {
-  return topics.filter(t => t.parent_topic_id === parentId)
-}
-function isLeafTopic(topic, topics) {
-  return getChildren(topics, topic.id).length === 0
-}
-function getRootTopics(topics) {
-  const ids = new Set(topics.map(t => t.id))
-  return topics.filter(t => !t.parent_topic_id || !ids.has(t.parent_topic_id))
-}
-function applyBlocking(topics, dependencies, completedIds) {
-  const depMap = {}
-  dependencies.forEach(d => {
-    if (!d.topic_id || !d.depends_on) return
-    if (!depMap[d.topic_id]) depMap[d.topic_id] = []
-    depMap[d.topic_id].push(d.depends_on)
+// nós disponíveis = folhas cujos pré-requisitos diretos (dependencies:
+// { topic_id, depends_on }) já foram completados.
+function getAvailable(topics, dependencies, completedIds) {
+  const ts = sa(topics)
+  const ds = sa(dependencies)
+  const done = new Set(sa(completedIds))
+  const parentIds = new Set(ts.map(t => t.parent_topic_id).filter(Boolean))
+  const leaves = ts.filter(t => !parentIds.has(t.id))
+  return leaves.map(t => {
+    const prereqs = ds.filter(d => d.topic_id === t.id).map(d => d.depends_on)
+    const blocked = prereqs.some(p => !done.has(p))
+    return { ...t, blocked }
   })
-  return topics.map(t => ({
-    ...t,
-    blocked: (depMap[t.id] || []).some(depId => !completedIds.includes(depId))
-  }))
 }
 
-function MountainScene({ height }) {
-  return <svg width="100%" height={height} viewBox={`0 0 800 ${height}`} preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-    <rect width="800" height={height} fill={C.bg} />
-    <path d={`M0 ${height} L180 ${height * .35} L360 ${height} Z`} fill={C.surface} />
-    <path d={`M180 ${height} L400 ${height * .12} L650 ${height} Z`} fill="#1e2d6b" opacity=".8" />
-    <path d={`M470 ${height} L650 ${height * .28} L800 ${height} Z`} fill={C.surface} />
-  </svg>
-}
-
-function TrailPath({ points, progressRatio }) {
-  const path = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ')
-  return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-    <path d={path} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth=".6" strokeDasharray="1.5 2" vectorEffect="non-scaling-stroke" />
-    <path d={path} fill="none" stroke={C.blue} strokeWidth=".8" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - Math.min(progressRatio, 1)} vectorEffect="non-scaling-stroke" />
-  </svg>
-}
-
-function SummitFlag({ x, top }) {
-  return <div style={{ position: 'absolute', left: `${x}%`, top: top - 58, transform: 'translateX(-50%)', zIndex: 3, color: C.yellow }}>⚑</div>
-}
-
-function TrailNode({ topic, index, top, x, isCompleted, isLocked, isActive, onStart }) {
-  return <div style={{ position: 'absolute', left: `${x}%`, top, transform: 'translate(-50%, -50%)', zIndex: 4, textAlign: 'center', minWidth: 100 }}>
-    <button disabled={isLocked || isCompleted} onClick={() => onStart(topic)} title={isLocked ? 'Bloqueado' : 'Iniciar tópico'} style={{ width: 46, height: 46, borderRadius: '50%', border: `2px solid ${isActive ? C.blue : isCompleted ? C.green : C.border}`, background: isCompleted ? C.green : isLocked ? C.surface : C.bg, color: isCompleted ? C.bg : C.text, cursor: isLocked || isCompleted ? 'default' : 'pointer', fontWeight: 800 }}>
-      {isCompleted ? <IcoCheck s={18} /> : isLocked ? <IcoLock s={15} /> : index + 1}
-    </button>
-    <div style={{ marginTop: 8, color: isLocked ? C.muted : C.text, fontSize: 12, lineHeight: 1.3, maxWidth: 150 }}>{topic.title}</div>
-  </div>
-}
-
-// ─── SUBTÓPICOS VIEW ──────────────────────────────────────────
-function SubtopicView({ parent, items, topics, completedIds, onBack, onStartTask, onOpenChildren }) {
-  return <div style={{ padding: 24, overflowY: 'auto' }}>
-    <button onClick={onBack} style={backLnk}><IcoBack /> Voltar</button>
-    <h2 style={{ marginBottom: 8 }}>{parent.title}</h2>
-    <p style={{ color: C.muted, marginBottom: 22 }}>Escolha um tópico para continuar.</p>
-    <div style={{ display: 'grid', gap: 10, maxWidth: 680 }}>
-      {items.map(topic => {
-        const blocked = topic.blocked && !completedIds.includes(topic.id)
-        const hasChildren = !isLeafTopic(topic, topics)
-        return <button key={topic.id} disabled={blocked} onClick={() => hasChildren ? onOpenChildren(topic) : onStartTask(topic.id)} style={{ textAlign: 'left', padding: 16, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: blocked ? C.muted : C.text, cursor: blocked ? 'default' : 'pointer' }}>
-          <strong>{topic.title}</strong><span style={{ display: 'block', marginTop: 5, color: C.muted, fontSize: 12 }}>{blocked ? 'Bloqueado' : hasChildren ? 'Ver subtópicos' : 'Iniciar tarefa'}</span>
-        </button>
-      })}
-    </div>
-  </div>
-}
-
-// ─── CHAT PANEL ──────────────────────────────────────────────
-function ChatPanel({ task, onBack, onComplete }) {
-  const [response, setResponse] = useState(task.type === 'quiz' ? [] : '')
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const content = typeof task.content === 'string' ? (() => {
-    try { return JSON.parse(task.content) } catch { return {} }
-  })() : task.content || {}
-  const meta = task.meta || {}
-  const questions = content.questions || []
-  const isQuiz = task.type === 'quiz'
-  const canSubmit = isQuiz ? response.length === questions.length && questions.length > 0 : response.trim().length > 0
-  async function submit() {
-    setError(''); setLoading(true)
-    try {
-      const payload = isQuiz
-        ? response.map((answer, questionIndex) => ({ question_index: questionIndex, answer }))
-        : response
-      const attempt = await submitAttempt(task.id, task.type || 'essay', payload)
-      setResult(attempt)
-      onComplete()
-    } catch (err) { setError(err.message) }
-    finally { setLoading(false) }
-  }
-  return <div style={{ padding: 24, overflowY: 'auto', maxWidth: 760 }}>
-    <button onClick={onBack} style={backLnk}><IcoBack /> Voltar</button>
-    <h2>{meta.title || 'Tarefa'}</h2><p style={{ color: C.muted, whiteSpace: 'pre-wrap', margin: '12px 0 20px' }}>{meta.description || content.instructions || ''}</p>
-    {isQuiz ? <div style={{ display: 'grid', gap: 18 }}>{questions.map((question, index) => <fieldset key={index} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
-      <legend style={{ padding: '0 6px', color: C.text }}>{index + 1}. {question.statement}</legend>
-      {(question.alternatives || []).map((alternative, optionIndex) => <label key={optionIndex} style={{ display: 'block', padding: '8px 0', color: C.muted }}><input type="radio" name={`question-${index}`} checked={response[index] === optionIndex} onChange={() => setResponse(previous => { const next = [...previous]; next[index] = optionIndex; return next })} />{' '}{alternative}</label>)}
-    </fieldset>)}</div> : <textarea value={response} onChange={e => setResponse(e.target.value)} rows={8} placeholder="Escreva sua resposta..." style={{ width: '100%', padding: 14, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, resize: 'vertical' }} />}
-    <button onClick={submit} disabled={!canSubmit || loading} style={{ ...btnPri, marginTop: 14 }}>{loading ? <Spin /> : <IcoSend />} {loading ? 'Enviando...' : 'Enviar resposta'}</button>
-    {error && <div style={{ ...errBox, marginTop: 14 }}>{error}</div>}
-    {result && <div style={{ marginTop: 18, padding: 16, borderRadius: 10, background: 'rgba(62,207,142,.1)', color: C.text }}>Resposta enviada com sucesso.</div>}
-  </div>
-}
-
-// ─── PERFIL ──────────────────────────────────────────────────
-function ProfileView({ profile, email }) {
-  return <div style={{ padding: 24, overflowY: 'auto' }}>
-    <h2 style={{ marginBottom: 20 }}>Perfil</h2>
-    <div style={{ ...boxStyle, padding: 20, border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface }}>
-      <p style={{ color: C.muted, fontSize: 12 }}>E-mail</p><p style={{ marginTop: 5 }}>{email || 'Não informado'}</p>
-      {profile?.username && <><p style={{ color: C.muted, fontSize: 12, marginTop: 18 }}>Usuário</p><p style={{ marginTop: 5 }}>{profile.username}</p></>}
-    </div>
-  </div>
-}
-
-// ─── HOMEPAGE PRINCIPAL ──────────────────────────────────────
+// ── HOMEPAGE ──────────────────────────────────────────────────
 export default function Homepage() {
   const navigate = useNavigate()
-  const [view, setView] = useState('home')
-  const [email, setEmail] = useState('')
-  const [profile, setProfile] = useState(null)
-  const [task, setTask] = useState(null)
-  const [goals, setGoals] = useState([])
-  const [input, setInput] = useState('')
-  const [topics, setTopics] = useState([])
-  const [deps, setDeps] = useState([])
-  const [completed, setCompleted] = useState([])
-  const [curGoal, setCurGoal] = useState(null)
-  const [err, setErr] = useState('')
-  const [loadInit, setLoadInit] = useState(true)
-  const [loadGen, setLoadGen] = useState(false)
-  const [tooltip, setTooltip] = useState(null)
-  const [subtopicStack, setSubtopicStack] = useState([])
-  const canvasRef = useRef(null)
 
+  const [email,     setEmail]     = useState('')
+  const [profile,   setProfile]   = useState(null)
+  const [goals,     setGoals]     = useState([])
+  const [view,      setView]      = useState('home') // home | roadmap | task | result
+  const [input,     setInput]     = useState('')
+  const [curGoal,   setCurGoal]   = useState(null)
+  const [topics,    setTopics]    = useState([])
+  const [deps,      setDeps]      = useState([])
+  const [completed, setCompleted] = useState([])
+  const [selNode,   setSelNode]   = useState(null) // clique 1
+  const [task,      setTask]      = useState(null)
+  const [taskNode,  setTaskNode]  = useState(null) // tópico da tarefa atual (persiste até a view result)
+  const [answers,   setAnswers]   = useState({})
+  const [essay,     setEssay]     = useState('')
+  const [result,    setResult]    = useState(null)
+  const [correction, setCorrection] = useState(null)
+  const [err,       setErr]       = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [initDone,  setInitDone]  = useState(false)
+  const [editingGoal, setEditingGoal] = useState(null)
+  const [editInput, setEditInput] = useState('')
+  const [deletingGoal, setDeletingGoal] = useState(null)
+  const [corrLoading, setCorrLoading] = useState(false)
+
+  // ── inicialização ──
   useEffect(() => {
     async function init() {
-      if (!getAccessToken()) {
-        try { await refreshSession() } catch { navigate('/auth/login'); return }
-      }
+      try { await refreshSession() } catch { navigate('/auth/login'); return }
       try {
-        const res = await authFetch('/auth/me')
-        const d = await res.json()
-        if (!res.ok) { navigate('/auth/login'); return }
-        setEmail(d.user?.email || '')
+        const user = await getMe()
+        setEmail(user?.email || '')
       } catch { navigate('/auth/login'); return }
-      try {
-        const res = await authFetch('/protected/profile')
-        const d = await res.json()
-        if (res.ok) setProfile(d.profile)
-      } catch { setProfile(null) }
-      try { const gl = await listGoals(); setGoals(gl || []) } catch { setGoals([]) }
-      finally { setLoadInit(false) }
+      try { setProfile(await getProfile()) } catch(_) {}
+      try { setGoals(await listGoals()) } catch(_) {}
+      setInitDone(true)
     }
     init()
   }, [navigate])
 
-  // ─── FUNÇÃO AUXILIAR PARA EXTRAIR TÓPICOS DO ROADMAP ──────
-  function extractTopicsAndDeps(roadmap) {
-    const source = roadmap?.roadmap || roadmap?.data || roadmap || {}
-    const rawTopics = Array.isArray(source) ? source : source.topics || source.nodes || []
-    const rawDependencies = Array.isArray(source) ? [] : source.dependencies || source.edges || []
-    const topics = rawTopics.map(normalizeTopic)
-    const dependencies = rawDependencies.map(normalizeDependency)
-    return { topics, dependencies }
-  }
-
-  function roadmapError(rawTopics, rawDeps) {
-    if (!rawTopics.length) return 'A API não devolveu tópicos para este roadmap. Tente gerar novamente.'
-    const roots = getRootTopics(rawTopics)
-    if (!roots.length) return 'Os tópicos vieram sem uma raiz válida. Tente gerar novamente.'
-    if (rawTopics.some(topic => !topic.id || !topic.title)) return 'A API devolveu um tópico incompleto. Tente gerar novamente.'
-    if (rawDeps.some(dep => !dep.topic_id || !dep.depends_on)) return 'O roadmap possui uma dependência inválida. Tente gerar novamente.'
-    return ''
-  }
-
-  // ─── FUNÇÕES PRINCIPAIS ──────────────────────────────────
+  // ── criar goal + gerar roadmap ──
   async function handleSend() {
-    if (!input.trim()) return
-    setErr(''); setLoadGen(true)
+    if (!input.trim() || loading) return
+    setErr(''); setLoading(true)
     try {
-      const goal = await createGoal(input.trim(), {})
+      const goal    = await createGoal(input.trim(), {})
       const roadmap = await generateRoadmap(goal.id)
-      const { topics: rawTopics, dependencies: rawDeps } = extractTopicsAndDeps(roadmap)
-      const validationError = roadmapError(rawTopics, rawDeps)
-      if (validationError) {
-        setErr(validationError)
+      const rawTopics = sa(roadmap?.topics)
+      if (rawTopics.length === 0) {
+        setErr('Não foi possível gerar o roadmap (nenhum tópico retornado). Tente novamente.')
         setGoals(prev => [goal, ...prev])
         return
       }
-
-      setTopics(rawTopics)
-      setDeps(rawDeps)
       setCurGoal(goal)
+      setTopics(rawTopics)
+      setDeps(sa(roadmap?.dependencies))
       setCompleted([])
-      setSubtopicStack([])
+      setSelNode(null)
       setGoals(prev => [goal, ...prev])
       setView('roadmap')
-    } catch (er) {
-      setErr(er?.message || 'Não foi possível gerar o roadmap. Verifique sua conexão e tente novamente.')
-    } finally {
-      setLoadGen(false)
-    }
+      setInput('')
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
   }
 
-  async function handleGoalClick(goal) {
-    setErr(''); setLoadGen(true)
+  // ── abrir roadmap de goal existente ──
+  async function handleOpenGoal(goal) {
+    if (loading) return
+    setErr(''); setLoading(true)
     try {
-      const roadmap = await generateRoadmap(goal.id)
-      const { topics: rawTopics, dependencies: rawDeps } = extractTopicsAndDeps(roadmap)
-      const validationError = roadmapError(rawTopics, rawDeps)
-      if (validationError) { setErr(validationError); return }
-
-      setTopics(rawTopics)
-      setDeps(rawDeps)
+      let roadmap
+      try {
+        roadmap = await getRoadmap(goal.id)
+      } catch(_) {
+        roadmap = await generateRoadmap(goal.id)
+      }
+      const rawTopics = sa(roadmap?.topics)
+      if (rawTopics.length === 0) {
+        setErr('Não foi possível carregar o roadmap (nenhum tópico retornado). Tente novamente.')
+        return
+      }
       setCurGoal(goal)
+      setTopics(rawTopics)
+      setDeps(sa(roadmap?.dependencies))
       setCompleted([])
-      setSubtopicStack([])
+      setSelNode(null)
       setView('roadmap')
-    } catch (er) {
-      setErr(er?.message || 'Não foi possível carregar este roadmap. Tente novamente.')
-    } finally {
-      setLoadGen(false)
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
+  }
+
+  // ── clique no nó: 1x seleciona, 2x gera tarefa ──
+  async function handleNodeClick(n) {
+    if (n.blocked || loading) return
+    if (selNode?.id === n.id) {
+      // segundo clique → gera tarefa
+      setSelNode(null); setErr(''); setLoading(true)
+      try {
+        const t = await generateTask(n.id)
+        setTask(t); setTaskNode(n); setAnswers({}); setEssay(''); setResult(null)
+        setView('task')
+      } catch(e) { setErr(e.message) }
+      finally { setLoading(false) }
+    } else {
+      setSelNode(n)
     }
   }
 
-  function openSubtopicView(topic) {
-    setSubtopicStack(prev => [...prev, topic])
-  }
-
-  function closeSubtopicView() {
-    setSubtopicStack(prev => prev.slice(0, -1))
-  }
-
-  async function handleStartTask(topicId) {
-    const topic = topics.find(t => t.id === topicId)
-    if (!topic || !isLeafTopic(topic, topics)) {
-      setErr('Este tópico possui subtópicos. Navegue até um tópico folha para iniciar a tarefa.')
-      return
-    }
-    setErr(''); setLoadGen(true)
+  // ── submeter resposta ──
+  async function handleSubmit() {
+    if (!task || loading) return
+    setErr(''); setLoading(true); setCorrection(null)
     try {
-      const gen = await generateTask(topicId)
-      setTask(gen)
-    } catch (er) {
-      setErr(er?.message || 'Não foi possível gerar a tarefa. Tente novamente.')
-    } finally {
-      setLoadGen(false)
-    }
+      const isQuiz = task.type === 'quiz'
+      const content = task.content || {}
+      const questions = sa(content.questions)
+      let response
+      if (isQuiz) {
+        response = Object.entries(answers).map(([qi, ans]) => ({ question_index: parseInt(qi), answer: ans }))
+        if (response.length < questions.length) { setErr('Responda todas as perguntas.'); setLoading(false); return }
+      } else {
+        response = essay.trim()
+        const words = response.split(/\s+/).filter(Boolean).length
+        if (words < (content.min_words || 0)) { setErr(`Mínimo de ${content.min_words} palavras.`); setLoading(false); return }
+      }
+      const data = await submitAttempt(task.id, task.type, response)
+      setResult(data)
+
+      const attempt = data.task_attempt || data
+      const score = typeof attempt.score === 'number' ? attempt.score : 0
+      const requiredMastery = taskNode?.required_mastery ?? 0.7
+      const topicId = task.topic_id || taskNode?.id
+      const mastered = score >= requiredMastery
+      if (topicId && mastered) {
+        setCompleted(prev => prev.includes(topicId) ? prev : [...prev, topicId])
+      }
+
+      setView('result')
+
+      const attemptId = attempt.id
+      if (attemptId) {
+        try {
+          const corr = await generateCorrection(attemptId, task.type)
+          setCorrection(corr)
+        } catch(_) {}
+      }
+
+      if (mastered) {
+        const xpGain = Math.round((taskNode?.weight || 1) * 10)
+        if (xpGain > 0) {
+          try {
+            const updatedProfile = await addXP(xpGain)
+            if (updatedProfile) setProfile(updatedProfile)
+          } catch(_) {}
+        }
+      }
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
   }
 
+  // ── logout ──
   function handleLogout() { apiLogout(); navigate('/auth/login') }
 
-  // ─── LÓGICA DE EXIBIÇÃO ──────────────────────────────────
-  const allTopics = topics || []
-  const allDeps = deps || []
-  const completedIds = completed || []
+  async function handleUpdateGoal() {
+    if (!editingGoal || !editInput.trim()) return
+    setErr(''); setLoading(true)
+    try {
+      await updateGoal(editingGoal.id, editInput.trim(), editingGoal.settings || {})
+      setGoals(prev => prev.map(g => g.id === editingGoal.id ? { ...g, title: editInput.trim() } : g))
+      setEditingGoal(null); setEditInput('')
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
+  }
 
-  const roots = getRootTopics(allTopics)
-  const enrichedRoots = applyBlocking(roots, allDeps, completedIds)
+  async function handleDeleteGoal(goal) {
+    setErr(''); setLoading(true)
+    try {
+      await deleteGoal(goal.id)
+      setGoals(prev => prev.filter(g => g.id !== goal.id))
+      setDeletingGoal(null)
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
+  }
 
-  const points = enrichedRoots.map((_, i) => {
-    const GAP = 140
-    const wave = Math.sin(i * 0.85) * 20
-    return { x: 50 + wave, y: 130 + i * GAP }
-  })
-  const canvasHeight = enrichedRoots.length ? points[points.length - 1].y + 280 : 640
-  const topPxOf = idx => canvasHeight - (points[idx]?.y ?? 0)
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowed = ['image/png','image/jpeg','image/gif','image/webp']
+    if (!allowed.includes(file.type)) { setErr('Tipo não permitido. Use PNG, JPG, GIF ou WebP.'); return }
+    if (file.size > 10*1024*1024) { setErr('O arquivo deve ter no máximo 10MB.'); return }
+    setErr(''); setLoading(true)
+    try {
+      const data = await uploadAvatar(file)
+      if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
+    } catch(e) { setErr(e.message) }
+    finally { setLoading(false) }
+  }
 
-  useEffect(() => {
-    if (!curGoal || enrichedRoots.length === 0 || !canvasRef.current) return
-    const el = canvasRef.current
-    el.scrollTop = 0
-    const target = el.scrollHeight - el.clientHeight
-    const t = setTimeout(() => {
-      const start = el.scrollTop
-      const diff = target - start
-      const duration = 1200
-      const startTime = performance.now()
-      function step(now) {
-        const p = Math.min((now - startTime) / duration, 1)
-        const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
-        el.scrollTop = start + diff * ease
-        if (p < 1) requestAnimationFrame(step)
-      }
-      requestAnimationFrame(step)
-    }, 3000)
-    return () => clearTimeout(t)
-  }, [curGoal, enrichedRoots.length])
+  if (!initDone) return <div style={center}>Carregando…</div>
 
-  // ─── RENDER ──────────────────────────────────────────────
-  const NAV = [
-    { key: 'home', label: 'Início' },
-    { key: 'roadmap', label: 'Roadmap' },
-    { key: 'profile', label: 'Perfil' },
-  ]
+  // ── VIEWS ─────────────────────────────────────────────────
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased', background: C.bg, color: C.text }}>
-      <aside style={{ width: 56, flexShrink: 0, borderRight: `1px solid ${C.border}`, padding: '0 8px', display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.015)' }}>
-        <div style={{ padding: '18px 0 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: `linear-gradient(135deg,${C.blue},${C.blueD})` }} />
+  // HOME
+  if (view === 'home') return (
+    <div style={page}>
+      <div style={header}>
+        <span style={{ fontWeight:800, fontSize:16, color:'#f0f2ff' }}>Metapps</span>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={() => setView('profile')} style={navBtn}>Perfil</button>
+          <button onClick={handleLogout} style={navBtn}>Sair</button>
         </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-          {NAV.map(({ key, label }) => {
-            const active = view === key
-            return (
-              <div key={key} style={{ position: 'relative' }}
-                onMouseEnter={() => setTooltip(key)} onMouseLeave={() => setTooltip(null)}>
-                <button onClick={() => setView(key)}
-                  style={{ width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', background: active ? `rgba(99,130,255,0.14)` : 'transparent', color: active ? C.blue : C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s' }}>
-                  {key === 'home' ? <IcoHome s={19} /> : key === 'roadmap' ? <IcoMap s={19} /> : <IcoUser s={19} />}
-                </button>
-                {tooltip === key && (
-                  <div style={{ position: 'absolute', left: 52, top: '50%', transform: 'translateY(-50%)', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', zIndex: 100, pointerEvents: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                    {label}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </nav>
-        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, marginBottom: 8 }}>
-          <button onClick={handleLogout}
-            onMouseEnter={e => e.currentTarget.style.color = C.red} onMouseLeave={e => e.currentTarget.style.color = C.muted}
-            style={{ width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', background: 'transparent', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'color .15s' }}>
-            <IcoLogout s={18} />
-          </button>
-        </div>
-      </aside>
+      </div>
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* SubtopicStack */}
-        {subtopicStack.length > 0 ? (
-          (() => {
-            const parent = subtopicStack[subtopicStack.length - 1]
-            const children = getChildren(allTopics, parent.id)
-            const enriched = applyBlocking(children, allDeps, completedIds)
-            return (
-              <SubtopicView
-                parent={parent}
-                items={enriched}
-                topics={allTopics}
-                completedIds={completedIds}
-                onBack={closeSubtopicView}
-                onStartTask={handleStartTask}
-                onOpenChildren={openSubtopicView}
-              />
-            )
-          })()
-        ) : task ? (
-          <ChatPanel task={task} onBack={() => setTask(null)} onComplete={() => { setCompleted(previous => previous.includes(task.topic_id) ? previous : [...previous, task.topic_id]); setTask(null) }} />
-        ) : view === 'home' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 180 }}>
-              {/* SVG da montanha */}
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
-                  <defs>
-                    <linearGradient id="mL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2a3a7c" /><stop offset="100%" stopColor="#141930" /></linearGradient>
-                    <linearGradient id="mM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3d5af1" /><stop offset="100%" stopColor="#1e2d6b" /></linearGradient>
-                    <linearGradient id="mR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#253070" /><stop offset="100%" stopColor="#141930" /></linearGradient>
-                    <linearGradient id="sn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0f2ff" stopOpacity="0.95" /><stop offset="100%" stopColor="#c8d4ff" stopOpacity="0.3" /></linearGradient>
-                  </defs>
-                  <path d="M0,300 L160,90 L320,300 Z" fill="url(#mL)" opacity="0.55" />
-                  <path d="M480,300 L640,70 L800,300 Z" fill="url(#mR)" opacity="0.55" />
-                  <path d="M200,300 L400,22 L600,300 Z" fill="url(#mM)" />
-                  <path d="M400,22 L600,300 L400,300 Z" fill="#0f1535" opacity="0.22" />
-                  <path d="M400,22 L368,78 L400,62 L432,78 Z" fill="url(#sn)" />
-                  <path d="M400,22 L384,52 L400,44 L416,52 Z" fill="#f0f2ff" opacity="0.92" />
-                  <path d="M0,248 Q200,228 400,242 Q600,256 800,238 L800,300 L0,300 Z" fill={C.bg} opacity="0.65" />
-                  <path d="M0,270 Q400,255 800,270 L800,300 L0,300 Z" fill={C.bg} />
-                </svg>
-              </div>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 20px 80px' }}>
-                <h1 style={{ fontSize: 'clamp(22px,3.5vw,34px)', fontWeight: 900, color: C.text, letterSpacing: '-0.04em', textAlign: 'center', lineHeight: 1.1, marginBottom: 8, textShadow: '0 2px 20px rgba(0,0,0,0.6)' }}>
-                  O que você quer aprender?
-                </h1>
-                <p style={{ fontSize: 14, color: C.muted, textAlign: 'center', marginBottom: 24 }}>
-                  Digite qualquer assunto e a IA cria seu caminho.
-                </p>
-                <div style={{ width: '100%', maxWidth: 460, background: 'rgba(15,17,23,0.82)', backdropFilter: 'blur(14px)', border: `1.5px solid rgba(99,130,255,0.22)`, borderRadius: 14, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '13px 13px 13px 17px' }}>
-                  <textarea value={input} onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                    placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
-                    rows={2}
-                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: C.text, fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6, resize: 'none', padding: 0 }} />
-                  <button onClick={handleSend} disabled={!input.trim() || loadGen}
-                    style={{ width: 36, height: 36, borderRadius: 9, border: 'none', background: input.trim() ? C.blue : 'rgba(255,255,255,0.06)', color: input.trim() ? '#fff' : 'rgba(245,244,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: input.trim() ? 'pointer' : 'default', transition: 'all .2s', flexShrink: 0 }}>
-                    {loadGen ? <Spin /> : <IcoSend s={13} />}
+      <div style={box}>
+        <h2 style={h2}>O que você quer aprender?</h2>
+        <textarea value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend()} }}
+          placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
+          rows={3} style={ta}/>
+        {err && <div style={errStyle}>{err}</div>}
+        <button onClick={handleSend} disabled={!input.trim()||loading} style={btn}>
+          {loading ? 'Gerando…' : 'Gerar roadmap'}
+        </button>
+
+        {goals.length > 0 && (
+          <div style={{ marginTop:28 }}>
+            <div style={label}>Objetivos anteriores</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {goals.slice(0,8).map(g => (
+                <div key={g.id} style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => handleOpenGoal(g)} style={{ ...goalBtn, flex:1 }}>
+                    {g.title}
+                  </button>
+                  <button onClick={() => { setEditingGoal(g); setEditInput(g.title) }}
+                    style={{ ...goalBtn, width:36, padding:'8px 0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>
+                    ✎
+                  </button>
+                  <button onClick={() => setDeletingGoal(g)}
+                    style={{ ...goalBtn, width:36, padding:'8px 0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'#f06a6a', flexShrink:0 }}>
+                    ✕
                   </button>
                 </div>
-                {err && <div style={{ ...errBox, marginTop: 12, maxWidth: 460, width: '100%' }}>{err}</div>}
-              </div>
+              ))}
             </div>
-            {goals.length > 0 && (
-              <div style={{ padding: '16px 24px', borderTop: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(240,242,255,0.22)', marginBottom: 10 }}>Continue de onde parou</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {goals.slice(0, 6).map(g => (
-                    <button key={g.id} onClick={() => handleGoalClick(g)}
-                      style={{ padding: '7px 14px', borderRadius: 99, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.03)', color: C.muted, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', whiteSpace: 'nowrap' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,130,255,0.3)'; e.currentTarget.style.color = C.text }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted }}>
-                      {g.title}
-                    </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // ROADMAP
+  if (view === 'roadmap') {
+    const available = getAvailable(topics, deps, completed)
+    const parents = getParents(topics)
+    const childrenOf = (parentId) => available.filter(t => t.parent_topic_id === parentId)
+    // tópicos principais sem parent que também são folha (sem subtópicos)
+    const orphanLeaves = available.filter(t => !t.parent_topic_id)
+
+    return (
+      <div style={page}>
+        <div style={header}>
+          <button onClick={() => setView('home')} style={navBtn}>← Início</button>
+          <span style={{ fontWeight:700, color:'#f0f2ff', fontSize:15 }}>{curGoal?.title}</span>
+          <button onClick={handleLogout} style={navBtn}>Sair</button>
+        </div>
+
+        <div style={{ ...box, maxWidth:520 }}>
+          <p style={{ color:'#7b82a0', fontSize:13, marginBottom:20 }}>
+            Clique uma vez para selecionar · clique duas vezes para gerar tarefa
+          </p>
+
+          {loading && <div style={center}>Carregando…</div>}
+          {err && <div style={errStyle}>{err}</div>}
+
+          {!loading && available.length === 0 && (
+            <div style={{ color:'#7b82a0', textAlign:'center', padding:20 }}>
+              Nenhum tópico disponível.
+            </div>
+          )}
+
+          {!loading && parents.map(parent => {
+            const children = childrenOf(parent.id)
+            if (children.length === 0) return null
+            return (
+              <div key={parent.id} style={{ marginBottom:32 }}>
+                <div style={sectionHeader}>{parent.title}</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                  {children.map((n, i) => (
+                    <div key={n.id} style={{ display:'flex', justifyContent: i%2===0 ? 'flex-start' : 'flex-end' }}>
+                      <NodeCard n={n} sel={selNode?.id===n.id} done={completed.includes(n.id)} onClick={() => handleNodeClick(n)} />
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-        ) : view === 'profile' ? (
-          loadInit ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: C.muted }}><Spin /> Carregando…</div> : <ProfileView profile={profile} email={email} />
-        ) : view === 'roadmap' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ padding: '18px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div>
-                <h2 style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: '-0.03em' }}>{curGoal?.title || 'Roadmap'}</h2>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Passe o mouse num nó e clique em "Iniciar".</p>
-              </div>
-              <button onClick={() => { setView('home'); setCurGoal(null); setTopics([]); setCompleted([]); setSubtopicStack([]) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: '6px 12px' }}
-                onMouseEnter={e => e.currentTarget.style.color = C.text} onMouseLeave={e => e.currentTarget.style.color = C.muted}>
-                <IcoPlus s={13} /> Novo
-              </button>
-            </div>
+            )
+          })}
 
-            {!curGoal && !loadGen && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: C.muted, fontSize: 14 }}>
-                Escolha um objetivo para ver o roadmap.
-              </div>
-            )}
-
-            {loadGen && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 8, color: C.muted, fontSize: 14 }}>
-                <Spin /> Carregando…
-              </div>
-            )}
-
-            {curGoal && enrichedRoots.length === 0 && !loadGen && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: C.muted, fontSize: 14 }}>
-                Nenhum tópico encontrado. Verifique o console (F12) para detalhes.
-              </div>
-            )}
-
-            {curGoal && enrichedRoots.length > 0 && !loadGen && (
-              <div ref={canvasRef} style={{ flex: 1, position: 'relative', overflowY: 'auto', overflowX: 'hidden' }}>
-                <div style={{ position: 'relative', width: '100%', height: canvasHeight }}>
-                  <MountainScene height={canvasHeight} />
-                  <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '48px 24px 12px' }}>
-                    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: C.blue, marginBottom: 10, borderTop: `2px solid ${C.blue}`, paddingTop: 6, width: 68 }}>Trilha ativa</span>
-                    <h2 style={{ fontSize: 'clamp(1.6rem,3.4vw,2.2rem)', fontWeight: 900, letterSpacing: '-0.03em', color: C.text, margin: '2px 0' }}>{curGoal?.title}</h2>
-                    <p style={{ fontSize: 13, color: C.muted }}>Passe o mouse num nó para iniciar.</p>
-                  </div>
-
-                  <TrailPath points={points} progressRatio={completed.length / Math.max(enrichedRoots.length, 1)} />
-                  <SummitFlag x={points[points.length - 1]?.x ?? 50} top={topPxOf(points.length - 1)} />
-
-                  {enrichedRoots.map((topic, index) => {
-                    const isCompleted = completedIds.includes(topic.id)
-                    const isLocked = topic.blocked && !isCompleted
-                    const isActive = index === 0 && !isCompleted && !isLocked
-                    const handleStart = (t) => {
-                      if (isLeafTopic(t, allTopics)) {
-                        handleStartTask(t.id)
-                      } else {
-                        openSubtopicView(t)
-                      }
-                    }
-                    return (
-                      <TrailNode
-                        key={topic.id}
-                        topic={topic}
-                        index={index}
-                        top={topPxOf(index)}
-                        x={points[index].x}
-                        isCompleted={isCompleted}
-                        isLocked={isLocked}
-                        isActive={isActive}
-                        onStart={handleStart}
-                      />
-                    )
-                  })}
+          {!loading && orphanLeaves.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              {orphanLeaves.map((n, i) => (
+                <div key={n.id} style={{ display:'flex', justifyContent: i%2===0 ? 'flex-start' : 'flex-end' }}>
+                  <NodeCard n={n} sel={selNode?.id===n.id} done={completed.includes(n.id)} onClick={() => handleNodeClick(n)} />
                 </div>
-                {err && <div style={{ ...errBox, position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 6, maxWidth: 480 }}>{err}</div>}
-              </div>
-            )}
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // TASK
+  if (view === 'task' && task) {
+    const isQuiz   = task.type === 'quiz'
+    const content  = task.content || {}
+    const questions = sa(content.questions)
+    const title    = content.title || task.meta?.title || 'Tarefa'
+    const desc     = content.description || task.meta?.description || ''
+
+    return (
+      <div style={page}>
+        <div style={header}>
+          <button onClick={() => setView('roadmap')} style={navBtn}>← Voltar</button>
+          <span style={{ fontWeight:700, color:'#f0f2ff' }}>{title}</span>
+          <div/>
+        </div>
+
+        <div style={box}>
+          {desc && <p style={{ color:'#7b82a0', fontSize:14, marginBottom:20, lineHeight:1.6 }}>{desc}</p>}
+
+          {isQuiz && questions.map((q, qi) => (
+            <div key={qi} style={{ background:'#181b26', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:18, marginBottom:12 }}>
+              {q.material && <div style={{ fontSize:11, color:'#9ab4ff', fontWeight:700, textTransform:'uppercase', marginBottom:6 }}>{q.material}</div>}
+              <p style={{ color:'#f0f2ff', fontSize:15, marginBottom:12, lineHeight:1.6 }}>
+                <strong style={{ color:'#6382ff' }}>{qi+1}.</strong> {q.question || q.statement}
+              </p>
+              {sa(q.options || q.alternatives).map((opt, ai) => {
+                const sel = answers[qi] === ai
+                return (
+                  <button key={ai} onClick={() => setAnswers(p => ({...p,[qi]:ai}))}
+                    style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'10px 14px', borderRadius:8, border:`1.5px solid ${sel?'#6382ff':'rgba(255,255,255,0.07)'}`, background:sel?'rgba(99,130,255,0.1)':'transparent', color:sel?'#f0f2ff':'#7b82a0', cursor:'pointer', fontFamily:'inherit', fontSize:14, textAlign:'left', marginBottom:6, transition:'all .15s' }}>
+                    <span style={{ width:22, height:22, borderRadius:5, background:sel?'#6382ff':'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:sel?'#fff':'#7b82a0', flexShrink:0 }}>
+                      {String.fromCharCode(65+ai)}
+                    </span>
+                    {opt}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+
+          {!isQuiz && (
+            <div style={{ marginBottom:16 }}>
+              <p style={{ color:'#f0f2ff', fontSize:15, marginBottom:10, lineHeight:1.6 }}>{content.instructions}</p>
+              <p style={{ color:'#7b82a0', fontSize:12, marginBottom:8 }}>{content.min_words}–{content.max_words} palavras</p>
+              <textarea value={essay} onChange={e=>{setEssay(e.target.value);setErr('')}}
+                placeholder="Escreva sua resposta aqui…" rows={12}
+                style={{ ...ta, marginBottom:4 }}/>
+              <p style={{ color:'#7b82a0', fontSize:12 }}>{essay.trim()?essay.trim().split(/\s+/).filter(Boolean).length:0} palavras</p>
+            </div>
+          )}
+
+          {err && <div style={errStyle}>{err}</div>}
+          <button onClick={handleSubmit} disabled={loading} style={{ ...btn, opacity:loading?0.6:1 }}>
+            {loading ? 'Enviando…' : 'Enviar resposta'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // RESULT
+  if (view === 'result' && result) {
+    const attempt  = result.task_attempt || result
+    const score    = typeof attempt.score === 'number' ? attempt.score : 0
+    const pct      = Math.round(score * 100)
+    const mc       = score>=0.7 ? '#3ecf8e' : score>=0.4 ? '#f5c542' : '#f06a6a'
+    let ev = null
+    try { ev = typeof attempt.task_evaluation==='string' ? JSON.parse(attempt.task_evaluation) : attempt.task_evaluation } catch(_) {}
+    const content   = task?.content || {}
+    const questions = sa(content.questions)
+    const requiredMastery = taskNode?.required_mastery ?? 0.7
+    const mastered = score >= requiredMastery
+
+    return (
+      <div style={page}>
+        <div style={header}>
+          <button onClick={() => setView('roadmap')} style={navBtn}>← Roadmap</button>
+          <span style={{ fontWeight:700, color:'#f0f2ff' }}>Resultado</span>
+          <div/>
+        </div>
+
+        <div style={box}>
+          <div style={{ textAlign:'center', padding:'28px 20px', background:'#181b26', borderRadius:14, border:`1px solid ${mc}44`, marginBottom:20 }}>
+            <div style={{ fontSize:52, fontWeight:900, color:mc }}>{pct}%</div>
+            <div style={{ color:'#7b82a0', fontSize:14, marginTop:4 }}>de acertos</div>
+            <div style={{ color:'#f0f2ff', fontSize:18, fontWeight:800, marginTop:8 }}>
+              {mastered?'Excelente! Tópico concluído.':score>=0.4?'Bom esforço! Tente novamente para concluir.':'Continue tentando!'}
+            </div>
           </div>
-        ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted }}>Carregando…</div>
-        )}
-      </main>
-      <style>{ANIMS}</style>
-    </div>
+
+          {ev?.items && sa(ev.items).map((item, i) => {
+            const q    = questions[i] || {}
+            const opts = sa(q.options || q.alternatives)
+            const ok   = item.correct || item.is_correct || false
+            const sub  = item.submitted_answer ?? item.selected_answer ?? item.answer
+            const cor  = item.correct_answer   ?? item.expected_answer
+            return (
+              <div key={i} style={{ padding:'12px 14px', borderRadius:10, border:`1px solid ${ok?'rgba(62,207,142,0.2)':'rgba(240,106,106,0.2)'}`, background:ok?'rgba(62,207,142,0.04)':'rgba(240,106,106,0.04)', marginBottom:8 }}>
+                <div style={{ display:'flex', gap:8, marginBottom:4 }}>
+                  <span style={{ color:ok?'#3ecf8e':'#f06a6a', fontWeight:700, fontSize:13 }}>{ok?'✓':'✗'} Q{i+1}</span>
+                  {opts[sub] && <span style={{ color:'#7b82a0', fontSize:12, marginLeft:'auto' }}>Sua: {opts[sub]}</span>}
+                </div>
+                {!ok && opts[cor] && <p style={{ color:'#7b82a0', fontSize:12, margin:'4px 0 0', lineHeight:1.5 }}>Correta: {opts[cor]}</p>}
+                {item.explanation && <p style={{ color:'#7b82a0', fontSize:12, margin:'4px 0 0', lineHeight:1.5, fontStyle:'italic' }}>{item.explanation}</p>}
+              </div>
+            )
+          })}
+
+          <div style={{ display:'flex', gap:10, marginTop:16 }}>
+            <button onClick={() => { setView('task'); setAnswers({}); setEssay(''); setResult(null) }} style={{ ...btn, flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)' }}>
+              Tentar novamente
+            </button>
+            <button onClick={() => setView('roadmap')} style={{ ...btn, flex:1 }}>
+              Próxima lição
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // PERFIL
+  if (view === 'profile') {
+    const level    = profile?.level || 1
+    const xp       = profile?.xp    || 0
+    const xpNext   = level * 100
+    const pct      = Math.min(100, Math.round((xp % xpNext) / xpNext * 100))
+    const username = profile?.username || email?.split('@')[0] || 'Usuário'
+    return (
+      <div style={page}>
+        <div style={header}>
+          <button onClick={() => setView('home')} style={navBtn}>← Início</button>
+          <span style={{ fontWeight:700, color:'#f0f2ff' }}>Perfil</span>
+          <button onClick={handleLogout} style={navBtn}>Sair</button>
+        </div>
+        <div style={box}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
+            <div style={{ width:48, height:48, borderRadius:'50%', background:'#6382ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:800, color:'#fff' }}>
+              {username[0]?.toUpperCase()||'?'}
+            </div>
+            <div>
+              <div style={{ fontSize:17, fontWeight:800, color:'#f0f2ff' }}>{username}</div>
+              <div style={{ fontSize:13, color:'#7b82a0' }}>{email}</div>
+            </div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:20 }}>
+            {[{l:'Nível',v:level,c:'#6382ff'},{l:'XP',v:xp,c:'#f5c542'},{l:'Próximo',v:`${Math.max(0,xpNext-xp)} XP`,c:'#3ecf8e'}].map(({l,v,c}) => (
+              <div key={l} style={{ padding:12, borderRadius:10, background:'#181b26', border:'1px solid rgba(255,255,255,0.07)', textAlign:'center' }}>
+                <div style={{ fontSize:20, fontWeight:900, color:c }}>{v}</div>
+                <div style={{ fontSize:11, color:'#7b82a0', marginTop:2 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ height:6, background:'rgba(255,255,255,0.07)', borderRadius:99, overflow:'hidden' }}>
+            <div style={{ width:`${pct}%`, height:'100%', background:'#6382ff', borderRadius:99, transition:'width .5s' }}/>
+          </div>
+          <div style={{ fontSize:12, color:'#7b82a0', marginTop:6, textAlign:'right' }}>{pct}% para o nível {level+1}</div>
+        </div>
+      </div>
+    )
+  }
+
+  return <div style={center}>Carregando…</div>
+}
+
+// ─── componentes auxiliares ─────────────────────────────────
+function NodeCard({ n, sel, done, onClick }) {
+  return (
+    <button onClick={onClick} disabled={n.blocked}
+      style={{ width:220, padding:'14px 16px', borderRadius:12, border:`2px solid ${done?'#3ecf8e':sel?'#6382ff':n.blocked?'rgba(255,255,255,0.06)':'rgba(99,130,255,0.2)'}`, background:done?'rgba(62,207,142,0.08)':sel?'rgba(99,130,255,0.12)':n.blocked?'rgba(255,255,255,0.02)':'rgba(99,130,255,0.05)', color:n.blocked?'#7b82a0':'#f0f2ff', cursor:n.blocked?'not-allowed':'pointer', fontFamily:'inherit', textAlign:'left', opacity:n.blocked?0.5:1, transition:'all .2s' }}>
+      <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>{n.title}</div>
+      {n.description && <div style={{ fontSize:11, color:'#7b82a0', lineHeight:1.4 }}>{n.description.slice(0,80)}{n.description.length>80?'…':''}</div>}
+      {n.blocked && <div style={{ fontSize:11, color:'#f06a6a', marginTop:6 }}>🔒 Bloqueado</div>}
+      {sel && <div style={{ fontSize:11, color:'#6382ff', marginTop:6, fontWeight:700 }}>Clique novamente para gerar tarefa</div>}
+      {done && <div style={{ fontSize:11, color:'#3ecf8e', marginTop:6 }}>✓ Concluído</div>}
+    </button>
   )
 }
 
-// ─── ESTILOS GLOBAIS ─────────────────────────────────────────
-const ANIMS = `
-  @keyframes spin { to { transform: rotate(360deg) } }
-  button:active { transform: scale(0.97) }
-  textarea::placeholder { color: rgba(240,242,255,0.28) }
-  textarea:focus { outline: none }
-  ::-webkit-scrollbar { display: none }
-`
-
-// Os estilos pgStyle, boxStyle, backLnk, errBox, btnPri, btnSec precisam ser os mesmos de antes.
-// Coloque-os aqui.
-const boxStyle = { width: '100%', maxWidth: 660 }
-const backLnk = { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.muted, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 24, fontFamily: 'inherit', transition: 'color .15s' }
-const errBox = { background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 500, color: C.red, lineHeight: 1.45 }
-const btnPri = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 24px', border: 'none', borderRadius: 10, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity .15s' }
-
-// ─── DEFINIR COMPONENTES FALTANTES (MountainScene, TrailPath, SummitFlag, TrailNode, SubtopicView, ChatPanel, ProfileView) ──
-// Eles devem ser os mesmos do código anterior. Como não os incluí aqui para economizar, certifique-se de mantê-los no seu arquivo.
-// Se precisar, posso enviá-los novamente.
+// ─── CSS ──────────────────────────────────────────────────────
+const page    = { minHeight:'100vh', background:'#0f1117', color:'#f0f2ff', fontFamily:"'Inter',-apple-system,sans-serif", WebkitFontSmoothing:'antialiased' }
+const header  = { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'#0f1117', position:'sticky', top:0, zIndex:10 }
+const box     = { maxWidth:600, margin:'0 auto', padding:'32px 20px' }
+const center  = { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'#7b82a0', fontSize:14, fontFamily:'Inter,sans-serif' }
+const h2      = { fontSize:24, fontWeight:900, color:'#f0f2ff', letterSpacing:'-0.04em', marginBottom:16 }
+const ta      = { width:'100%', background:'rgba(255,255,255,0.04)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#f0f2ff', fontFamily:'inherit', fontSize:14, padding:'12px 14px', outline:'none', resize:'vertical', lineHeight:1.6, boxSizing:'border-box' }
+const btn     = { width:'100%', padding:'13px', border:'none', borderRadius:10, background:'#6382ff', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', marginTop:12 }
+const navBtn  = { padding:'7px 14px', borderRadius:8, border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'#7b82a0', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }
+const goalBtn = { width:'100%', padding:'12px 16px', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#7b82a0', fontSize:14, fontWeight:500, textAlign:'left', cursor:'pointer', fontFamily:'inherit', transition:'all .15s' }
+const label   = { fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'rgba(255,255,255,0.2)', marginBottom:10 }
+const sectionHeader = { fontSize:13, fontWeight:800, letterSpacing:'0.5px', textTransform:'uppercase', color:'#9ab4ff', marginBottom:14, paddingBottom:8, borderBottom:'1px solid rgba(255,255,255,0.07)' }
+const errStyle = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#f06a6a', marginBottom:12, marginTop:8 }

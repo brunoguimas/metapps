@@ -726,6 +726,34 @@ export function logout() {
 }
 
 
+// ─── AUTH: ME ─────────────────────────────────────────────────
+
+export async function getMe() {
+
+  const res =
+    await authFetch(
+      '/auth/me'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao verificar sessão.'
+    )
+  }
+
+
+  return data.user
+}
+
+
 // ─── AUTH: EMAIL VERIFY ───────────────────────────────────────
 
 export async function emailVerify(
@@ -921,6 +949,78 @@ export async function listGoals() {
 }
 
 
+export async function updateGoal(
+  id,
+  title,
+  settings
+) {
+
+  const res = await authFetch(
+    `/protected/goals/${id}`,
+    {
+      method: 'PUT',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify({
+        title,
+        settings,
+      }),
+    }
+  )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao atualizar goal.'
+    )
+  }
+
+
+  return data
+}
+
+
+export async function deleteGoal(
+  id
+) {
+
+  const res = await authFetch(
+    `/protected/goals/${id}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao deletar goal.'
+    )
+  }
+
+
+  return data
+}
+
+
 export async function generateRoadmap(
   goalId
 ) {
@@ -953,6 +1053,34 @@ export async function generateRoadmap(
       data,
       res.status,
       'Erro ao gerar roadmap.'
+    )
+  }
+
+
+  return data.roadmap
+}
+
+
+export async function getRoadmap(
+  goalId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/roadmap/${goalId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar roadmap.'
     )
   }
 
@@ -1080,4 +1208,118 @@ export async function generateCorrection(
 
 
   return data.correction
+}
+
+
+// ─── PROFILE ──────────────────────────────────────────────────
+
+export async function getProfile() {
+
+  const res =
+    await authFetch(
+      '/protected/profile'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar perfil.'
+    )
+  }
+
+
+  return data.profile
+}
+
+
+// ─── PROFILE: XP ──────────────────────────────────────────────
+
+export async function addXP(
+  xp
+) {
+
+  const res =
+    await authFetch(
+      '/protected/profile/xp',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          xp,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao adicionar XP.'
+    )
+  }
+
+
+  return data.profile
+}
+
+
+// ─── PROFILE: AVATAR ──────────────────────────────────────────
+
+export async function uploadAvatar(
+  file
+) {
+
+  const formData =
+    new FormData()
+
+  formData.append(
+    'avatar',
+    file
+  )
+
+
+  const res =
+    await authFetch(
+      '/protected/profile/avatar',
+      {
+        method: 'POST',
+
+        body: formData,
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao fazer upload do avatar.'
+    )
+  }
+
+
+  return data
 }
