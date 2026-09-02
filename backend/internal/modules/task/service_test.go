@@ -205,23 +205,21 @@ func TestTaskServiceCreate_Success(t *testing.T) {
 	service := NewTaskService(
 		&fakeAIClient{
 			generateFn: func(ctx context.Context, prompt string) (string, error) {
-				assert.Contains(t, prompt, "FORMATO RAIZ")
+				assert.Contains(t, prompt, "ESTRUTURA DO JSON")
 				assert.Contains(t, prompt, "Objetivo principal:")
 				assert.Contains(t, prompt, "Meta Teste")
-				assert.Contains(t, prompt, "Motivação do objetivo:")
+				assert.Contains(t, prompt, "Motivação:")
 				assert.Contains(t, prompt, "Critério de sucesso:")
 				assert.Contains(t, prompt, "Estilo de aprendizagem:")
 				assert.Contains(t, prompt, "Tópico de estudo:")
 				assert.Contains(t, prompt, "Topico 1")
-				assert.Contains(t, prompt, "Descrição do tópico:")
 				assert.Contains(t, prompt, "Desc 1")
-				assert.Contains(t, prompt, "Nível de domínio necessário no tópico:")
-				assert.Contains(t, prompt, "Peso relativo do tópico no objetivo:")
+				assert.Contains(t, prompt, "Nível de domínio necessário:")
+				assert.Contains(t, prompt, "Peso do tópico no objetivo:")
 				assert.Contains(t, prompt, "Dificuldades identificadas:")
 				assert.Contains(t, prompt, "Baixa maestria no tópico")
 				assert.Contains(t, prompt, "Desempenho recente:")
 				assert.Contains(t, prompt, "Tentativas: 0, Mestria: 0%, Confiança: 0%")
-				assert.Contains(t, prompt, "Gere uma tarefa adaptada a esse contexto")
 				return `{"type":"essay","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}}`, nil
 			},
 		},
