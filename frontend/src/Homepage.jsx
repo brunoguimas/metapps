@@ -16,14 +16,6 @@ function getParents(topics) {
   return sa(topics).filter(t => !t.parent_topic_id)
 }
 
-// nós folha = tópicos cujo id NÃO aparece como parent_topic_id de nenhum
-// outro tópico. Cobre tanto subtópicos normais quanto o caso raro de um
-// tópico principal sem nenhum subtópico (que aí vira "folha" ele mesmo).
-function getLeafTopics(topics) {
-  const parentIds = new Set(sa(topics).map(t => t.parent_topic_id).filter(Boolean))
-  return sa(topics).filter(t => !parentIds.has(t.id))
-}
-
 // nós disponíveis = folhas cujos pré-requisitos diretos (dependencies:
 // { topic_id, depends_on }) já foram completados.
 function getAvailable(topics, dependencies, completedIds) {
@@ -65,7 +57,6 @@ export default function Homepage() {
   const [editingGoal, setEditingGoal] = useState(null)
   const [editInput, setEditInput] = useState('')
   const [deletingGoal, setDeletingGoal] = useState(null)
-  const [corrLoading, setCorrLoading] = useState(false)
 
   // ── inicialização ──
   useEffect(() => {
@@ -75,8 +66,8 @@ export default function Homepage() {
         const user = await getMe()
         setEmail(user?.email || '')
       } catch { navigate('/auth/login'); return }
-      try { setProfile(await getProfile()) } catch(_) {}
-      try { setGoals(await listGoals()) } catch(_) {}
+      try { setProfile(await getProfile()) } catch { /* ignore */ }
+      try { setGoals(await listGoals()) } catch { /* ignore */ }
       setInitDone(true)
     }
     init()
@@ -115,7 +106,7 @@ export default function Homepage() {
       let roadmap
       try {
         roadmap = await getRoadmap(goal.id)
-      } catch(_) {
+      } catch { /* ignore */ 
         roadmap = await generateRoadmap(goal.id)
       }
       const rawTopics = sa(roadmap?.topics)
@@ -186,7 +177,7 @@ export default function Homepage() {
         try {
           const corr = await generateCorrection(attemptId, task.type)
           setCorrection(corr)
-        } catch(_) {}
+        } catch { /* ignore */ }
       }
 
       if (mastered) {
@@ -195,7 +186,7 @@ export default function Homepage() {
           try {
             const updatedProfile = await addXP(xpGain)
             if (updatedProfile) setProfile(updatedProfile)
-          } catch(_) {}
+          } catch { /* ignore */ }
         }
       }
     } catch(e) { setErr(e.message) }
@@ -285,6 +276,45 @@ export default function Homepage() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {editingGoal && (
+          <div style={overlay} onClick={() => setEditingGoal(null)}>
+            <div style={modal} onClick={e => e.stopPropagation()}>
+              <h3 style={{ color:'#f0f2ff', fontSize:18, fontWeight:800, marginBottom:16 }}>Editar objetivo</h3>
+              <textarea value={editInput} onChange={e => setEditInput(e.target.value)}
+                rows={2} autoFocus style={ta}/>
+              {err && <div style={errStyle}>{err}</div>}
+              <div style={{ display:'flex', gap:10, marginTop:16 }}>
+                <button onClick={() => setEditingGoal(null)} style={{ ...btn, flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)' }}>
+                  Cancelar
+                </button>
+                <button onClick={handleUpdateGoal} disabled={!editInput.trim()||loading} style={{ ...btn, flex:1, opacity:(!editInput.trim()||loading)?0.6:1 }}>
+                  {loading ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deletingGoal && (
+          <div style={overlay} onClick={() => setDeletingGoal(null)}>
+            <div style={modal} onClick={e => e.stopPropagation()}>
+              <h3 style={{ color:'#f0f2ff', fontSize:18, fontWeight:800, marginBottom:8 }}>Excluir objetivo</h3>
+              <p style={{ color:'#7b82a0', fontSize:14, lineHeight:1.6 }}>
+                Tem certeza que deseja excluir <strong style={{ color:'#f0f2ff' }}>{deletingGoal.title}</strong>? Esta ação não pode ser desfeita.
+              </p>
+              {err && <div style={errStyle}>{err}</div>}
+              <div style={{ display:'flex', gap:10, marginTop:16 }}>
+                <button onClick={() => setDeletingGoal(null)} style={{ ...btn, flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)' }}>
+                  Cancelar
+                </button>
+                <button onClick={() => handleDeleteGoal(deletingGoal)} disabled={loading} style={{ ...btn, flex:1, background:'#f06a6a', opacity:loading?0.6:1 }}>
+                  {loading ? 'Excluindo…' : 'Excluir'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -420,7 +450,7 @@ export default function Homepage() {
     const pct      = Math.round(score * 100)
     const mc       = score>=0.7 ? '#3ecf8e' : score>=0.4 ? '#f5c542' : '#f06a6a'
     let ev = null
-    try { ev = typeof attempt.task_evaluation==='string' ? JSON.parse(attempt.task_evaluation) : attempt.task_evaluation } catch(_) {}
+    try { ev = typeof attempt.task_evaluation==='string' ? JSON.parse(attempt.task_evaluation) : attempt.task_evaluation } catch { /* ignore */ }
     const content   = task?.content || {}
     const questions = sa(content.questions)
     const requiredMastery = taskNode?.required_mastery ?? 0.7
@@ -442,6 +472,32 @@ export default function Homepage() {
               {mastered?'Excelente! Tópico concluído.':score>=0.4?'Bom esforço! Tente novamente para concluir.':'Continue tentando!'}
             </div>
           </div>
+
+          {correction && (
+            <div style={{ background:'#181b26', border:'1px solid rgba(99,130,255,0.2)', borderRadius:14, padding:18, marginBottom:20 }}>
+              <div style={{ fontSize:12, fontWeight:800, letterSpacing:'1px', textTransform:'uppercase', color:'#9ab4ff', marginBottom:12 }}>Feedback da IA</div>
+              {typeof correction === 'string' ? (
+                <p style={{ color:'#f0f2ff', fontSize:14, lineHeight:1.7, whiteSpace:'pre-wrap', margin:0 }}>{correction}</p>
+              ) : (
+                <>
+                  {correction.summary && <p style={{ color:'#f0f2ff', fontSize:14, lineHeight:1.7, marginBottom:10 }}>{correction.summary}</p>}
+                  {sa(correction.feedback || correction.comments || correction.items).map((f, i) => (
+                    <div key={i} style={{ padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,0.03)', marginBottom:8 }}>
+                      {typeof f === 'string' ? (
+                        <p style={{ color:'#c8d0ea', fontSize:13, lineHeight:1.6, margin:0 }}>{f}</p>
+                      ) : (
+                        <>
+                          {f.comment && <p style={{ color:'#c8d0ea', fontSize:13, lineHeight:1.6, margin:'0 0 4px' }}>{f.comment}</p>}
+                          {f.correct === false && <p style={{ color:'#f06a6a', fontSize:12, lineHeight:1.5, margin:0 }}>Correta: {f.correct_answer ?? f.expected}</p>}
+                          {f.explanation && <p style={{ color:'#7b82a0', fontSize:12, fontStyle:'italic', lineHeight:1.5, margin:'4px 0 0' }}>{f.explanation}</p>}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
 
           {ev?.items && sa(ev.items).map((item, i) => {
             const q    = questions[i] || {}
@@ -490,14 +546,25 @@ export default function Homepage() {
         </div>
         <div style={box}>
           <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
-            <div style={{ width:48, height:48, borderRadius:'50%', background:'#6382ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:800, color:'#fff' }}>
-              {username[0]?.toUpperCase()||'?'}
-            </div>
-            <div>
+            <label style={{ position:'relative', cursor:'pointer', flexShrink:0 }}>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="avatar" style={{ width:48, height:48, borderRadius:'50%', objectFit:'cover', display:'block' }}/>
+              ) : (
+                <div style={{ width:48, height:48, borderRadius:'50%', background:'#6382ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:800, color:'#fff' }}>
+                  {username[0]?.toUpperCase()||'?'}
+                </div>
+              )}
+              <div style={{ position:'absolute', bottom:0, right:0, width:18, height:18, borderRadius:'50%', background:'#181b26', border:'1px solid rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10 }}>
+                ✎
+              </div>
+              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleAvatarUpload} style={{ display:'none' }}/>
+            </label>
+            <div style={{ minWidth:0 }}>
               <div style={{ fontSize:17, fontWeight:800, color:'#f0f2ff' }}>{username}</div>
               <div style={{ fontSize:13, color:'#7b82a0' }}>{email}</div>
             </div>
           </div>
+          {err && <div style={errStyle}>{err}</div>}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:20 }}>
             {[{l:'Nível',v:level,c:'#6382ff'},{l:'XP',v:xp,c:'#f5c542'},{l:'Próximo',v:`${Math.max(0,xpNext-xp)} XP`,c:'#3ecf8e'}].map(({l,v,c}) => (
               <div key={l} style={{ padding:12, borderRadius:10, background:'#181b26', border:'1px solid rgba(255,255,255,0.07)', textAlign:'center' }}>
@@ -545,3 +612,5 @@ const goalBtn = { width:'100%', padding:'12px 16px', borderRadius:10, border:'1p
 const label   = { fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'rgba(255,255,255,0.2)', marginBottom:10 }
 const sectionHeader = { fontSize:13, fontWeight:800, letterSpacing:'0.5px', textTransform:'uppercase', color:'#9ab4ff', marginBottom:14, paddingBottom:8, borderBottom:'1px solid rgba(255,255,255,0.07)' }
 const errStyle = { background:'rgba(240,106,106,0.08)', border:'1px solid rgba(240,106,106,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#f06a6a', marginBottom:12, marginTop:8 }
+const overlay = { position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:20 }
+const modal = { width:'100%', maxWidth:440, background:'#181b26', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, padding:24, boxShadow:'0 8px 40px rgba(0,0,0,0.4)' }
