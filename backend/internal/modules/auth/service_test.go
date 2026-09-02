@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth/dto"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/security"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -12,6 +13,29 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type FakeProfileService struct {
+}
+
+func NewFakeProfileService() *FakeProfileService {
+	return &FakeProfileService{}
+}
+
+func (f *FakeProfileService) GetProfileByUserID(ctx context.Context, userID uuid.UUID) (*profile.Profile, error) {
+	return &profile.Profile{ID: uuid.New(), UserID: userID}, nil
+}
+func (f *FakeProfileService) CreateProfile(ctx context.Context, userID uuid.UUID) (*profile.Profile, error) {
+	return &profile.Profile{ID: uuid.New(), UserID: userID}, nil
+}
+func (f *FakeProfileService) UpdateProfile(ctx context.Context, p *profile.Profile) (*profile.Profile, error) {
+	return p, nil
+}
+func (f *FakeProfileService) AddXP(ctx context.Context, userID uuid.UUID, xpToAdd int) (*profile.Profile, error) {
+	return &profile.Profile{ID: uuid.New(), UserID: userID}, nil
+}
+func (f *FakeProfileService) UpdateAvatar(ctx context.Context, userID uuid.UUID, avatarURL string) (*profile.Profile, error) {
+	return &profile.Profile{ID: uuid.New(), UserID: userID}, nil
+}
 
 type FakeUserRepository struct {
 	users map[string]*user.User
@@ -43,7 +67,8 @@ func (r *FakeUserRepository) UpdatePassword(c context.Context, userID uuid.UUID,
 
 func TestRegister_Success(t *testing.T) {
 	r := NewFakeUserRepository()
-	s := NewAuthService(r)
+	fp := NewFakeProfileService()
+	s := NewAuthService(r, fp)
 
 	req := &dto.RegisterRequest{
 		Username: "brunex",
@@ -62,7 +87,8 @@ func TestRegister_Success(t *testing.T) {
 
 func TestRegister_FailsUserDuplicate(t *testing.T) {
 	r := NewFakeUserRepository()
-	s := NewAuthService(r)
+	fp := NewFakeProfileService()
+	s := NewAuthService(r, fp)
 
 	const email = "belugaforeverinmyass@test.com"
 	r.users[email] = &user.User{
@@ -87,7 +113,8 @@ func TestRegister_FailsUserDuplicate(t *testing.T) {
 
 func TestLogin_Success(t *testing.T) {
 	r := NewFakeUserRepository()
-	s := NewAuthService(r)
+	fp := NewFakeProfileService()
+	s := NewAuthService(r, fp)
 
 	const email = "naochora67@test.com"
 	hash, _ := security.HashPassword("bandidonquer67resenha")
@@ -111,7 +138,8 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_FailsUserDontExist(t *testing.T) {
 	r := NewFakeUserRepository()
-	s := NewAuthService(r)
+	fp := NewFakeProfileService()
+	s := NewAuthService(r, fp)
 
 	req := &dto.LoginRequest{
 		Email: "naochorax@test.com",

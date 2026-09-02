@@ -65,20 +65,20 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Goal module
 	goalModule := goal.NewModule(queries)
 
+	// Profile module
+	profileModule := profile.NewProfileModule(queries, cfg)
+
 	// OAuth module
-	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
+	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, profileModule.Service, cfg)
 
 	// Auth module
-	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, cfg)
+	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
 
 	// AI clients
 	geminiClient, err := ai.NewGeminiClient(context.Background(), *cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	// Profile module
-	profileModule := profile.NewProfileModule(queries, cfg)
 
 	// Health module
 	healthModule := health.NewModule(queries, geminiClient, time.Now())
@@ -94,7 +94,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	taskModule := task.NewTaskModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
 
 	// Task attempt module
-	taskAttemptModule := task_attempt.NewModule(queries, taskModule)
+	taskAttemptModule := task_attempt.NewModule(queries, taskModule, profileModule.Service)
 
 	// Task correction module
 	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)

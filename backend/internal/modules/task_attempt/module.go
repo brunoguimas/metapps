@@ -1,7 +1,9 @@
 package task_attempt
 
 import (
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 )
 
@@ -11,9 +13,10 @@ type Module struct {
 	Handler    *Handler
 }
 
-func NewModule(q *db.Queries, taskModule *task.TaskModule) *Module {
+func NewModule(q *db.Queries, taskModule *task.TaskModule, profiles profile.ProfileService) *Module {
 	r := NewRepository(q)
-	s := NewService(r, taskModule.Repository)
+	tr := topic.NewTopicRepository(q)
+	s := NewService(r, taskModule.Repository, tr, profiles)
 	h := NewHandler(s)
 
 	return &Module{

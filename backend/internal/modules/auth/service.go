@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth/dto"
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/security"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -15,12 +16,14 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo user.UserRepository
+	userRepo       user.UserRepository
+	profileService profile.ProfileService
 }
 
-func NewAuthService(r user.UserRepository) AuthService {
+func NewAuthService(r user.UserRepository, profileService profile.ProfileService) AuthService {
 	return &authService{
-		userRepo: r,
+		userRepo:       r,
+		profileService: profileService,
 	}
 }
 
@@ -50,7 +53,17 @@ func (s *authService) Register(c context.Context, u *dto.RegisterRequest) (*user
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't check user", err)
 	}
 
-	return s.userRepo.Create(c, user)
+	created, err := s.userRepo.Create(c, user)
+	if err != nil {
+		return nil, err
+	}
+
+	// Criar o perfil automaticamente para que XP/streak funcionem.
+	if _, err := s.profileService.CreateProfile(c, created.ID); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 func (s *authService) Login(c context.Context, u *dto.LoginRequest) (*user.User, error) {

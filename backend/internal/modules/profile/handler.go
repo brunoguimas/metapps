@@ -52,8 +52,18 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 
 	profile, err := h.service.GetProfileByUserID(c.Request.Context(), userID)
 	if err != nil {
-		httpx.ErrorFrom(c, err)
-		return
+		// Se o perfil ainda não existe (ex.: usuário criado antes da
+		// criação automática), cria na hora para XP/streak funcionarem.
+		if appErr, ok := apperrors.As(err); ok && appErr.Code() == apperrors.ErrProfileNotFound {
+			profile, err = h.service.CreateProfile(c.Request.Context(), userID)
+			if err != nil {
+				httpx.ErrorFrom(c, err)
+				return
+			}
+		} else {
+			httpx.ErrorFrom(c, err)
+			return
+		}
 	}
 
 	httpx.OK(c, gin.H{

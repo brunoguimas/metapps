@@ -5,10 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
+	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
@@ -20,12 +23,14 @@ type Service interface {
 }
 
 type service struct {
-	repo     Repository
-	taskRepo task.TaskRepository
+	repo           Repository
+	taskRepo       task.TaskRepository
+	topicRepo      topic.TopicRepository
+	profileService profile.ProfileService
 }
 
-func NewService(r Repository, taskRepo task.TaskRepository) Service {
-	return &service{repo: r, taskRepo: taskRepo}
+func NewService(r Repository, taskRepo task.TaskRepository, topicRepo topic.TopicRepository, profileService profile.ProfileService) Service {
+	return &service{repo: r, taskRepo: taskRepo, topicRepo: topicRepo, profileService: profileService}
 }
 
 func (s *service) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
@@ -60,6 +65,21 @@ func (s *service) Submit(c context.Context, userID, taskID uuid.UUID, input *Cre
 	updatedTask, err := s.taskRepo.MarkDone(c, userID, taskID)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Concede XP no backend quando o tópico é dominado.
+	if score != nil && currentTask.TopicID != uuid.Nil {
+		if tr, err := s.topicRepo.Get(c, currentTask.TopicID); err == nil && tr != nil {
+			if *score >= tr.RequiredMastery {
+				xpToAdd := int(math.Round(tr.Weight * 10))
+				if xpToAdd > 0 {
+					if _, err := s.profileService.AddXP(c, userID, xpToAdd); err != nil {
+						// XP não deve quebrar o fluxo de submissão da tentativa.
+						_ = err
+					}
+				}
+			}
+		}
 	}
 
 	return created, updatedTask, nil

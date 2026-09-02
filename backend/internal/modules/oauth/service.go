@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 
+	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"google.golang.org/api/idtoken"
@@ -13,14 +14,16 @@ type OAuthAccountService interface {
 }
 
 type oauthAccountService struct {
-	accountRepo OAuthAccountRepository
-	userRepo    user.UserRepository
+	accountRepo    OAuthAccountRepository
+	userRepo       user.UserRepository
+	profileService profile.ProfileService
 }
 
-func NewOAuthService(accountRepo OAuthAccountRepository, userRepo user.UserRepository) OAuthAccountService {
+func NewOAuthService(accountRepo OAuthAccountRepository, userRepo user.UserRepository, profileService profile.ProfileService) OAuthAccountService {
 	return &oauthAccountService{
-		accountRepo: accountRepo,
-		userRepo:    userRepo,
+		accountRepo:    accountRepo,
+		userRepo:       userRepo,
+		profileService: profileService,
 	}
 }
 func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payload) (*OAuthAccount, error) {
@@ -71,6 +74,11 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 				return nil, appErr
 			}
 			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
+		}
+
+		// Criar o perfil automaticamente para que XP/streak funcionem.
+		if _, err := s.profileService.CreateProfile(c, u.ID); err != nil {
+			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create profile", err)
 		}
 	}
 

@@ -2,10 +2,11 @@ package profile
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
+	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
-	"database/sql"
 )
 
 // ProfileRepository defines the interface for profile storage.
@@ -31,6 +32,9 @@ func NewProfileRepository(queries *db.Queries) ProfileRepository {
 func (r *profileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Profile, error) {
 	dbProfile, err := r.queries.GetProfileByUserID(ctx, userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, apperrors.NewAppError(apperrors.ErrProfileNotFound, "profile not found", err)
+		}
 		return nil, err
 	}
 	return dbProfileToModel(&dbProfile), nil
