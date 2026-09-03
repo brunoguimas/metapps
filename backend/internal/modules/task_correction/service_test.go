@@ -171,12 +171,12 @@ func TestCreateCorrection_Success(t *testing.T) {
 			taskID: {
 				ID:      taskID,
 				UserID:  userID,
-				Type:    task.TaskEssay,
-				Content: json.RawMessage(`{"instructions":"Escreva sobre algo"}`),
+				Type:    task.TaskQuiz,
+				Content: json.RawMessage(`{"questions":[{"statement":"Pergunta","alternatives":["a","b","c","d"],"answer":0,"explanation":"Explicacao"}]}`),
 				Meta: task.TaskMeta{
 					Title:        "Tarefa de Teste",
 					Description:  "Descrição da tarefa",
-					Expectations: "Escrever algo coerente",
+					Expectations: "Responder corretamente",
 				},
 			},
 		},
@@ -268,104 +268,6 @@ func TestGetCorrectionByAttemptID_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, corr)
 	assert.Equal(t, "Ótimo", corr.Feedback)
-}
-
-func TestGenerateEssayCorrection_Success(t *testing.T) {
-	userID := uuid.New()
-	taskID := uuid.New()
-	attemptID := uuid.New()
-
-	essayContent := task.EssayContent{
-		Instructions: "Escreva sobre tecnologia",
-		MinWords:     50,
-		MaxWords:     200,
-	}
-	essayContentJSON, _ := json.Marshal(essayContent)
-	attemptContentJSON, _ := json.Marshal("Esta é uma redação sobre tecnologia na sociedade moderna.")
-
-	attemptRepo := &fakeAttemptRepository{
-		attempts: map[uuid.UUID]*task_attempt.TaskAttempt{
-			attemptID: {
-				ID:      attemptID,
-				UserID:  userID,
-				TaskID:  taskID,
-				Content: attemptContentJSON,
-			},
-		},
-	}
-
-	taskRepo := &fakeTaskRepository{
-		tasks: map[uuid.UUID]*task.Task{
-			taskID: {
-				ID:      taskID,
-				UserID:  userID,
-				Type:    task.TaskEssay,
-				Content: essayContentJSON,
-				Meta: task.TaskMeta{
-					Title:        "Redação de IA",
-					Description:  "Escrever texto",
-					Expectations: "Clareza",
-				},
-			},
-		},
-	}
-
-	aiClient := &fakeAIClient{
-		generateFn: func(ctx context.Context, prompt string) (string, error) {
-			return "```json\n{\"feedback\":\"Texto muito bem escrito!\",\"score\":85.0}\n```", nil
-		},
-	}
-
-	topicRepo := &fakeTopicRepository{}
-	progressRepo := &fakeTopicProgressRepository{}
-	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, aiClient)
-
-	corr, err := svc.GenerateEssayCorrection(context.Background(), userID, attemptID)
-
-	require.NoError(t, err)
-	require.NotNil(t, corr)
-	assert.Equal(t, attemptID, corr.AttemptID)
-	assert.Equal(t, "Texto muito bem escrito!", corr.Feedback)
-	assert.Equal(t, 0.85, *corr.Score)
-}
-
-func TestGenerateEssayCorrection_NotEssay(t *testing.T) {
-	userID := uuid.New()
-	taskID := uuid.New()
-	attemptID := uuid.New()
-
-	attemptRepo := &fakeAttemptRepository{
-		attempts: map[uuid.UUID]*task_attempt.TaskAttempt{
-			attemptID: {
-				ID:      attemptID,
-				UserID:  userID,
-				TaskID:  taskID,
-				Content: json.RawMessage(`"resposta"`),
-			},
-		},
-	}
-
-	taskRepo := &fakeTaskRepository{
-		tasks: map[uuid.UUID]*task.Task{
-			taskID: {
-				ID:     taskID,
-				UserID: userID,
-				Type:   task.TaskQuiz,
-			},
-		},
-	}
-
-	topicRepo := &fakeTopicRepository{}
-	progressRepo := &fakeTopicProgressRepository{}
-	svc := NewService(newFakeRepo(), attemptRepo, taskRepo, topicRepo, progressRepo, &fakeAIClient{})
-
-	corr, err := svc.GenerateEssayCorrection(context.Background(), userID, attemptID)
-
-	require.Error(t, err)
-	require.Nil(t, corr)
-	appErr, ok := apperrors.As(err)
-	require.True(t, ok)
-	assert.Equal(t, apperrors.ErrTaskAttemptTypeMismatch, appErr.Code())
 }
 
 func TestGenerateQuizCorrection_Success(t *testing.T) {
@@ -466,7 +368,7 @@ func TestGenerateQuizCorrection_NotQuiz(t *testing.T) {
 			taskID: {
 				ID:     taskID,
 				UserID: userID,
-				Type:   task.TaskEssay, // Not a quiz
+				Type:   task.TaskType("unknown"), // Not a quiz
 			},
 		},
 	}

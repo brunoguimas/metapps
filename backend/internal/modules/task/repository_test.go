@@ -24,20 +24,20 @@ func TestRepositoryCreate_Success(t *testing.T) {
 	result, err := repo.Create(context.Background(), &Task{
 		UserID:  user.ID,
 		TopicID: topic.ID,
-		Type:    TaskEssay,
+		Type:    TaskQuiz,
 		Meta: TaskMeta{
 			Title:        "Redacao",
 			Description:  "Tema",
 			Expectations: "Coerencia",
 		},
-		Content: json.RawMessage(`{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}`),
+		Content: json.RawMessage(`{"questions":[{"statement":"Pergunta","material":[],"alternatives":["a","b","c","d"],"answer":0,"explanation":"Explicacao"}]}`),
 	})
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, user.ID, result.UserID)
 	assert.Equal(t, topic.ID, result.TopicID)
-	assert.Equal(t, TaskEssay, result.Type)
+	assert.Equal(t, TaskQuiz, result.Type)
 	assert.Equal(t, "Redacao", result.Meta.Title)
 }
 

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,6 @@ import (
 type fakeCorrectionService struct {
 	createFn   func(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error)
 	getByAttFn func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
-	essayFn    func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 	quizFn     func(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 }
 
@@ -38,13 +36,6 @@ func (s *fakeCorrectionService) GetCorrectionByAttemptID(ctx context.Context, us
 
 func (s *fakeCorrectionService) UpdateCorrection(ctx context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	return correction, nil
-}
-
-func (s *fakeCorrectionService) GenerateEssayCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
-	if s.essayFn != nil {
-		return s.essayFn(ctx, userID, attemptID)
-	}
-	return nil, nil
 }
 
 func (s *fakeCorrectionService) GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
@@ -133,29 +124,4 @@ func TestHandlerGetCorrectionByAttemptID_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, attemptID, resp.Correction.AttemptID)
 	assert.Equal(t, "Ótima resposta", resp.Correction.Feedback)
-}
-
-func TestHandlerGenerateEssayCorrection_Forbidden(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	userID := uuid.New()
-	attemptID := uuid.New()
-
-	svc := &fakeCorrectionService{
-		essayFn: func(_ context.Context, _, _ uuid.UUID) (*TaskCorrection, error) {
-			return nil, apperrors.NewAppError(apperrors.ErrForbidden, "unauthorized to correct this attempt", nil)
-		},
-	}
-
-	handler := NewHandler(svc, nil)
-
-	req := httptest.NewRequest(http.MethodPost, "/protected/corrections/essay/"+attemptID.String(), nil)
-	rec := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rec)
-	c.Request = req
-	c.Params = gin.Params{{Key: "attemptID", Value: attemptID.String()}}
-	c.Set("user_id", userID.String())
-
-	handler.GenerateEssayCorrection(c)
-
-	require.Equal(t, http.StatusForbidden, rec.Code)
 }

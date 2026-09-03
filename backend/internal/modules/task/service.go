@@ -131,13 +131,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		}
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read quiz schema", err)
 	}
-	essay, err := ai.FS.ReadFile("schemas/essay.schema.json")
-	if err != nil {
-		if appErr, ok := apperrors.As(err); ok {
-			return nil, appErr
-		}
-		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read essay schema", err)
-	}
 
 	data := struct {
 		TopicTitle           string
@@ -151,7 +144,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		Difficulties         string
 		PerformanceSummary   string
 		QuizSchema           string
-		EssaySchema          string
 	}{
 		TopicTitle:           t.Title,
 		TopicDescription:     t.Description,
@@ -164,7 +156,6 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		Difficulties:         s.computeDifficulties(progress),
 		PerformanceSummary:   s.computePerformanceSummary(progress),
 		QuizSchema:           string(quiz),
-		EssaySchema:          string(essay),
 	}
 
 	// Try up to 3 times with improving prompts
@@ -204,7 +195,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 			continue
 		}
 
-		if aiResp.Type != TaskQuiz && aiResp.Type != TaskEssay {
+		if aiResp.Type != TaskQuiz {
 			lastError = apperrors.NewAppError(
 				apperrors.ErrInvalidAIResponse,
 				"invalid task type returned by AI",

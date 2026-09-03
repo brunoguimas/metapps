@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     goal_id UUID NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
     content JSONB NOT NULL,
     type TEXT NOT NULL 
-        CHECK (type = 'quiz' OR type = 'question' OR type = 'essay'),
+        CHECK (type = 'quiz' OR type = 'question'),
     done BOOLEAN NOT NULL DEFAULT false,
     done_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now()

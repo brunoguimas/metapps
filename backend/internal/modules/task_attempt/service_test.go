@@ -102,7 +102,7 @@ func TestServiceSubmit_Fail(t *testing.T) {
 		},
 		&fakeRepositoryAttempt{
 			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error) {
-				return &task.Task{Type: task.TaskEssay}, nil
+				return &task.Task{Type: task.TaskType("unknown")}, nil
 			},
 			markDoneFn: func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error) {
 				t.Fatal("MarkDone should not be called")

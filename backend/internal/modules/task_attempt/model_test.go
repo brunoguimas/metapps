@@ -4,8 +4,8 @@ import "testing"
 
 func TestParseCreateAttemptInput_RejectsUnknownTopLevelField(t *testing.T) {
 	_, err := ParseCreateAttemptInput([]byte(`{
-		"type":"essay",
-		"response":"texto",
+		"type":"quiz",
+		"response":[{"question_index":0,"answer":1}],
 		"extra":true
 	}`))
 	if err == nil {
@@ -15,8 +15,8 @@ func TestParseCreateAttemptInput_RejectsUnknownTopLevelField(t *testing.T) {
 
 func TestParseCreateAttemptInput_RejectsUnknownMetadataField(t *testing.T) {
 	_, err := ParseCreateAttemptInput([]byte(`{
-		"type":"essay",
-		"response":"texto",
+		"type":"quiz",
+		"response":[{"question_index":0,"answer":1}],
 		"metadata":{"foo":"bar"}
 	}`))
 	if err == nil {

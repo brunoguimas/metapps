@@ -80,15 +80,6 @@ func (s *taskAttemptService) evaluateAttempt(currentTask *task.Task, input *Crea
 	}
 
 	switch currentTask.Type {
-	case task.TaskEssay:
-		var response string
-		if err := json.Unmarshal(input.Response, &response); err != nil {
-			return nil, nil, nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "essay response must be a string", err)
-		}
-		if strings.TrimSpace(response) == "" {
-			return nil, nil, nil, apperrors.NewAppError(apperrors.ErrEmptyEssayResponse, "essay response cannot be empty", nil)
-		}
-		return content, nil, nil, nil
 	case task.TaskQuiz:
 		score, evaluation, err := evaluateQuiz(currentTask, input.Response)
 		if err != nil {

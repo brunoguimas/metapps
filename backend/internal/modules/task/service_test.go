@@ -222,7 +222,7 @@ func TestServiceCreate_Success(t *testing.T) {
 				assert.Contains(t, prompt, "Baixa maestria no tópico")
 				assert.Contains(t, prompt, "Desempenho recente:")
 				assert.Contains(t, prompt, "Tentativas: 0, Mestria: 0%, Confiança: 0%")
-				return `{"type":"essay","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"material":[],"instructions":"Escreva","min_words":100,"max_words":200}}`, nil
+				return `{"type":"quiz","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"questions":[{"statement":"Pergunta","material":[],"alternatives":["a","b","c","d"],"answer":0,"explanation":"Explicacao"}]}}`, nil
 			},
 		},
 		fakeTaskRepo,
@@ -238,7 +238,7 @@ func TestServiceCreate_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, createdTask)
-	assert.Equal(t, TaskEssay, createdTask.Type)
+	assert.Equal(t, TaskQuiz, createdTask.Type)
 	assert.Equal(t, "Redacao", createdTask.Meta.Title)
 	assert.Equal(t, createdTask.ID, result.ID)
 }

@@ -89,7 +89,6 @@ func NewRouter(
 		{
 			corrections.POST("", tcHandler.CreateCorrection)
 			corrections.GET("/attempt/:attemptID", tcHandler.GetCorrectionByAttemptID)
-			corrections.POST("/essay/:attemptID", tcHandler.GenerateEssayCorrection)
 			corrections.POST("/quiz/:attemptID", tcHandler.GenerateQuizCorrection)
 		}
 		profile := protected.Group("/profile")
