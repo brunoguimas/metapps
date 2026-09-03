@@ -1,14 +1,17 @@
 {
+  "id": "com.metapps.app",
   "name": "Metapps",
   "short_name": "Metapps",
   "description": "Aprenda com IA",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#08081c",
   "theme_color": "#4f7edd",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
   "scope": "/",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
