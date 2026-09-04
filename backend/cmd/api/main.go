@@ -66,7 +66,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	goalModule := goal.NewModule(queries)
 
 	// OAuth module
-	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, cfg)
+	oauthModule := oauth.NewModule(queries, userModule.Repository, userModule.Service, jwtModule.Service, cfg)
 
 	// Profile module
 	profileModule := profile.NewModule(queries, cfg)

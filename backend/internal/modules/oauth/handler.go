@@ -5,6 +5,7 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
+	"github.com/brunoguimas/metapps/backend/internal/modules/user"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	"github.com/brunoguimas/metapps/backend/internal/platform/security"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -14,13 +15,15 @@ import (
 
 type Handler struct {
 	oauth Service
+	users user.Service
 	jwt   jwt.Service
 	cfg   config.Config
 }
 
-func NewHandler(s Service, j jwt.Service, c config.Config) *Handler {
+func NewHandler(s Service, u user.Service, j jwt.Service, c config.Config) *Handler {
 	return &Handler{
 		oauth: s,
+		users: u,
 		jwt:   j,
 		cfg:   c,
 	}
@@ -82,7 +85,13 @@ func (h *Handler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(account.UserID)
+	u, err := h.users.GetUserByID(c.Request.Context(), account.UserID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	accessToken, err := h.jwt.GenerateAccessToken(account.UserID, u.Role)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
