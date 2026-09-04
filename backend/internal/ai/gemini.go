@@ -11,14 +11,11 @@ import (
 	"google.golang.org/genai"
 )
 
-const (
-	Model = "models/gemini-3.5-flash-lite"
-)
-
 type GeminiClient struct {
 	client   *genai.Client
 	apiKey   string
 	mockOnce sync.Once
+	model    string
 }
 
 func NewGeminiClient(ctx context.Context, cfg config.Config) (*GeminiClient, error) {
@@ -32,6 +29,7 @@ func NewGeminiClient(ctx context.Context, cfg config.Config) (*GeminiClient, err
 	return &GeminiClient{
 		client: client,
 		apiKey: cfg.GeminiKey,
+		model:  cfg.GeminiModel,
 	}, nil
 }
 
@@ -45,7 +43,7 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 
 	resp, err := g.client.Models.GenerateContent(
 		ctx,
-		Model,
+		g.model,
 		genai.Text(prompt),
 		nil,
 	)
