@@ -214,7 +214,7 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 		}
 
 		task := &Task{
-			UserID:  userID,
+			UserID:  uuid.NullUUID{UUID: userID, Valid: true},
 			TopicID: topicID,
 			Meta:    aiResp.Meta,
 			Type:    aiResp.Type,

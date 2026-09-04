@@ -66,7 +66,7 @@ func TestServiceSubmit_Success(t *testing.T) {
 			getByIDFn: func(context.Context, uuid.UUID, uuid.UUID) (*task.Task, error) {
 				return &task.Task{
 					ID:      taskID,
-					UserID:  userID,
+					UserID:  uuid.NullUUID{UUID: userID, Valid: true},
 					Type:    task.TaskQuiz,
 					Content: json.RawMessage(`{"questions":[{"statement":"2+2","alternatives":["3","4"],"answer":1,"explanation":"4"}]}`),
 				}, nil

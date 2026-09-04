@@ -14,6 +14,48 @@ import (
 	"github.com/google/uuid"
 )
 
+type FlashcardSource string
+
+const (
+	FlashcardSourceAi     FlashcardSource = "ai"
+	FlashcardSourceManual FlashcardSource = "manual"
+)
+
+func (e *FlashcardSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FlashcardSource(s)
+	case string:
+		*e = FlashcardSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FlashcardSource: %T", src)
+	}
+	return nil
+}
+
+type NullFlashcardSource struct {
+	FlashcardSource FlashcardSource
+	Valid           bool // Valid is true if FlashcardSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFlashcardSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.FlashcardSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FlashcardSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFlashcardSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FlashcardSource), nil
+}
+
 type TopicStatus string
 
 const (
@@ -58,6 +100,41 @@ func (ns NullTopicStatus) Value() (driver.Value, error) {
 	return string(ns.TopicStatus), nil
 }
 
+type Classroom struct {
+	ID          uuid.UUID
+	OwnerID     uuid.UUID
+	Name        string
+	Description string
+	InviteCode  string
+	GoalID      uuid.NullUUID
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ClassroomAssignment struct {
+	ID          uuid.UUID
+	ClassroomID uuid.UUID
+	Title       string
+	Description string
+	GoalID      uuid.NullUUID
+	CreatedBy   uuid.UUID
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ClassroomMembership struct {
+	ID          uuid.UUID
+	ClassroomID uuid.UUID
+	UserID      uuid.UUID
+	RoleInClass string
+	Status      string
+	JoinedAt    sql.NullTime
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type EmailCode struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
@@ -67,6 +144,30 @@ type EmailCode struct {
 	MaxAttempts int32
 	ExpiresAt   time.Time
 	CreatedAt   time.Time
+}
+
+type Flashcard struct {
+	ID        uuid.UUID
+	UserID    uuid.NullUUID
+	TopicID   uuid.UUID
+	Source    FlashcardSource
+	Front     string
+	Back      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type FlashcardProgress struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	FlashcardID    uuid.UUID
+	EaseFactor     float64
+	IntervalDays   int32
+	Repetitions    int32
+	NextReviewAt   time.Time
+	LastReviewedAt sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Goal struct {
@@ -107,7 +208,7 @@ type RefreshToken struct {
 
 type Task struct {
 	ID        uuid.UUID
-	UserID    uuid.UUID
+	UserID    uuid.NullUUID
 	Content   json.RawMessage
 	Type      string
 	Done      bool
@@ -178,4 +279,5 @@ type User struct {
 	PasswordHash sql.NullString
 	Verified     bool
 	CreatedAt    time.Time
+	Role         string
 }

@@ -41,6 +41,7 @@ func Clean(t *testing.T, conn *sql.DB) {
 	t.Helper()
 	_, err := conn.Exec(`
 		TRUNCATE TABLE
+			flashcards,
 			task_corrections,
 			task_attempts,
 			tasks,
@@ -98,7 +99,7 @@ func CreateTopic(t *testing.T, queries *db.Queries, goalID uuid.UUID, title, des
 func CreateTask(t *testing.T, queries *db.Queries, userID, topicID uuid.UUID, content json.RawMessage, taskType string) db.Task {
 	t.Helper()
 	task, err := queries.CreateTask(context.Background(), db.CreateTaskParams{
-		UserID:  userID,
+		UserID:  uuid.NullUUID{UUID: userID, Valid: true},
 		TopicID: topicID,
 		Content: content,
 		Type:    taskType,

@@ -19,7 +19,8 @@ func TestRepositoryCreate_Success(t *testing.T) {
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
-	taskRow := dbtest.CreateTask(t, queries, user.ID, goal.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(task.TaskQuiz))
+	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
+	taskRow := dbtest.CreateTask(t, queries, user.ID, topic.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(task.TaskQuiz))
 	repo := NewRepository(queries)
 	score := 0.75
 
@@ -46,7 +47,8 @@ func TestRepositoryCreate_FailInvalidContent(t *testing.T) {
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
-	taskRow := dbtest.CreateTask(t, queries, user.ID, goal.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(task.TaskQuiz))
+	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
+	taskRow := dbtest.CreateTask(t, queries, user.ID, topic.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(task.TaskQuiz))
 	repo := NewRepository(queries)
 
 	result, err := repo.Create(context.Background(), &TaskAttempt{

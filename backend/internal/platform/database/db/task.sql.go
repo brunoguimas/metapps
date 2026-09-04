@@ -18,7 +18,7 @@ VALUES ($1, $2, $3, $4) RETURNING id, user_id, content, type, done, done_at, cre
 `
 
 type CreateTaskParams struct {
-	UserID  uuid.UUID
+	UserID  uuid.NullUUID
 	TopicID uuid.UUID
 	Content json.RawMessage
 	Type    string
@@ -53,7 +53,7 @@ WHERE id = $1
 
 type GetTaskByIDParams struct {
 	ID     uuid.UUID
-	UserID uuid.UUID
+	UserID uuid.NullUUID
 }
 
 func (q *Queries) GetTaskByID(ctx context.Context, arg GetTaskByIDParams) (Task, error) {
@@ -77,7 +77,7 @@ SELECT id, user_id, content, type, done, done_at, created_at, topic_id FROM publ
 WHERE user_id = $1
 `
 
-func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error) {
+func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.NullUUID) ([]Task, error) {
 	rows, err := q.db.QueryContext(ctx, getTasksByUserID, userID)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ RETURNING id, user_id, content, type, done, done_at, created_at, topic_id
 
 type MarkTaskDoneParams struct {
 	ID     uuid.UUID
-	UserID uuid.UUID
+	UserID uuid.NullUUID
 }
 
 func (q *Queries) MarkTaskDone(ctx context.Context, arg MarkTaskDoneParams) (Task, error) {
