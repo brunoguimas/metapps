@@ -8,7 +8,7 @@ import (
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 )
 
-type OAuthAccountRepository interface {
+type Repository interface {
 	CreateAccount(c context.Context, s *OAuthAccount) (*OAuthAccount, error)
 	GetAccountByProviderID(c context.Context, provider, providerUserID string) (*OAuthAccount, error)
 }
@@ -17,7 +17,7 @@ type oauthAccountRepository struct {
 	queries *db.Queries
 }
 
-func NewOAuthAccountRepository(q *db.Queries) OAuthAccountRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &oauthAccountRepository{
 		queries: q,
 	}
@@ -25,9 +25,9 @@ func NewOAuthAccountRepository(q *db.Queries) OAuthAccountRepository {
 
 func (r *oauthAccountRepository) CreateAccount(c context.Context, a *OAuthAccount) (*OAuthAccount, error) {
 	account, err := r.queries.CreateOAuthAccount(c, db.CreateOAuthAccountParams{
-		a.UserID,
-		a.Provider,
-		a.ProviderUserID,
+		UserID:         a.UserID,
+		Provider:       a.Provider,
+		ProviderUserID: a.ProviderUserID,
 	})
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)

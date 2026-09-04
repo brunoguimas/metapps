@@ -22,18 +22,18 @@ type Service interface {
 	ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error)
 }
 
-type service struct {
+type taskAttemptService struct {
 	repo           Repository
-	taskRepo       task.TaskRepository
-	topicRepo      topic.TopicRepository
-	profileService profile.ProfileService
+	taskRepo       task.Repository
+	topicRepo      topic.Repository
+	profileService profile.Service
 }
 
-func NewService(r Repository, taskRepo task.TaskRepository, topicRepo topic.TopicRepository, profileService profile.ProfileService) Service {
-	return &service{repo: r, taskRepo: taskRepo, topicRepo: topicRepo, profileService: profileService}
+func NewService(r Repository, taskRepo task.Repository, topicRepo topic.Repository, profileService profile.Service) Service {
+	return &taskAttemptService{repo: r, taskRepo: taskRepo, topicRepo: topicRepo, profileService: profileService}
 }
 
-func (s *service) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
+func (s *taskAttemptService) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 	currentTask, err := s.taskRepo.GetByID(c, userID, taskID)
 	if err != nil {
 		return nil, nil, err
@@ -85,15 +85,15 @@ func (s *service) Submit(c context.Context, userID, taskID uuid.UUID, input *Cre
 	return created, updatedTask, nil
 }
 
-func (s *service) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAttempt, error) {
+func (s *taskAttemptService) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAttempt, error) {
 	return s.repo.ListByUser(c, userID)
 }
 
-func (s *service) ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error) {
+func (s *taskAttemptService) ListByUserAndTask(c context.Context, userID, taskID uuid.UUID) ([]*TaskAttempt, error) {
 	return s.repo.ListByUserAndTask(c, userID, taskID)
 }
 
-func (s *service) evaluateAttempt(currentTask *task.Task, input *CreateAttemptInput) (json.RawMessage, *float64, json.RawMessage, error) {
+func (s *taskAttemptService) evaluateAttempt(currentTask *task.Task, input *CreateAttemptInput) (json.RawMessage, *float64, json.RawMessage, error) {
 	content, err := json.Marshal(input)
 	if err != nil {
 		return nil, nil, nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task attempt payload", err)

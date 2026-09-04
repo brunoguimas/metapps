@@ -9,22 +9,22 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 )
 
-type TaskModule struct {
-	Repository TaskRepository
-	Service    TaskService
-	Handler    *TaskHandler
+type Module struct {
+	Repository Repository
+	Service    Service
+	Handler    *Handler
 }
 
-func NewTaskModule(q *db.Queries, t topic.TopicService, ai ai.Client, g *goal.Module, c *config.Config) *TaskModule {
-	r := NewTaskRepository(q)
-	tr := topic.NewTopicRepository(q)
-	pr := topic.NewTopicProgressRepository(q)
-	tdr := topic_dependency.NewTopicDependencyRepository(q)
-	td := topic_dependency.NewTopicDependencyService(tdr)
-	s := NewTaskService(ai, r, t, tr, pr, td, g.Service, c)
-	h := NewTaskHandler(s, g.Service, c)
+func NewModule(q *db.Queries, t topic.Service, ai ai.Client, g *goal.Module, c *config.Config) *Module {
+	r := NewRepository(q)
+	tr := topic.NewRepository(q)
+	pr := topic.NewProgressRepository(q)
+	tdr := topic_dependency.NewRepository(q)
+	td := topic_dependency.NewService(tdr)
+	s := NewService(ai, r, t, tr, pr, td, g.Service, c)
+	h := NewHandler(s, g.Service, c)
 
-	return &TaskModule{
+	return &Module{
 		Repository: r,
 		Service:    s,
 		Handler:    h,

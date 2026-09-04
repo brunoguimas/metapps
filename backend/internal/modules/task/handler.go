@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type TaskHandler struct {
-	tasks TaskService
+type Handler struct {
+	tasks Service
 	cfg   *config.Config
 }
 
-func NewTaskHandler(s TaskService, g goal.GoalService, c *config.Config) *TaskHandler {
-	return &TaskHandler{
+func NewHandler(s Service, g goal.Service, c *config.Config) *Handler {
+	return &Handler{
 		tasks: s,
 		cfg:   c,
 	}
@@ -27,7 +27,7 @@ type generateRequest struct {
 	TopicID uuid.UUID `json:"topic_id" binding:"required"`
 }
 
-func (h *TaskHandler) Generate(c *gin.Context) {
+func (h *Handler) Generate(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -53,7 +53,7 @@ func (h *TaskHandler) Generate(c *gin.Context) {
 	})
 }
 
-func (h *TaskHandler) List(c *gin.Context) {
+func (h *Handler) List(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -71,7 +71,7 @@ func (h *TaskHandler) List(c *gin.Context) {
 	})
 }
 
-func (h *TaskHandler) Get(c *gin.Context) {
+func (h *Handler) Get(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)

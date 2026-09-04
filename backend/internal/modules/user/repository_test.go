@@ -41,16 +41,15 @@ func cleanTables(t *testing.T, db *sql.DB) {
 	require.NoError(t, err)
 }
 
-
-func TestUserRepository_Create_Success(t *testing.T) {
+func TestRepository_Create_Success(t *testing.T) {
 	conn := setupTest(t)
 	cleanTables(t, conn)
 	queries := db.New(conn)
-	r := NewUserRepository(queries)
+	r := NewRepository(queries)
 
 	user := &User{
-		Username: "bruno",
-		Email: "bruno@test.com",
+		Username:     "bruno",
+		Email:        "bruno@test.com",
 		PasswordHash: "hashdosixseven",
 	}
 
@@ -62,15 +61,15 @@ func TestUserRepository_Create_Success(t *testing.T) {
 	assert.NotEqual(t, uuid.Nil, result.ID)
 }
 
-func TestUserRepository_Create_FailUserAlreadyExists(t *testing.T) {
+func TestRepository_Create_FailUserAlreadyExists(t *testing.T) {
 	conn := setupTest(t)
 	cleanTables(t, conn)
 	queries := db.New(conn)
-	r := NewUserRepository(queries)
+	r := NewRepository(queries)
 
 	user := &User{
-		Username: "bruno",
-		Email: "bruno@test.com",
+		Username:     "bruno",
+		Email:        "bruno@test.com",
 		PasswordHash: "hashdosixseven",
 	}
 

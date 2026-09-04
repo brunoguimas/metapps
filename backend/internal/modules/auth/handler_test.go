@@ -33,42 +33,42 @@ func (s *fakeAuthService) Login(c context.Context, req *dto.LoginRequest) (*user
 	return s.loginFn(c, req)
 }
 
-type fakeEmailService struct {
+type fakeMailService struct {
 	createEmailCodeFn      func(context.Context, uuid.UUID) (string, error)
 	sendVerificationCodeFn func(context.Context, string, string, string) error
 }
 
-func (s *fakeEmailService) CreateEmailCode(c context.Context, userID uuid.UUID) (string, error) {
+func (s *fakeMailService) CreateEmailCode(c context.Context, userID uuid.UUID) (string, error) {
 	return s.createEmailCodeFn(c, userID)
 }
 
-func (s *fakeEmailService) SendVerificationCode(c context.Context, userEmail, username, code string) error {
+func (s *fakeMailService) SendVerificationCode(c context.Context, userEmail, username, code string) error {
 	return s.sendVerificationCodeFn(c, userEmail, username, code)
 }
 
-func (s *fakeEmailService) VerifyEmailCode(context.Context, uuid.UUID, string) error {
+func (s *fakeMailService) VerifyEmailCode(context.Context, uuid.UUID, string) error {
 	return nil
 }
 
-func (s *fakeEmailService) CreatePasswordResetCode(context.Context, uuid.UUID) (string, error) {
+func (s *fakeMailService) CreatePasswordResetCode(context.Context, uuid.UUID) (string, error) {
 	return "", nil
 }
 
-func (s *fakeEmailService) VerifyPasswordResetCode(context.Context, uuid.UUID, string) error {
+func (s *fakeMailService) VerifyPasswordResetCode(context.Context, uuid.UUID, string) error {
 	return nil
 }
 
-func (s *fakeEmailService) SendPasswordResetCode(context.Context, string, string, string) error {
+func (s *fakeMailService) SendPasswordResetCode(context.Context, string, string, string) error {
 	return nil
 }
 
-type fakeJWTRepository struct{}
+type fakeRepository struct{}
 
-func (r *fakeJWTRepository) CreateRefreshToken(context.Context, uuid.UUID, time.Time) (uuid.UUID, error) {
+func (r *fakeRepository) CreateRefreshToken(context.Context, uuid.UUID, time.Time) (uuid.UUID, error) {
 	return uuid.New(), nil
 }
 
-func (r *fakeJWTRepository) GetRefreshToken(context.Context, uuid.UUID) (*jwt.RefreshToken, error) {
+func (r *fakeRepository) GetRefreshToken(context.Context, uuid.UUID) (*jwt.RefreshToken, error) {
 	return &jwt.RefreshToken{
 		ID:        uuid.New(),
 		UserID:    uuid.New(),
@@ -77,12 +77,12 @@ func (r *fakeJWTRepository) GetRefreshToken(context.Context, uuid.UUID) (*jwt.Re
 	}, nil
 }
 
-func (r *fakeJWTRepository) RevokeRefreshToken(context.Context, uuid.UUID) error {
+func (r *fakeRepository) RevokeRefreshToken(context.Context, uuid.UUID) error {
 	return nil
 }
 
-func newTestJWTService() jwt.JWTService {
-	return jwt.NewJWTService(&fakeJWTRepository{}, "test-secret", "test-issuer", time.Minute, time.Hour)
+func newTestService() jwt.Service {
+	return jwt.NewService(&fakeRepository{}, "test-secret", "test-issuer", time.Minute, time.Hour)
 }
 
 func TestAuthHandlerRegister_Success(t *testing.T) {
@@ -104,7 +104,7 @@ func TestAuthHandlerRegister_Success(t *testing.T) {
 		},
 	}
 
-	emailService := &fakeEmailService{
+	emailService := &fakeMailService{
 		createEmailCodeFn: func(ctx context.Context, id uuid.UUID) (string, error) {
 			emailCodeUserID = id
 			return "123456", nil
@@ -117,7 +117,7 @@ func TestAuthHandlerRegister_Success(t *testing.T) {
 		},
 	}
 
-	handler := NewAuthHandler(authService, nil, nil, emailService, config.Config{})
+	handler := NewHandler(authService, nil, nil, emailService, config.Config{})
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -167,7 +167,7 @@ func TestAuthHandlerRegister_Fail(t *testing.T) {
 		},
 	}
 
-	emailService := &fakeEmailService{
+	emailService := &fakeMailService{
 		createEmailCodeFn: func(context.Context, uuid.UUID) (string, error) {
 			t.Fatal("CreateEmailCode should not be called on register failure")
 			return "", nil
@@ -178,7 +178,7 @@ func TestAuthHandlerRegister_Fail(t *testing.T) {
 		},
 	}
 
-	handler := NewAuthHandler(authService, nil, nil, emailService, config.Config{})
+	handler := NewHandler(authService, nil, nil, emailService, config.Config{})
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -223,10 +223,10 @@ func TestAuthHandlerLogin_Success(t *testing.T) {
 		},
 	}
 
-	handler := NewAuthHandler(
+	handler := NewHandler(
 		authService,
 		nil,
-		newTestJWTService(),
+		newTestService(),
 		nil,
 		config.Config{
 			RequireEmailVerification: true,
@@ -278,7 +278,7 @@ func TestAuthHandlerLogin_Fail(t *testing.T) {
 		},
 	}
 
-	handler := NewAuthHandler(authService, nil, nil, nil, config.Config{})
+	handler := NewHandler(authService, nil, nil, nil, config.Config{})
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -319,7 +319,7 @@ func TestAuthHandlerLogin_FailEmailNotVerified(t *testing.T) {
 		},
 	}
 
-	handler := NewAuthHandler(authService, nil, newTestJWTService(), nil, config.Config{
+	handler := NewHandler(authService, nil, newTestService(), nil, config.Config{
 		RequireEmailVerification: true,
 	})
 

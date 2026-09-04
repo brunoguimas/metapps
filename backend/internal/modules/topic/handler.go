@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type TopicHandler struct {
-	goals  goal.GoalService
-	topics TopicService
+type Handler struct {
+	goals  goal.Service
+	topics Service
 }
 
-func NewTopicHandler(t TopicService, g goal.GoalService) *TopicHandler {
-	return &TopicHandler{
+func NewHandler(t Service, g goal.Service) *Handler {
+	return &Handler{
 		goals:  g,
 		topics: t,
 	}
@@ -24,7 +24,7 @@ type roadmapRequest struct {
 	GoalID string `json:"goal_id" binding:"required"`
 }
 
-func (h *TopicHandler) GenerateRoadmap(c *gin.Context) {
+func (h *Handler) GenerateRoadmap(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -61,7 +61,7 @@ func (h *TopicHandler) GenerateRoadmap(c *gin.Context) {
 	})
 }
 
-func (h *TopicHandler) GetRoadmap(c *gin.Context) {
+func (h *Handler) GetRoadmap(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -74,7 +74,6 @@ func (h *TopicHandler) GetRoadmap(c *gin.Context) {
 		return
 	}
 
-	// Verify the goal belongs to the user
 	_, err = h.goals.Get(c.Request.Context(), userID, goalID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)

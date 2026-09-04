@@ -9,17 +9,17 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-type OAuthAccountService interface {
+type Service interface {
 	CreateAccount(c context.Context, p *idtoken.Payload) (*OAuthAccount, error)
 }
 
 type oauthAccountService struct {
-	accountRepo    OAuthAccountRepository
-	userRepo       user.UserRepository
-	profileService profile.ProfileService
+	accountRepo    Repository
+	userRepo       user.Repository
+	profileService profile.Service
 }
 
-func NewOAuthService(accountRepo OAuthAccountRepository, userRepo user.UserRepository, profileService profile.ProfileService) OAuthAccountService {
+func NewService(accountRepo Repository, userRepo user.Repository, profileService profile.Service) Service {
 	return &oauthAccountService{
 		accountRepo:    accountRepo,
 		userRepo:       userRepo,
@@ -43,6 +43,9 @@ func (s *oauthAccountService) CreateAccount(c context.Context, p *idtoken.Payloa
 	}
 
 	name, _ := p.Claims["name"].(string)
+	if name == "" {
+		name = "User"
+	}
 	account, err := s.accountRepo.GetAccountByProviderID(c, "google", p.Subject)
 	if err != nil {
 		if appErr, ok := apperrors.As(err); ok {

@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
+	"github.com/brunoguimas/metapps/backend/internal/testutil/dbtest"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestEmailRepositoryUpsertAndGet_Success(t *testing.T) {
+func TestRepositoryUpsertAndGet_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewEmailRepository(queries)
+	repo := NewRepository(queries)
 
 	err := repo.UpsertEmailCode(context.Background(), &EmailCode{
 		UserID:      user.ID,
@@ -36,11 +36,11 @@ func TestEmailRepositoryUpsertAndGet_Success(t *testing.T) {
 	assert.Equal(t, "hash123", result.CodeHash)
 }
 
-func TestEmailRepositoryGet_FailNotFound(t *testing.T) {
+func TestRepositoryGet_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
-	repo := NewEmailRepository(queries)
+	repo := NewRepository(queries)
 	result, err := repo.GetEmailCode(context.Background(), uuid.New(), "email_verification")
 
 	require.Error(t, err)

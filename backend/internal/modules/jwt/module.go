@@ -6,13 +6,13 @@ import (
 )
 
 type Module struct {
-	Repository JWTRepository
-	Service    JWTService
+	Repository Repository
+	Service    Service
 }
 
 func NewModule(q *db.Queries, c *config.Config) *Module {
-	r := NewJWTRepository(q)
-	s := NewJWTService(r, c.JWTSecret, c.Issuer, c.AccessTokenTTL, c.RefreshTokenTTL)
+	r := NewRepository(q)
+	s := NewService(r, c.JWTSecret, c.Issuer, c.AccessTokenTTL, c.RefreshTokenTTL)
 
 	return &Module{
 		Repository: r,

@@ -9,18 +9,18 @@ import (
 
 type Module struct {
 	Repository DBchecker
-	AI AIChecker
-	Handler    *HealthHandler
+	AI         AIChecker
+	Handler    *Handler
 }
 
 func NewModule(q *db.Queries, aiClient ai.Client, t time.Time) *Module {
 	r := NewDBChecker(q)
 	a := NewAIChecker(aiClient)
-	h := NewHealthHandler(r, a, t)
+	h := NewHandler(r, a, t)
 
 	return &Module{
 		Repository: r,
-		AI: a,
+		AI:         a,
 		Handler:    h,
 	}
 }

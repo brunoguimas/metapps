@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type EmailRepository interface {
+type Repository interface {
 	UpsertEmailCode(c context.Context, code *EmailCode) error
 	GetEmailCode(c context.Context, userID uuid.UUID, codeType string) (*EmailCode, error)
 	DeleteEmailCode(c context.Context, userID uuid.UUID, codeType string) error
@@ -19,7 +19,7 @@ type emailRepository struct {
 	queries *db.Queries
 }
 
-func NewEmailRepository(q *db.Queries) EmailRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &emailRepository{
 		queries: q,
 	}

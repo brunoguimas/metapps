@@ -3,13 +3,13 @@ package user
 import "github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 
 type Module struct {
-	Repository UserRepository
-	Service    UserService
+	Repository Repository
+	Service    Service
 }
 
 func NewModule(q *db.Queries) *Module {
-	r := NewUserRepository(q)
-	s := NewUserService(r)
+	r := NewRepository(q)
+	s := NewService(r)
 
 	return &Module{
 		Repository: r,

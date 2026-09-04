@@ -14,7 +14,7 @@ func TestOAuthRepositoryCreateAccount_Success(t *testing.T) {
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewOAuthAccountRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.CreateAccount(context.Background(), &OAuthAccount{
 		UserID:         user.ID,
@@ -32,7 +32,7 @@ func TestOAuthRepositoryGetAccountByProviderID_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
-	repo := NewOAuthAccountRepository(queries)
+	repo := NewRepository(queries)
 	result, err := repo.GetAccountByProviderID(context.Background(), "google", "missing")
 
 	require.NoError(t, err)

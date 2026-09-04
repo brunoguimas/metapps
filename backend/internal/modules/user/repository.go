@@ -10,7 +10,7 @@ import (
 	"github.com/lib/pq"
 )
 
-type UserRepository interface {
+type Repository interface {
 	Create(ctx context.Context, user *User) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	VerifyUser(c context.Context, userID uuid.UUID) error
@@ -22,7 +22,7 @@ type userRepository struct {
 	queries *db.Queries
 }
 
-func NewUserRepository(q *db.Queries) UserRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &userRepository{
 		queries: q,
 	}

@@ -3,111 +3,77 @@
     "title": "QuizTask",
     "type": "object",
     "required": [
-        "title",
-        "type",
-        "description",
-        "expectation",
         "questions"
     ],
     "properties": {
-        "title": {
-            "type": "string",
-            "minLength": 3
-        },
-        "type": {
-            "type": "string",
-            "const": "quiz"
-        },
-        "description": {
-            "type": "string"
-        },
-        "expectation": {
-            "type": "string"
-        },
         "questions": {
             "type": "array",
             "minItems": 1,
             "items": {
                 "type": "object",
                 "required": [
-                    "question",
-                    "type",
-                    "answer"
+                    "statement",
+                    "alternatives",
+                    "answer",
+                    "explanation"
                 ],
                 "properties": {
+                    "statement": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
                     "material": {
-                        "type": "string"
-                    },
-                    "question": {
-                        "type": "string",
-                        "minLength": 3
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "options",
-                            "text"
-                        ]
-                    },
-                    "options": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "minItems": 2
-                    },
-                    "explanation": {
-                        "type": "string"
-                    },
-                    "answer": {
                         "oneOf": [
                             {
-                                "type": "integer",
-                                "minimum": 0
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "type",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "text",
+                                                "image"
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
                             },
                             {
                                 "type": "string"
                             }
                         ]
-                    }
-                },
-                "allOf": [
-                    {
-                        "if": {
-                            "properties": {
-                                "type": {
-                                    "const": "options"
-                                }
-                            }
-                        },
-                        "then": {
-                            "required": [
-                                "options"
-                            ],
-                            "properties": {
-                                "answer": {
-                                    "type": "integer"
-                                }
-                            }
+                    },
+                    "alternatives": {
+                        "type": "array",
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
                         }
                     },
-                    {
-                        "if": {
-                            "properties": {
-                                "type": {
-                                    "const": "text"
-                                }
-                            }
-                        },
-                        "then": {
-                            "properties": {
-                                "answer": {
-                                    "type": "string"
-                                }
-                            }
-                        }
+                    "answer": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                    },
+                    "explanation": {
+                        "type": "string",
+                        "minLength": 5,
+                        "maxLength": 2000
                     }
-                ]
+                },
+                "additionalProperties": false
             }
         }
     },

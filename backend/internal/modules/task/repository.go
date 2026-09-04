@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type TaskRepository interface {
+type Repository interface {
 	Create(c context.Context, t *Task) (*Task, error)
 	GetByUserID(c context.Context, userID uuid.UUID) ([]*Task, error)
 	GetByID(c context.Context, userID, id uuid.UUID) (*Task, error)
@@ -22,7 +22,7 @@ type taskRepository struct {
 	queries *db.Queries
 }
 
-func NewTaskRepository(q *db.Queries) TaskRepository {
+func NewRepository(q *db.Queries) Repository {
 	return &taskRepository{
 		queries: q,
 	}

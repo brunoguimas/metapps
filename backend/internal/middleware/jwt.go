@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware(s jwt.JWTService) gin.HandlerFunc {
+func AuthMiddleware(s jwt.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		h := c.GetHeader("Authorization")
 		parts := strings.SplitN(h, " ", 2)

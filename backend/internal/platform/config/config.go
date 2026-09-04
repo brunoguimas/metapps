@@ -40,7 +40,9 @@ type Config struct {
 }
 
 func Load() *Config {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("no .env file loaded, using environment variables", "error", err)
+	}
 
 	port := getEnv("PORT", "8080")
 	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")

@@ -15,29 +15,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeGoalService struct {
-	createFn func(context.Context, uuid.UUID, *GoalRequest) (*Goal, error)
+type fakeService struct {
+	createFn func(context.Context, uuid.UUID, *Request) (*Goal, error)
 }
 
-func (s *fakeGoalService) Create(c context.Context, userID uuid.UUID, req *GoalRequest) (*Goal, error) {
+func (s *fakeService) Create(c context.Context, userID uuid.UUID, req *Request) (*Goal, error) {
 	return s.createFn(c, userID, req)
 }
 
-func (s *fakeGoalService) List(context.Context, uuid.UUID) ([]*Goal, error) { return nil, nil }
-func (s *fakeGoalService) Get(context.Context, uuid.UUID, uuid.UUID) (*Goal, error) {
+func (s *fakeService) List(context.Context, uuid.UUID) ([]*Goal, error) { return nil, nil }
+func (s *fakeService) Get(context.Context, uuid.UUID, uuid.UUID) (*Goal, error) {
 	return nil, nil
 }
-func (s *fakeGoalService) Update(context.Context, uuid.UUID, uuid.UUID, *GoalRequest) error {
+func (s *fakeService) Update(context.Context, uuid.UUID, uuid.UUID, *Request) error {
 	return nil
 }
-func (s *fakeGoalService) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
+func (s *fakeService) Delete(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 
-func TestGoalHandlerCreate_Success(t *testing.T) {
+func TestHandlerCreate_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	userID := uuid.New()
-	service := &fakeGoalService{
-		createFn: func(_ context.Context, gotUserID uuid.UUID, req *GoalRequest) (*Goal, error) {
+	service := &fakeService{
+		createFn: func(_ context.Context, gotUserID uuid.UUID, req *Request) (*Goal, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, "Vestibular", req.Title)
 			assert.Equal(t, "passar no vestibular", req.Settings.Motivation)
@@ -52,7 +52,7 @@ func TestGoalHandlerCreate_Success(t *testing.T) {
 	ctx.Request = req
 	ctx.Set("user_id", userID.String())
 
-	NewGoalHandler(service).Create(ctx)
+	NewHandler(service).Create(ctx)
 
 	require.Equal(t, http.StatusCreated, rec.Code)
 	var resp struct {
@@ -63,11 +63,11 @@ func TestGoalHandlerCreate_Success(t *testing.T) {
 	assert.Equal(t, "Vestibular", resp.Goal.Title)
 }
 
-func TestGoalHandlerCreate_Fail(t *testing.T) {
+func TestHandlerCreate_Fail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	service := &fakeGoalService{
-		createFn: func(context.Context, uuid.UUID, *GoalRequest) (*Goal, error) {
+	service := &fakeService{
+		createFn: func(context.Context, uuid.UUID, *Request) (*Goal, error) {
 			t.Fatal("Create should not be called on invalid payload")
 			return nil, nil
 		},
@@ -80,7 +80,7 @@ func TestGoalHandlerCreate_Fail(t *testing.T) {
 	ctx.Request = req
 	ctx.Set("user_id", uuid.New().String())
 
-	NewGoalHandler(service).Create(ctx)
+	NewHandler(service).Create(ctx)
 
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 	var resp struct {

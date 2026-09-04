@@ -3,31 +3,57 @@
     "title": "EssayTask",
     "type": "object",
     "required": [
-        "title",
-        "type",
-        "description",
-        "expectation"
+        "instructions",
+        "min_words",
+        "max_words"
     ],
     "properties": {
-        "title": {
+        "instructions": {
             "type": "string",
-            "minLength": 3
+            "minLength": 10,
+            "maxLength": 3000
         },
-        "type": {
-            "type": "string",
-            "const": "quiz"
-        },
-        "description": {
-            "type": "string",
-            "minLength": 10
-        },
-        "expectation": {
-            "type": "string"
-        },
-        "max_rows": {
+        "min_words": {
             "type": "integer",
-            "minimum": 5,
-            "maximum": 60
+            "minimum": 50
+        },
+        "max_words": {
+            "type": "integer",
+            "minimum": 50,
+            "maximum": 500
+        },
+        "material": {
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "type",
+                            "data"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "text",
+                                    "image"
+                                ]
+                            },
+                            "data": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            ]
         }
     },
     "additionalProperties": false

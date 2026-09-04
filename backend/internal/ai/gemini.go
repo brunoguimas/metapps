@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -49,7 +50,7 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 		nil,
 	)
 	if err != nil {
-		fmt.Printf("ERROR: Gemini API call failed: %v\n", err)
+		slog.Error("gemini API call failed", "error", err)
 		return "", apperrors.NewAppError(apperrors.ErrInternal, "failed to generate content from gemini", err)
 	}
 

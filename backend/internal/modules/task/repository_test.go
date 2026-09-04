@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTaskRepositoryCreate_Success(t *testing.T) {
+func TestRepositoryCreate_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
 	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
-	repo := NewTaskRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.Create(context.Background(), &Task{
 		UserID:  user.ID,
@@ -41,12 +41,12 @@ func TestTaskRepositoryCreate_Success(t *testing.T) {
 	assert.Equal(t, "Redacao", result.Meta.Title)
 }
 
-func TestTaskRepositoryGetByID_FailNotFound(t *testing.T) {
+func TestRepositoryGetByID_FailNotFound(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
 	user := dbtest.CreateUser(t, queries, "bruno", "bruno@test.com")
-	repo := NewTaskRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.GetByID(context.Background(), user.ID, uuid.New())
 
@@ -57,7 +57,7 @@ func TestTaskRepositoryGetByID_FailNotFound(t *testing.T) {
 	assert.Equal(t, apperrors.ErrTaskNotFound, appErr.Code())
 }
 
-func TestTaskRepositoryMarkDone_Success(t *testing.T) {
+func TestRepositoryMarkDone_Success(t *testing.T) {
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
@@ -65,7 +65,7 @@ func TestTaskRepositoryMarkDone_Success(t *testing.T) {
 	goal := dbtest.CreateGoal(t, queries, user.ID, "ENEM", json.RawMessage(`{"math":"hard"}`))
 	topic := dbtest.CreateTopic(t, queries, goal.ID, "Topic 1", "Desc 1")
 	created := dbtest.CreateTask(t, queries, user.ID, topic.ID, json.RawMessage(`{"meta":{"title":"Quiz","description":"Tema","expectations":"Acertar"},"content":{"questions":[]}}`), string(TaskQuiz))
-	repo := NewTaskRepository(queries)
+	repo := NewRepository(queries)
 
 	result, err := repo.MarkDone(context.Background(), user.ID, created.ID)
 

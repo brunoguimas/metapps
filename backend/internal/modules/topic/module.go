@@ -8,21 +8,21 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 )
 
-type TopicModule struct {
-	Repository TopicRepository
-	Service    TopicService
-	Handler    *TopicHandler
+type Module struct {
+	Repository Repository
+	Service    Service
+	Handler    *Handler
 }
 
-func NewModule(d topic_dependency.TopicDependencyService, g goal.GoalService, a ai.Client, queries *db.Queries, c *config.Config) *TopicModule {
-	r := NewTopicRepository(queries)
-	pr := NewTopicProgressRepository(queries)
-	s := NewTopicService(r, d, a, c, pr)
-	h := NewTopicHandler(s, g)
+func NewModule(d topic_dependency.Service, g goal.Service, a ai.Client, queries *db.Queries, c *config.Config) *Module {
+	r := NewRepository(queries)
+	pr := NewProgressRepository(queries)
+	s := NewService(r, d, a, c, pr)
+	h := NewHandler(s, g)
 
-	return &TopicModule{
+	return &Module{
 		Repository: r,
-		Service: s,
-		Handler: h,
+		Service:    s,
+		Handler:    h,
 	}
 }

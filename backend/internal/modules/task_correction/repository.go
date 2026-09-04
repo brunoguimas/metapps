@@ -18,15 +18,15 @@ type Repository interface {
 	Update(c context.Context, correction *TaskCorrection) (*TaskCorrection, error)
 }
 
-type repository struct {
+type taskCorrectionRepository struct {
 	queries *db.Queries
 }
 
 func NewRepository(q *db.Queries) Repository {
-	return &repository{queries: q}
+	return &taskCorrectionRepository{queries: q}
 }
 
-func (r *repository) Create(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
+func (r *taskCorrectionRepository) Create(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	now := nowFunc()
 	correction.CreatedAt = now
 	correction.UpdatedAt = now
@@ -44,7 +44,7 @@ func (r *repository) Create(c context.Context, correction *TaskCorrection) (*Tas
 	return mapTaskCorrection(row), nil
 }
 
-func (r *repository) GetByID(c context.Context, id uuid.UUID) (*TaskCorrection, error) {
+func (r *taskCorrectionRepository) GetByID(c context.Context, id uuid.UUID) (*TaskCorrection, error) {
 	row, err := r.queries.GetTaskCorrectionByID(c, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -55,7 +55,7 @@ func (r *repository) GetByID(c context.Context, id uuid.UUID) (*TaskCorrection, 
 	return mapTaskCorrection(row), nil
 }
 
-func (r *repository) GetByAttemptID(c context.Context, attemptID uuid.UUID) (*TaskCorrection, error) {
+func (r *taskCorrectionRepository) GetByAttemptID(c context.Context, attemptID uuid.UUID) (*TaskCorrection, error) {
 	row, err := r.queries.GetTaskCorrectionByAttemptID(c, attemptID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -66,7 +66,7 @@ func (r *repository) GetByAttemptID(c context.Context, attemptID uuid.UUID) (*Ta
 	return mapTaskCorrection(row), nil
 }
 
-func (r *repository) Update(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
+func (r *taskCorrectionRepository) Update(c context.Context, correction *TaskCorrection) (*TaskCorrection, error) {
 	correction.UpdatedAt = nowFunc()
 
 	row, err := r.queries.UpdateTaskCorrection(c, db.UpdateTaskCorrectionParams{
