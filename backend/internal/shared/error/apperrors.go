@@ -23,7 +23,6 @@ const (
 	ErrTaskAttemptTypeMismatch   Code = "TASK_ATTEMPT_TYPE_MISMATCH"
 	ErrDuplicateQuestionAnswer   Code = "DUPLICATE_QUESTION_ANSWER"
 	ErrInvalidQuestionIndex      Code = "INVALID_QUESTION_INDEX"
-	ErrEmptyEssayResponse        Code = "EMPTY_ESSAY_RESPONSE"
 	ErrPasswordTooCommon         Code = "TOO_COMMON_PASSWORD"
 	ErrPasswordTooShort          Code = "PASSWORD_TOO_SHORT"
 	ErrQuestionTooShort          Code = "QUESTION_TOO_SHORT"
@@ -113,8 +112,6 @@ func StatusFromCode(code Code) int {
 	case ErrDuplicateQuestionAnswer:
 		return http.StatusBadRequest
 	case ErrInvalidQuestionIndex:
-		return http.StatusBadRequest
-	case ErrEmptyEssayResponse:
 		return http.StatusBadRequest
 	case ErrPasswordTooCommon:
 		return http.StatusBadRequest

@@ -41,7 +41,7 @@ func TestHandlerGenerate_Success(t *testing.T) {
 		createFn: func(_ context.Context, gotUserID, gotTopicID uuid.UUID) (*Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, topicID, gotTopicID)
-			return &Task{ID: uuid.New(), UserID: gotUserID, TopicID: gotTopicID, Type: TaskEssay}, nil
+			return &Task{ID: uuid.New(), UserID: gotUserID, TopicID: gotTopicID, Type: TaskQuiz}, nil
 		},
 	}, nil, &config.Config{})
 

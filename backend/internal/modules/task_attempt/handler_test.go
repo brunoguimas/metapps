@@ -40,12 +40,12 @@ func TestHandlerSubmit_Success(t *testing.T) {
 		submitFn: func(_ context.Context, gotUserID, gotTaskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, taskID, gotTaskID)
-			assert.Equal(t, task.TaskEssay, input.Type)
+			assert.Equal(t, task.TaskQuiz, input.Type)
 			return &TaskAttempt{ID: uuid.New(), UserID: gotUserID, TaskID: gotTaskID}, &task.Task{ID: gotTaskID, Done: true}, nil
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID.String()+"/attempts", strings.NewReader(`{"type":"essay","response":"minha resposta"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID.String()+"/attempts", strings.NewReader(`{"type":"quiz","response":[{"question_index":0,"answer":0}]}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -76,7 +76,7 @@ func TestHandlerSubmit_Fail(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/id/attempts", strings.NewReader(`{"type":"essay"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/id/attempts", strings.NewReader(`{"type":"invalid"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -104,7 +104,7 @@ func TestHandlerSubmit_FailInvalidTaskID(t *testing.T) {
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/not-a-uuid/attempts", strings.NewReader(`{"type":"essay","response":"minha resposta"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/not-a-uuid/attempts", strings.NewReader(`{"type":"quiz","response":[{"question_index":0,"answer":0}]}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -132,12 +132,12 @@ func TestHandlerSubmit_AcceptsTaskIDParamAlias(t *testing.T) {
 		submitFn: func(_ context.Context, gotUserID, gotTaskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, taskID, gotTaskID)
-			assert.Equal(t, task.TaskEssay, input.Type)
+			assert.Equal(t, task.TaskQuiz, input.Type)
 			return &TaskAttempt{ID: uuid.New(), UserID: gotUserID, TaskID: gotTaskID}, &task.Task{ID: gotTaskID, Done: true}, nil
 		},
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID.String()+"/attempts", strings.NewReader(`{"type":"essay","response":"minha resposta"}`))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID.String()+"/attempts", strings.NewReader(`{"type":"quiz","response":[{"question_index":0,"answer":0}]}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)

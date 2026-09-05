@@ -12,8 +12,7 @@ import (
 type TaskType string
 
 const (
-	TaskQuiz  TaskType = "quiz"
-	TaskEssay TaskType = "essay"
+	TaskQuiz TaskType = "quiz"
 )
 
 type MaterialType string
@@ -45,13 +44,6 @@ type TaskMeta struct {
 type persistedTaskContent struct {
 	Meta    TaskMeta        `json:"meta"`
 	Content json.RawMessage `json:"content"`
-}
-
-type EssayContent struct {
-	Materials    []Material `json:"material"`
-	Instructions string     `json:"instructions"`
-	MinWords     int        `json:"min_words"`
-	MaxWords     int        `json:"max_words"`
 }
 
 type QuizContent struct {
@@ -123,19 +115,6 @@ func (q QuizContent) Validate() error {
 	return nil
 }
 
-func (e EssayContent) Validate() error {
-	if e.MinWords <= 0 || e.MaxWords <= 0 {
-		return fmt.Errorf("invalid word limits")
-	}
-	if e.MinWords > e.MaxWords {
-		return fmt.Errorf("min_words cannot be greater than max_words")
-	}
-	if e.Instructions == "" {
-		return fmt.Errorf("instructions cannot be empty")
-	}
-	return nil
-}
-
 func (q QuizQuestion) Validate() error {
 	if len(q.Alternatives) < 2 {
 		return apperrors.NewAppError(apperrors.ErrQuestionTooShort, fmt.Sprint("question too short: expected at least 2 alternatives but received ", len(q.Alternatives)), nil)
@@ -150,11 +129,6 @@ func (q QuizQuestion) Validate() error {
 
 func (t *Task) Decode() (any, error) {
 	switch t.Type {
-	case TaskEssay:
-		var c EssayContent
-		err := json.Unmarshal(t.Content, &c)
-		return c, err
-
 	case TaskQuiz:
 		var c QuizContent
 		err := json.Unmarshal(t.Content, &c)

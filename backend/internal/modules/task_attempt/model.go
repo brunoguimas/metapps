@@ -3,7 +3,6 @@ package task_attempt
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
@@ -85,8 +84,8 @@ func ParseCreateAttemptInput(raw []byte) (*CreateAttemptInput, error) {
 		return nil, fmt.Errorf("field %q must be a string", "type")
 	}
 
-	if input.Type != task.TaskQuiz && input.Type != task.TaskEssay {
-		return nil, fmt.Errorf("field %q must be one of: quiz, essay", "type")
+	if input.Type != task.TaskQuiz {
+		return nil, fmt.Errorf("field %q must be one of: quiz", "type")
 	}
 
 	input.Response = cloneRawMessage(responseRaw)
@@ -108,14 +107,6 @@ func ParseCreateAttemptInput(raw []byte) (*CreateAttemptInput, error) {
 
 func (i *CreateAttemptInput) Validate() error {
 	switch i.Type {
-	case task.TaskEssay:
-		var response string
-		if err := json.Unmarshal(i.Response, &response); err != nil {
-			return fmt.Errorf("field %q must be a string for essay tasks", "response")
-		}
-		if strings.TrimSpace(response) == "" {
-			return fmt.Errorf("field %q cannot be empty", "response")
-		}
 	case task.TaskQuiz:
 		var rawItems []map[string]json.RawMessage
 		if err := json.Unmarshal(i.Response, &rawItems); err != nil {

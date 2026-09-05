@@ -19,7 +19,6 @@ type Service interface {
 	CreateCorrection(ctx context.Context, userID, attemptID uuid.UUID, feedback string, score *float64) (*TaskCorrection, error)
 	GetCorrectionByAttemptID(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 	UpdateCorrection(ctx context.Context, correction *TaskCorrection) (*TaskCorrection, error)
-	GenerateEssayCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 	GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error)
 }
 
@@ -154,97 +153,6 @@ func (s *taskCorrectionService) updateProgress(ctx context.Context, userID, atte
 		slog.Error("failed to update topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
 		return
 	}
-}
-
-func (s *taskCorrectionService) GenerateEssayCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
-	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
-	if err != nil {
-		return nil, err
-	}
-
-	if attempt.UserID != userID {
-		return nil, apperrors.NewAppError(apperrors.ErrForbidden, "unauthorized to correct this attempt", nil)
-	}
-
-	taskObj, err := s.taskRepo.GetByID(ctx, userID, attempt.TaskID)
-	if err != nil {
-		return nil, err
-	}
-
-	if taskObj.Type != task.TaskEssay {
-		return nil, apperrors.NewAppError(apperrors.ErrTaskAttemptTypeMismatch, "task is not an essay type", nil)
-	}
-
-	var response string
-	if err := json.Unmarshal(attempt.Content, &response); err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid attempt content", err)
-	}
-	if strings.TrimSpace(response) == "" {
-		return nil, apperrors.NewAppError(apperrors.ErrEmptyEssayResponse, "essay response cannot be empty", nil)
-	}
-
-	var essayContent task.EssayContent
-	if err := json.Unmarshal(taskObj.Content, &essayContent); err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task content", err)
-	}
-
-	data := struct {
-		Response     string
-		Instructions string
-		Expectations string
-	}{
-		Response:     response,
-		Instructions: essayContent.Instructions,
-		Expectations: taskObj.Meta.Expectations,
-	}
-
-	prompt, err := ai.RenderPrompt("correct_essay.txt", data)
-	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to render essay correction prompt", err)
-	}
-
-	aiResponse, err := s.client.Generate(ctx, prompt)
-	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to generate AI correction", err)
-	}
-
-	cleanedResponse := strings.TrimSpace(aiResponse)
-	cleanedResponse = strings.TrimPrefix(cleanedResponse, "```json")
-	cleanedResponse = strings.TrimPrefix(cleanedResponse, "```")
-	cleanedResponse = strings.TrimSuffix(cleanedResponse, "```")
-	cleanedResponse = strings.TrimSpace(cleanedResponse)
-
-	var result struct {
-		Feedback string  `json:"feedback"`
-		Score    float64 `json:"score"`
-	}
-
-	if err := json.Unmarshal([]byte(cleanedResponse), &result); err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "failed to parse AI response", err)
-	}
-
-	if result.Score < 0 || result.Score > 100 {
-		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "invalid score from AI", nil)
-	}
-
-	normalizedScore := result.Score
-	if normalizedScore > 1.0 {
-		normalizedScore = normalizedScore / 100.0
-	}
-
-	correction := &TaskCorrection{
-		AttemptID: attemptID,
-		Feedback:  result.Feedback,
-		Score:     &normalizedScore,
-		Status:    StatusCompleted,
-	}
-
-	createdCorrection, err := s.repo.Create(ctx, correction)
-	if err != nil {
-		return nil, err
-	}
-	s.updateProgress(ctx, userID, attemptID, normalizedScore)
-	return createdCorrection, nil
 }
 
 func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
