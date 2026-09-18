@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import icon from './assets/icon.svg'
 import logoImg from './assets/logo.svg'
-import AuthModal from './AuthModal'
+import AuthModal from './Authmodal'
 
 /* =========================================================
    REVEAL
@@ -536,7 +536,13 @@ export default function Landpage() {
   const large = width >= 1600
 
   // ── controla o AuthModal (login / registro / esqueci a senha) ──
-  const [authMode, setAuthMode] = useState(null) // null | 'login' | 'register' | 'forgot'
+  // Links antigos (/auth/login, /auth/register, /forgot-password) caem
+  // em "/" com ?auth=login|register|forgot — montado via lazy init por
+  // serem rotas diferentes (remontam a Landpage).
+  const [authMode, setAuthMode] = useState(() => {
+    const a = searchParams.get('auth')
+    return a === 'login' || a === 'register' || a === 'forgot' ? a : null
+  }) // null | 'login' | 'register' | 'forgot'
 
   useEffect(() => {
     document.body.style.overflow = 'auto'
@@ -574,15 +580,6 @@ export default function Landpage() {
     }
   }, [])
 
-  // Links antigos (/auth/login, /auth/register, /forgot-password) caem
-  // em "/" com ?auth=login|register|forgot — abrimos o modal certo.
-  useEffect(() => {
-    const authParam = searchParams.get('auth')
-    if (authParam === 'login' || authParam === 'register' || authParam === 'forgot') {
-      setAuthMode(authParam)
-    }
-  }, [searchParams])
-
   /* =======================================================
      NAVEGAÇÃO
      ======================================================= */
@@ -615,12 +612,12 @@ export default function Landpage() {
   }
 
   const openTerms = () => {
-    window.open('/src/pages/Termos.html', '_blank')
+    window.open('/termos.html', '_blank')
   }
 
   const openPrivacy = () => {
     window.open(
-      '/src/pages/Termos.html#privacidade',
+      '/termos.html#privacidade',
       '_blank'
     )
   }

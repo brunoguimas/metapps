@@ -647,7 +647,7 @@ export async function authFetch(
 
     await refreshSession()
 
-  } catch (error) {
+  } catch {
 
     clearAccessToken()
 
@@ -949,6 +949,32 @@ export async function listGoals() {
 }
 
 
+export async function getGoal(goalId) {
+
+  const res =
+    await authFetch(
+      `/protected/goals/${goalId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o objetivo.'
+    )
+  }
+
+
+  return data.goal
+}
+
+
 export async function updateGoal(
   id,
   title,
@@ -1129,6 +1155,60 @@ export async function generateTask(
 }
 
 
+// ─── TASKS: LEITURA ───────────────────────────────────────────
+
+export async function listTasks() {
+
+  const res =
+    await authFetch(
+      '/protected/tasks'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao listar tarefas.'
+    )
+  }
+
+
+  return data.tasks
+}
+
+
+export async function getTask(taskId) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar a tarefa.'
+    )
+  }
+
+
+  return data.task
+}
+
+
 export async function submitAttempt(
   taskId,
   type,
@@ -1177,6 +1257,60 @@ export async function submitAttempt(
 }
 
 
+// ─── TASK ATTEMPTS ────────────────────────────────────────────
+
+export async function listAttemptsByUser() {
+
+  const res =
+    await authFetch(
+      '/protected/task-attempts'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o histórico de tentativas.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
+export async function listTaskAttempts(taskId) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/attempts`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar as tentativas da tarefa.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
 // ─── CORRECTIONS ──────────────────────────────────────────────
 
 export async function generateCorrection(
@@ -1203,6 +1337,78 @@ export async function generateCorrection(
       data,
       res.status,
       'Não foi possível gerar o feedback.'
+    )
+  }
+
+
+  return data.correction
+}
+
+
+// ─── CORRECTIONS: LEITURA / CRIAÇÃO ──────────────────────────
+
+export async function getCorrectionByAttemptID(attemptId) {
+
+  const res =
+    await authFetch(
+      `/protected/corrections/attempt/${attemptId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o feedback.'
+    )
+  }
+
+
+  return data.correction
+}
+
+
+export async function createCorrection(
+  attemptId,
+  feedback,
+  score
+) {
+
+  const res =
+    await authFetch(
+      '/protected/corrections',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          attempt_id: attemptId,
+          feedback,
+          score,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao salvar o feedback.'
     )
   }
 

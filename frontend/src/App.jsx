@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Landpage       from './Landpage'
 import Homepage       from './Homepage'
+import HistoryPage    from './HistoryPage'
 import GoogleCallback from './GoogleCallback'
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/forgot-password"        element={<Navigate to="/?auth=forgot" replace />} />
         <Route path="/auth/google/callback"   element={<GoogleCallback />} />
         <Route path="/home"                   element={<Homepage />} />
+        <Route path="/history"                element={<HistoryPage />} />
         <Route path="*"                       element={<Landpage />} />
       </Routes>
     </BrowserRouter>
