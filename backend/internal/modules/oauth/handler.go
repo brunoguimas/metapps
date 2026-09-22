@@ -101,13 +101,13 @@ func (h *Handler) GoogleCallback(c *gin.Context) {
 	h.redirectWithToken(c, accessToken)
 }
 
-func (h *OAuthHandler) redirectWithToken(c *gin.Context, token string) {
+func (h *Handler) redirectWithToken(c *gin.Context, token string) {
 	q := h.frontendCallbackQuery()
 	q.Set("token", token)
 	h.redirect(c, q)
 }
 
-func (h *OAuthHandler) redirectWithError(c *gin.Context, code apperrors.Code, err error) {
+func (h *Handler) redirectWithError(c *gin.Context, code apperrors.Code, err error) {
 	status := apperrors.StatusFromCode(code)
 	if err == nil {
 		logger.LogResponse(c, string(code), status)
@@ -121,14 +121,14 @@ func (h *OAuthHandler) redirectWithError(c *gin.Context, code apperrors.Code, er
 	h.redirect(c, q)
 }
 
-func (h *OAuthHandler) frontendCallbackQuery() url.Values {
+func (h *Handler) frontendCallbackQuery() url.Values {
 	if u, err := url.Parse(h.cfg.FrontendOrigin + "/auth/google/callback"); err == nil {
 		return u.Query()
 	}
 	return url.Values{}
 }
 
-func (h *OAuthHandler) redirect(c *gin.Context, q url.Values) {
+func (h *Handler) redirect(c *gin.Context, q url.Values) {
 	target, err := url.Parse(h.cfg.FrontendOrigin + "/auth/google/callback")
 	if err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInternal, "invalid frontend origin", err))

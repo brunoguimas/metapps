@@ -14,16 +14,16 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-func setupService(t *testing.T) (OAuthAccountService, *db.Queries) {
+func setupService(t *testing.T) (Service, *db.Queries) {
 	t.Helper()
 	conn, queries := dbtest.Setup(t)
 	dbtest.Clean(t, conn)
 
-	userRepo := user.NewUserRepository(queries)
-	profileSvc := profile.NewProfileService(profile.NewProfileRepository(queries))
-	accountRepo := NewOAuthAccountRepository(queries)
+	userRepo := user.NewRepository(queries)
+	profileSvc := profile.NewService(profile.NewRepository(queries))
+	accountRepo := NewRepository(queries)
 
-	return NewOAuthService(accountRepo, userRepo, profileSvc), queries
+	return NewService(accountRepo, userRepo, profileSvc), queries
 }
 
 func googlePayload(subject, email string) *idtoken.Payload {

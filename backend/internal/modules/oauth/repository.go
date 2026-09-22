@@ -30,7 +30,7 @@ func (r *oauthAccountRepository) CreateAccount(c context.Context, a *OAuthAccoun
 		ProviderUserID: a.ProviderUserID,
 	})
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create oauth account", err)
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
 	}
 
 	return mapOAuthAccount(account), nil

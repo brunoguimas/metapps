@@ -33,7 +33,6 @@ func (r *userRepository) Create(c context.Context, user *User) (*User, error) {
 		Username:     user.Username,
 		Email:        user.Email,
 		PasswordHash: sql.NullString{String: user.PasswordHash, Valid: true},
-		Verified:     user.Verified,
 	})
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
