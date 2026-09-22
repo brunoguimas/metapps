@@ -65,6 +65,7 @@ func CreateUser(t *testing.T, queries *db.Queries, username, email string) db.Us
 			String: "test-hash",
 			Valid:  true,
 		},
+		Verified: true,
 	})
 	require.NoError(t, err)
 	return u

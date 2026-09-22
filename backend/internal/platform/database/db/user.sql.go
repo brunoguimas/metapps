@@ -13,8 +13,8 @@ import (
 )
 
 const createOneUser = `-- name: CreateOneUser :one
-INSERT INTO public.users (username, email, password_hash)
-VALUES ($1, $2, $3)
+INSERT INTO public.users (username, email, password_hash, verified)
+VALUES ($1, $2, $3, $4)
 RETURNING id, username, email, password_hash, verified, created_at
 `
 
@@ -22,10 +22,16 @@ type CreateOneUserParams struct {
 	Username     string
 	Email        string
 	PasswordHash sql.NullString
+	Verified     bool
 }
 
 func (q *Queries) CreateOneUser(ctx context.Context, arg CreateOneUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createOneUser, arg.Username, arg.Email, arg.PasswordHash)
+	row := q.db.QueryRowContext(ctx, createOneUser,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Verified,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,

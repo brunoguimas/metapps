@@ -778,10 +778,10 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
           />
           <label htmlFor="auth-modal-terms" style={{ fontSize: 12.5, color: '#6b6b8a', lineHeight: 1.55, cursor: 'pointer' }}>
             Li e concordo com os{' '}
-            <span onClick={() => window.open('/src/pages/Termos.html', '_blank')} style={{ color: '#6382ff', fontWeight: 600, cursor: 'pointer' }}>
+            <span onClick={() => window.open('/termos.html', '_blank')} style={{ color: '#6382ff', fontWeight: 600, cursor: 'pointer' }}>
               Termos de Serviço
             </span>{' '}e a{' '}
-            <span onClick={() => window.open('/src/pages/Termos.html#privacidade', '_blank')} style={{ color: '#6382ff', fontWeight: 600, cursor: 'pointer' }}>
+            <span onClick={() => window.open('/termos.html#privacidade', '_blank')} style={{ color: '#6382ff', fontWeight: 600, cursor: 'pointer' }}>
               Política de Privacidade
             </span>
           </label>
