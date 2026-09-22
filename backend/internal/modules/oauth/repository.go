@@ -25,12 +25,12 @@ func NewOAuthAccountRepository(q *db.Queries) OAuthAccountRepository {
 
 func (r *oauthAccountRepository) CreateAccount(c context.Context, a *OAuthAccount) (*OAuthAccount, error) {
 	account, err := r.queries.CreateOAuthAccount(c, db.CreateOAuthAccountParams{
-		a.UserID,
-		a.Provider,
-		a.ProviderUserID,
+		UserID:         a.UserID,
+		Provider:       a.Provider,
+		ProviderUserID: a.ProviderUserID,
 	})
 	if err != nil {
-		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create user", err)
+		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create oauth account", err)
 	}
 
 	return mapOAuthAccount(account), nil

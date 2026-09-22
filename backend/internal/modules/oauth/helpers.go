@@ -9,15 +9,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func mapOAuthExchangeError(err error) error {
+func exchangeErrorCode(err error) apperrors.Code {
 	var retrieveErr *oauth2.RetrieveError
 	if errors.As(err, &retrieveErr) {
 		if retrieveErr.Response != nil && retrieveErr.Response.StatusCode >= 400 && retrieveErr.Response.StatusCode < 500 {
-			return apperrors.NewAppError(apperrors.ErrInvalidToken, "invalid oauth code", err)
+			return apperrors.ErrInvalidToken
 		}
 	}
 
-	return apperrors.NewAppError(apperrors.ErrInternal, "oauth exchange failed", err)
+	return apperrors.ErrInternal
 }
 
 func generateState() (string, error) {
