@@ -647,7 +647,7 @@ export async function authFetch(
 
     await refreshSession()
 
-  } catch (error) {
+  } catch {
 
     clearAccessToken()
 
@@ -1180,13 +1180,12 @@ export async function submitAttempt(
 // ─── CORRECTIONS ──────────────────────────────────────────────
 
 export async function generateCorrection(
-  attemptId,
-  type
+  attemptId
 ) {
 
   const res =
     await authFetch(
-      `/protected/corrections/${type}/${attemptId}`,
+      `/protected/corrections/quiz/${attemptId}`,
       {
         method: 'POST',
       }
@@ -1322,4 +1321,146 @@ export async function uploadAvatar(
 
 
   return data
+}
+
+
+// ─── TASKS: LISTAGEM ───────────────────────────────────────────
+
+export async function listTasks() {
+
+  const res =
+    await authFetch(
+      '/protected/tasks'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao listar tarefas.'
+    )
+  }
+
+
+  return data.tasks
+}
+
+
+export async function getTask(
+  taskId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar tarefa.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+// ─── TASK ATTEMPTS: LISTAGEM ───────────────────────────────────
+
+export async function listTaskAttempts() {
+
+  const res =
+    await authFetch(
+      '/protected/task-attempts'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao listar tentativas.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
+export async function listAttemptsByTask(
+  taskId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/attempts`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao listar tentativas da tarefa.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
+// ─── CORRECTION: BUSCAR POR ID ─────────────────────────────────
+
+export async function getCorrectionByAttemptID(
+  attemptId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/corrections/attempt/${attemptId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar correção.'
+    )
+  }
+
+
+  return data.correction
 }

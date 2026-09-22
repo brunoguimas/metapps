@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"strings"
+
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -45,7 +47,10 @@ func Load() *Config {
 		slog.Warn("no .env file loaded, using environment variables", "error", err)
 	}
 
-	port := getEnv("PORT", "8080")
+	port := getEnv("PORT", ":8080")
+	if port != "" && !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
 	origin := getEnv("FRONTEND_ORIGIN", "http://localhost:5173")
 	cookieDomain := getEnv("COOKIE_DOMAIN", "localhost")
 	cookieDomainRefresh := getEnv("COOKIE_DOMAIN_REFRESH", cookieDomain)
@@ -66,7 +71,7 @@ func Load() *Config {
 	smtpPass := getEnv("SMTP_PASS", "")
 	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
 	geminiKey := mustGetenv("GEMINI_API_KEY")
-geminiModel := mustGetenv("GEMINI_MODEL")
+	geminiModel := mustGetenv("GEMINI_MODEL")
 	avatarBaseURL := getEnv("AVATAR_BASE_URL", "http://localhost:"+port)
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)

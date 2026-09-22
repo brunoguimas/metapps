@@ -54,11 +54,11 @@ type fakeTopicService struct {
 	getFn func(context.Context, uuid.UUID) (*topic.Topic, error)
 }
 
-func (s *fakeTopicService) GenerateRoadmap(context.Context, *goal.Goal) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GenerateRoadmap(context.Context, uuid.UUID, *goal.Goal) (*topic.Roadmap, error) {
 	return nil, nil
 }
 
-func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID, uuid.UUID) (*topic.Roadmap, error) {
 	return nil, nil
 }
 
@@ -99,6 +99,9 @@ func (r *fakeTopicProgressRepository) GetOrCreate(c context.Context, userID, top
 }
 func (r *fakeTopicProgressRepository) Update(c context.Context, progress *topic.TopicProgress) error {
 	return r.updateFn(c, progress)
+}
+func (r *fakeTopicProgressRepository) ListByUserAndGoal(context.Context, uuid.UUID, uuid.UUID) ([]*topic.TopicProgress, error) {
+	return nil, nil
 }
 
 type fakeDependencyRepository struct {

@@ -45,4 +45,5 @@ type Topic struct {
 type Roadmap struct {
 	Topics       []*Topic                            `json:"topics"`
 	Dependencies []*topic_dependency.TopicDependency `json:"dependencies"`
+	Progress     []*TopicProgress                    `json:"progress"`
 }

@@ -16,8 +16,8 @@ import (
 )	
 
 type Service interface {
-	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
-	GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error)
+	GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error)
+	GetRoadmap(c context.Context, userID, goalID uuid.UUID) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 }
 
@@ -39,7 +39,17 @@ func NewService(r Repository, d topic_dependency.Service, a ai.Client, c *config
 	}
 }
 
-func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
+func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error) {
+	// Se o goal já tem um roadmap, não duplica: devolve o existente.
+	// Isso preserva os IDs dos tópicos (e o progresso/tarefas vinculados a eles).
+	existing, err := s.repo.GetByGoalID(c, g.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing) > 0 {
+		return s.GetRoadmap(c, userID, g.ID)
+	}
+
 	b, err := ai.FS.ReadFile("schemas/roadmap.schema.json")
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read roadmap schema", err)
@@ -178,6 +188,8 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 			continue
 		}
 
+		roadmap.Progress = []*TopicProgress{}
+
 		return &roadmap, nil
 	}
 
@@ -205,7 +217,7 @@ func (s *topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 	return t, nil
 }
 
-func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
+func (s topicService) GetRoadmap(c context.Context, userID, goalID uuid.UUID) (*Roadmap, error) {
 	topics, err := s.repo.GetByGoalID(c, goalID)
 	if err != nil {
 		return nil, err
@@ -221,7 +233,12 @@ func (s topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap,
 		return nil, err
 	}
 
-	return &Roadmap{Topics: topics, Dependencies: dependencies}, nil
+	progress, err := s.progressRepo.ListByUserAndGoal(c, userID, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Roadmap{Topics: topics, Dependencies: dependencies, Progress: progress}, nil
 }
 
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {

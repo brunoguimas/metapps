@@ -156,6 +156,10 @@ func (r *fakeTopicProgressRepository) Update(c context.Context, progress *topic.
 	return nil
 }
 
+func (r *fakeTopicProgressRepository) ListByUserAndGoal(context.Context, uuid.UUID, uuid.UUID) ([]*topic.TopicProgress, error) {
+	return nil, nil
+}
+
 func TestCreateCorrection_Success(t *testing.T) {
 	userID := uuid.New()
 	attemptID := uuid.New()

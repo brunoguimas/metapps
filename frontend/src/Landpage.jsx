@@ -230,7 +230,7 @@ function StudyHeroIllustration({ mob }) {
           cx="205"
           cy="530"
           r="15"
-          fill="#1a1a2e"
+          fill="#0B1026"
           stroke="#6382ff"
           strokeWidth="4"
         />
@@ -239,7 +239,7 @@ function StudyHeroIllustration({ mob }) {
           cx="275"
           cy="448"
           r="15"
-          fill="#1a1a2e"
+          fill="#0B1026"
           stroke="#3ecf8e"
           strokeWidth="4"
         />
@@ -248,7 +248,7 @@ function StudyHeroIllustration({ mob }) {
           cx="355"
           cy="408"
           r="15"
-          fill="#1a1a2e"
+          fill="#0B1026"
           stroke="#f5c542"
           strokeWidth="4"
         />
@@ -257,7 +257,7 @@ function StudyHeroIllustration({ mob }) {
           cx="470"
           cy="268"
           r="15"
-          fill="#1a1a2e"
+          fill="#0B1026"
           stroke="#f06a6a"
           strokeWidth="4"
         />
@@ -285,14 +285,14 @@ function StudyHeroIllustration({ mob }) {
         <path
           d="M0 20 Q50 0 100 20 V115 Q50 95 0 115 Z"
           fill="#f5f4ff"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
         />
 
         <path
           d="M100 20 Q150 0 200 20 V115 Q150 95 100 115 Z"
           fill="#eeeeff"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
         />
 
@@ -339,7 +339,7 @@ function StudyHeroIllustration({ mob }) {
         <path
           d="M25 0 H105 L95 55 Q65 80 35 55 Z"
           fill="#f5c542"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
         />
 
@@ -375,14 +375,14 @@ function StudyHeroIllustration({ mob }) {
 
         <path
           d="M65 17 V42"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="3"
           strokeLinecap="round"
         />
 
         <path
           d="M53 29 H77"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -396,14 +396,14 @@ function StudyHeroIllustration({ mob }) {
           height="78"
           rx="22"
           fill="#f5f4ff"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
         />
 
         <path
           d="M28 78 L22 101 L49 78"
           fill="#f5f4ff"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
           strokeLinejoin="round"
         />
@@ -449,7 +449,7 @@ function StudyHeroIllustration({ mob }) {
         <path
           d="M0 0 L70 12 L43 72 L-12 47 Z"
           fill="#f5f4ff"
-          stroke="#1a1a2e"
+          stroke="#0B1026"
           strokeWidth="4"
         />
 
@@ -536,7 +536,15 @@ export default function Landpage() {
   const large = width >= 1600
 
   // ── controla o AuthModal (login / registro / esqueci a senha) ──
-  const [authMode, setAuthMode] = useState(null) // null | 'login' | 'register' | 'forgot'
+  const [authMode, setAuthMode] = useState(() => {
+    const authParam =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('auth')
+        : null
+    return authParam === 'login' || authParam === 'register' || authParam === 'forgot'
+      ? authParam
+      : null
+  }) // null | 'login' | 'register' | 'forgot'
 
   useEffect(() => {
     document.body.style.overflow = 'auto'
@@ -575,13 +583,8 @@ export default function Landpage() {
   }, [])
 
   // Links antigos (/auth/login, /auth/register, /forgot-password) caem
-  // em "/" com ?auth=login|register|forgot — abrimos o modal certo.
-  useEffect(() => {
-    const authParam = searchParams.get('auth')
-    if (authParam === 'login' || authParam === 'register' || authParam === 'forgot') {
-      setAuthMode(authParam)
-    }
-  }, [searchParams])
+  // em "/" com ?auth=login|register|forgot — o modal abre direto no
+  // primeiro render (ver useState acima).
 
   /* =======================================================
      NAVEGAÇÃO
@@ -834,7 +837,7 @@ export default function Landpage() {
             : tablet
               ? 'auto'
               : 'min(860px, 100vh)',
-          background: '#1a1a2e',
+          background: '#0B1026',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center'
@@ -1427,7 +1430,7 @@ export default function Landpage() {
                       width: mob ? 38 : 42,
                       height: mob ? 38 : 42,
                       borderRadius: 13,
-                      background: '#1a1a2e',
+                      background: '#0B1026',
                       color: '#f5f4ff',
                       display: 'flex',
                       alignItems: 'center',
@@ -1587,7 +1590,7 @@ export default function Landpage() {
         >
           <path
             d="M0 60 C300 10 430 90 720 48 C1000 8 1200 80 1440 35 L1440 100 L0 100 Z"
-            fill="#1a1a2e"
+            fill="#0B1026"
           />
         </svg>
       </div>
@@ -1600,7 +1603,7 @@ export default function Landpage() {
         id="aprendizado"
         style={{
           position: 'relative',
-          background: '#1a1a2e',
+          background: '#0B1026',
           padding: mob
             ? '78px 18px'
             : tablet
@@ -2139,7 +2142,7 @@ export default function Landpage() {
 
       <div
         style={{
-          background: '#1a1a2e',
+          background: '#0B1026',
           lineHeight: 0
         }}
       >
@@ -2190,7 +2193,7 @@ export default function Landpage() {
               overflow: 'hidden',
               width: '100%',
               borderRadius: mob ? 23 : 34,
-              background: '#1a1a2e',
+              background: '#0B1026',
               padding: mob
                 ? '55px 20px'
                 : tablet
@@ -2331,7 +2334,7 @@ export default function Landpage() {
       <footer
         id="contato"
         style={{
-          background: '#13152a',
+          background: '#0A0D1F',
           padding: mob
             ? '50px 18px 25px'
             : tablet
