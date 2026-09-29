@@ -66,6 +66,10 @@ func (s *fakeTopicService) Get(c context.Context, topicID uuid.UUID) (*topic.Top
 	return s.getFn(c, topicID)
 }
 
+func (s *fakeTopicService) RecordAttempt(context.Context, uuid.UUID, uuid.UUID, float64) (*topic.TopicProgress, error) {
+	return nil, nil
+}
+
 type fakeTopicRepository struct {
 	createFn         func(context.Context, *topic.Topic) (*topic.Topic, error)
 	getFn            func(context.Context, uuid.UUID) (*topic.Topic, error)

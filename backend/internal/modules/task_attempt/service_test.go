@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
@@ -51,18 +52,28 @@ func (r *fakeRepositoryAttempt) MarkDone(c context.Context, userID, id uuid.UUID
 }
 
 type fakeTopicRepositoryAttempt struct {
-	getFn func(context.Context, uuid.UUID) (*topic.Topic, error)
+	getFn           func(context.Context, uuid.UUID) (*topic.Topic, error)
+	recordAttemptFn func(context.Context, uuid.UUID, uuid.UUID, float64) (*topic.TopicProgress, error)
 }
 
-func (r *fakeTopicRepositoryAttempt) Create(context.Context, *topic.Topic) (*topic.Topic, error) { return nil, nil }
+func (r *fakeTopicRepositoryAttempt) GenerateRoadmap(context.Context, uuid.UUID, *goal.Goal) (*topic.Roadmap, error) {
+	return nil, nil
+}
+func (r *fakeTopicRepositoryAttempt) GetRoadmap(context.Context, uuid.UUID, uuid.UUID) (*topic.Roadmap, error) {
+	return nil, nil
+}
 func (r *fakeTopicRepositoryAttempt) Get(c context.Context, id uuid.UUID) (*topic.Topic, error) {
 	if r.getFn != nil {
 		return r.getFn(c, id)
 	}
 	return nil, nil
 }
-func (r *fakeTopicRepositoryAttempt) GetByGoalID(context.Context, uuid.UUID) ([]*topic.Topic, error) { return nil, nil }
-func (r *fakeTopicRepositoryAttempt) DeleteByGoalID(context.Context, uuid.UUID) error { return nil }
+func (r *fakeTopicRepositoryAttempt) RecordAttempt(c context.Context, userID, topicID uuid.UUID, score float64) (*topic.TopicProgress, error) {
+	if r.recordAttemptFn != nil {
+		return r.recordAttemptFn(c, userID, topicID, score)
+	}
+	return &topic.TopicProgress{UserID: userID, TopicID: topicID, MasteryScore: score}, nil
+}
 
 type fakeProfileServiceAttempt struct {
 	addXPFn func(context.Context, uuid.UUID, int) (*profile.Profile, error)

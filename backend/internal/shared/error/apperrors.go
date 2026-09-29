@@ -17,6 +17,7 @@ const (
 	ErrInvalidToken              Code = "INVALID_TOKEN"
 	ErrInvalidOrExpiredEmailCode Code = "INVALID_OR_EXPIRED_EMAIL_CODE"
 	ErrGoalNotFound              Code = "GOAL_NOT_FOUND"
+	ErrTopicNotFound             Code = "TOPIC_NOT_FOUND"
 	ErrGoalAlreadyExists         Code = "GOAL_ALREADY_EXISTS"
 	ErrTaskNotFound              Code = "TASK_NOT_FOUND"
 	ErrTaskAttemptNotFound       Code = "TASK_ATTEMPT_NOT_FOUND"
@@ -100,6 +101,8 @@ func StatusFromCode(code Code) int {
 	case ErrInvalidOrExpiredEmailCode:
 		return http.StatusBadRequest
 	case ErrGoalNotFound:
+		return http.StatusNotFound
+	case ErrTopicNotFound:
 		return http.StatusNotFound
 	case ErrGoalAlreadyExists:
 		return http.StatusConflict

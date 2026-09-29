@@ -94,7 +94,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	taskModule := task.NewModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
 
 	// Task attempt module
-	taskAttemptModule := task_attempt.NewModule(queries, taskModule, profileModule.Service)
+	taskAttemptModule := task_attempt.NewModule(queries, taskModule, topicModule.Service, profileModule.Service)
 
 	// Task correction module
 	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)

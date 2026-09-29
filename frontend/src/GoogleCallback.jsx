@@ -186,8 +186,8 @@ export default function GoogleCallback() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "#1a1a2e",
-                color: "#f5f4ff",
+                background: "var(--lp-navy)",
+                color: "var(--lp-ink-on-dark)",
                 fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 WebkitFontSmoothing: "antialiased"
             }}
@@ -206,7 +206,7 @@ export default function GoogleCallback() {
                         width: 32,
                         height: 32,
                         border: "3px solid rgba(245,244,255,0.18)",
-                        borderTopColor: "#6382ff",
+                        borderTopColor: "var(--lp-brand)",
                         borderRadius: "50%",
                         animation: "googleCallbackSpin .7s linear infinite"
                     }}

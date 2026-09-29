@@ -206,7 +206,7 @@ function StudyHeroIllustration({ mob }) {
            C425 296 454 300 470 268
            C490 229 487 190 520 165"
         fill="none"
-        stroke="#f5f4ff"
+        stroke="var(--lp-ink-on-dark)"
         strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -230,8 +230,8 @@ function StudyHeroIllustration({ mob }) {
           cx="205"
           cy="530"
           r="15"
-          fill="#1a1a2e"
-          stroke="#6382ff"
+          fill="var(--lp-navy)"
+          stroke="var(--lp-brand)"
           strokeWidth="4"
         />
 
@@ -239,7 +239,7 @@ function StudyHeroIllustration({ mob }) {
           cx="275"
           cy="448"
           r="15"
-          fill="#1a1a2e"
+          fill="var(--lp-navy)"
           stroke="#3ecf8e"
           strokeWidth="4"
         />
@@ -248,7 +248,7 @@ function StudyHeroIllustration({ mob }) {
           cx="355"
           cy="408"
           r="15"
-          fill="#1a1a2e"
+          fill="var(--lp-navy)"
           stroke="#f5c542"
           strokeWidth="4"
         />
@@ -257,7 +257,7 @@ function StudyHeroIllustration({ mob }) {
           cx="470"
           cy="268"
           r="15"
-          fill="#1a1a2e"
+          fill="var(--lp-navy)"
           stroke="#f06a6a"
           strokeWidth="4"
         />
@@ -266,15 +266,15 @@ function StudyHeroIllustration({ mob }) {
           cx="520"
           cy="165"
           r="18"
-          fill="#6382ff"
-          stroke="#f5f4ff"
+          fill="var(--lp-brand)"
+          stroke="var(--lp-ink-on-dark)"
           strokeWidth="4"
         />
 
         <path
           d="M514 165 l5 5 l10 -12"
           fill="none"
-          stroke="#f5f4ff"
+          stroke="var(--lp-ink-on-dark)"
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -284,28 +284,28 @@ function StudyHeroIllustration({ mob }) {
       <g transform="translate(75 420) rotate(-8)">
         <path
           d="M0 20 Q50 0 100 20 V115 Q50 95 0 115 Z"
-          fill="#f5f4ff"
-          stroke="#1a1a2e"
+          fill="var(--lp-ink-on-dark)"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
         />
 
         <path
           d="M100 20 Q150 0 200 20 V115 Q150 95 100 115 Z"
           fill="#eeeeff"
-          stroke="#1a1a2e"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
         />
 
         <path
           d="M100 20 V115"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="3"
         />
 
         <path
           d="M24 45 Q55 35 82 46"
           fill="none"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -339,14 +339,14 @@ function StudyHeroIllustration({ mob }) {
         <path
           d="M25 0 H105 L95 55 Q65 80 35 55 Z"
           fill="#f5c542"
-          stroke="#1a1a2e"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
         />
 
         <path
           d="M25 12 H3 Q2 42 35 45"
           fill="none"
-          stroke="#f5f4ff"
+          stroke="var(--lp-ink-on-dark)"
           strokeWidth="6"
           strokeLinecap="round"
         />
@@ -354,35 +354,35 @@ function StudyHeroIllustration({ mob }) {
         <path
           d="M105 12 H127 Q128 42 95 45"
           fill="none"
-          stroke="#f5f4ff"
+          stroke="var(--lp-ink-on-dark)"
           strokeWidth="6"
           strokeLinecap="round"
         />
 
         <path
           d="M65 80 V108"
-          stroke="#f5f4ff"
+          stroke="var(--lp-ink-on-dark)"
           strokeWidth="7"
           strokeLinecap="round"
         />
 
         <path
           d="M38 110 H92"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="8"
           strokeLinecap="round"
         />
 
         <path
           d="M65 17 V42"
-          stroke="#1a1a2e"
+          stroke="var(--lp-navy)"
           strokeWidth="3"
           strokeLinecap="round"
         />
 
         <path
           d="M53 29 H77"
-          stroke="#1a1a2e"
+          stroke="var(--lp-navy)"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -395,20 +395,20 @@ function StudyHeroIllustration({ mob }) {
           width="125"
           height="78"
           rx="22"
-          fill="#f5f4ff"
-          stroke="#1a1a2e"
+          fill="var(--lp-ink-on-dark)"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
         />
 
         <path
           d="M28 78 L22 101 L49 78"
-          fill="#f5f4ff"
-          stroke="#1a1a2e"
+          fill="var(--lp-ink-on-dark)"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
           strokeLinejoin="round"
         />
 
-        <circle cx="34" cy="38" r="6" fill="#6382ff" />
+        <circle cx="34" cy="38" r="6" fill="var(--lp-brand)" />
         <circle cx="62" cy="38" r="6" fill="#3ecf8e" />
         <circle cx="90" cy="38" r="6" fill="#f5c542" />
       </g>
@@ -420,7 +420,7 @@ function StudyHeroIllustration({ mob }) {
       >
         <path
           d="M115 275 h70 M150 245 v60"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="3"
         />
 
@@ -448,14 +448,14 @@ function StudyHeroIllustration({ mob }) {
       <g transform="translate(585 550) rotate(-12)">
         <path
           d="M0 0 L70 12 L43 72 L-12 47 Z"
-          fill="#f5f4ff"
-          stroke="#1a1a2e"
+          fill="var(--lp-ink-on-dark)"
+          stroke="var(--lp-navy)"
           strokeWidth="4"
         />
 
         <path
           d="M4 7 L43 72"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="2"
         />
 
@@ -480,7 +480,7 @@ function StudyHeroIllustration({ mob }) {
           ry="43"
           transform="rotate(-18 88 105)"
           fill="none"
-          stroke="#6382ff"
+          stroke="var(--lp-brand)"
           strokeWidth="3"
           opacity="0.8"
         />
@@ -509,7 +509,7 @@ function StudyHeroIllustration({ mob }) {
         cy="218"
         r="8"
         fill="#f06a6a"
-        stroke="#f5f4ff"
+        stroke="var(--lp-ink-on-dark)"
         strokeWidth="3"
       />
     </svg>
@@ -590,9 +590,11 @@ export default function Landpage() {
 
   const closeAuth = () => {
     setAuthMode(null)
-    if (searchParams.get('auth')) {
+    if (searchParams.get('auth') || searchParams.get('error')) {
       const next = new URLSearchParams(searchParams)
       next.delete('auth')
+      next.delete('error')
+      next.delete('reason')
       setSearchParams(next, { replace: true })
     }
   }
@@ -633,8 +635,8 @@ export default function Landpage() {
         minHeight: '100vh',
         fontFamily: "'Inter', -apple-system, sans-serif",
         WebkitFontSmoothing: 'antialiased',
-        background: '#f5f4ff',
-        color: '#1a1a2e',
+        background: 'var(--lp-bg)',
+        color: 'var(--lp-ink)',
         overflowX: 'hidden'
       }}
     >
@@ -831,7 +833,7 @@ export default function Landpage() {
             : tablet
               ? 'auto'
               : 'min(860px, 100vh)',
-          background: '#1a1a2e',
+          background: 'var(--lp-navy)',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center'
@@ -899,7 +901,7 @@ export default function Landpage() {
             width: 7,
             height: 7,
             borderRadius: '50%',
-            background: '#6382ff',
+            background: 'var(--lp-brand)',
             opacity: 0.8
           }}
         />
@@ -912,7 +914,7 @@ export default function Landpage() {
             width: 9,
             height: 9,
             borderRadius: '50%',
-            background: '#f5c542',
+            background: 'var(--lp-yellow)',
             opacity: 0.8
           }}
         />
@@ -925,7 +927,7 @@ export default function Landpage() {
             width: 6,
             height: 6,
             borderRadius: '50%',
-            background: '#3ecf8e'
+            background: 'var(--lp-green)'
           }}
         />
 
@@ -937,7 +939,7 @@ export default function Landpage() {
             width: 5,
             height: 5,
             borderRadius: '50%',
-            background: '#f06a6a'
+            background: 'var(--lp-red)'
           }}
         />
 
@@ -998,7 +1000,7 @@ export default function Landpage() {
                     fontWeight: 900,
                     letterSpacing: '-0.055em',
                     lineHeight: 0.98,
-                    color: '#f5f4ff',
+                    color: 'var(--lp-ink-on-dark)',
                     marginBottom: mob ? 21 : 26
                   }}
                 >
@@ -1006,7 +1008,7 @@ export default function Landpage() {
                   <br />
                   <span
                     style={{
-                      color: '#6382ff'
+                      color: 'var(--lp-brand)'
                     }}
                   >
                     do seu jeito.
@@ -1140,7 +1142,7 @@ export default function Landpage() {
                   >
                     <span
                       style={{
-                        color: '#3ecf8e',
+                        color: 'var(--lp-green)',
                         fontWeight: 900
                       }}
                     >
@@ -1151,7 +1153,7 @@ export default function Landpage() {
                   <div>
                     <div
                       style={{
-                        color: '#1a1a2e',
+                        color: 'var(--lp-ink)',
                         fontSize: 11,
                         fontWeight: 800
                       }}
@@ -1161,7 +1163,7 @@ export default function Landpage() {
 
                     <div
                       style={{
-                        color: '#6b6b8a',
+                        color: 'var(--lp-ink-2)',
                         fontSize: 10
                       }}
                     >
@@ -1198,7 +1200,7 @@ export default function Landpage() {
           >
             <path
               d="M0 50 C260 5 430 80 710 45 C1010 8 1180 75 1440 30 L1440 90 L0 90 Z"
-              fill="#f5f4ff"
+              fill="var(--lp-ink-on-dark)"
             />
           </svg>
         </div>
@@ -1212,7 +1214,7 @@ export default function Landpage() {
         id="roadmap"
         style={{
           position: 'relative',
-          background: '#f5f4ff',
+          background: 'var(--lp-bg)',
           padding: mob
             ? '75px 18px'
             : tablet
@@ -1243,7 +1245,7 @@ export default function Landpage() {
                   fontWeight: 800,
                   letterSpacing: '0.16em',
                   textTransform: 'uppercase',
-                  color: '#6382ff',
+                  color: 'var(--lp-brand)',
                   marginBottom: 14
                 }}
               >
@@ -1260,7 +1262,7 @@ export default function Landpage() {
                   fontWeight: 900,
                   letterSpacing: '-0.05em',
                   lineHeight: 1,
-                  color: '#1a1a2e',
+                  color: 'var(--lp-ink)',
                   marginBottom: 22
                 }}
               >
@@ -1268,7 +1270,7 @@ export default function Landpage() {
                 <br />
                 <span
                   style={{
-                    color: '#6382ff'
+                    color: 'var(--lp-brand)'
                   }}
                 >
                   para você aprender.
@@ -1278,7 +1280,7 @@ export default function Landpage() {
               <p
                 style={{
                   fontSize: mob ? 15 : 16,
-                  color: '#6b6b8a',
+                  color: 'var(--lp-ink-2)',
                   lineHeight: 1.75,
                   maxWidth: 680,
                   margin: '0 auto'
@@ -1287,7 +1289,7 @@ export default function Landpage() {
                 Em vez de seguir um conteúdo pronto, você
                 define o que quer aprender e a inteligência
                 artificial transforma esse objetivo em um
-                <strong style={{ color: '#1a1a2e' }}>
+                <strong style={{ color: 'var(--lp-ink)' }}>
                   {' '}roadmap completo e personalizado.
                 </strong>
               </p>
@@ -1323,7 +1325,7 @@ export default function Landpage() {
                 <p
                   style={{
                     fontSize: mob ? 15 : 16,
-                    color: '#6b6b8a',
+                    color: 'var(--lp-ink-2)',
                     lineHeight: 1.85,
                     marginBottom: 24
                   }}
@@ -1331,7 +1333,7 @@ export default function Landpage() {
                   Você escolhe o assunto, o objetivo e o
                   nível que deseja alcançar. A partir disso,
                   a IA organiza uma sequência lógica de
-                  <strong style={{ color: '#1a1a2e' }}>
+                  <strong style={{ color: 'var(--lp-ink)' }}>
                     {' '}tópicos e subtópicos
                   </strong>
                   {' '}que fazem sentido para a sua jornada.
@@ -1340,7 +1342,7 @@ export default function Landpage() {
                 <p
                   style={{
                     fontSize: mob ? 15 : 16,
-                    color: '#6b6b8a',
+                    color: 'var(--lp-ink-2)',
                     lineHeight: 1.85
                   }}
                 >
@@ -1359,7 +1361,7 @@ export default function Landpage() {
                   position: 'relative',
                   width: '100%',
                   minWidth: 0,
-                  background: '#ffffff',
+                  background: 'var(--lp-surface)',
                   borderRadius: mob ? 22 : 26,
                   padding: mob
                     ? 19
@@ -1393,7 +1395,7 @@ export default function Landpage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 800,
-                        color: '#6382ff',
+                        color: 'var(--lp-brand)',
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase',
                         marginBottom: 5
@@ -1410,7 +1412,7 @@ export default function Landpage() {
                             ? 18
                             : 20,
                         fontWeight: 900,
-                        color: '#1a1a2e',
+                        color: 'var(--lp-ink)',
                         letterSpacing: '-0.03em',
                         lineHeight: 1.2
                       }}
@@ -1424,8 +1426,8 @@ export default function Landpage() {
                       width: mob ? 38 : 42,
                       height: mob ? 38 : 42,
                       borderRadius: 13,
-                      background: '#1a1a2e',
-                      color: '#f5f4ff',
+                      background: 'var(--lp-navy)',
+                      color: 'var(--lp-ink-on-dark)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1445,7 +1447,7 @@ export default function Landpage() {
                       'CSS e estilização',
                       'JavaScript básico'
                     ],
-                    color: '#6382ff'
+                    color: 'var(--lp-brand)'
                   },
                   {
                     title: 'Frontend',
@@ -1454,7 +1456,7 @@ export default function Landpage() {
                       'Componentes',
                       'Estado e eventos'
                     ],
-                    color: '#3ecf8e'
+                    color: 'var(--lp-green)'
                   },
                   {
                     title: 'Projetos',
@@ -1463,7 +1465,7 @@ export default function Landpage() {
                       'Aplicações completas',
                       'Projeto final'
                     ],
-                    color: '#f5c542'
+                    color: 'var(--lp-yellow)'
                   }
                 ].map((topic, index) => (
                   <div
@@ -1522,7 +1524,7 @@ export default function Landpage() {
                         style={{
                           fontSize: 14,
                           fontWeight: 850,
-                          color: '#1a1a2e',
+                          color: 'var(--lp-ink)',
                           marginBottom: 7
                         }}
                       >
@@ -1544,7 +1546,7 @@ export default function Landpage() {
                               borderRadius: 8,
                               background:
                                 `${topic.color}10`,
-                              color: '#6b6b8a',
+                              color: 'var(--lp-ink-2)',
                               fontSize: mob ? 10 : 11,
                               fontWeight: 650
                             }}
@@ -1568,7 +1570,7 @@ export default function Landpage() {
 
       <div
         style={{
-          background: '#f5f4ff',
+          background: 'var(--lp-bg)',
           lineHeight: 0
         }}
       >
@@ -1584,7 +1586,7 @@ export default function Landpage() {
         >
           <path
             d="M0 60 C300 10 430 90 720 48 C1000 8 1200 80 1440 35 L1440 100 L0 100 Z"
-            fill="#1a1a2e"
+            fill="var(--lp-navy)"
           />
         </svg>
       </div>
@@ -1597,7 +1599,7 @@ export default function Landpage() {
         id="aprendizado"
         style={{
           position: 'relative',
-          background: '#1a1a2e',
+          background: 'var(--lp-navy)',
           padding: mob
             ? '78px 18px'
             : tablet
@@ -1646,7 +1648,7 @@ export default function Landpage() {
                     fontWeight: 800,
                     letterSpacing: '0.16em',
                     textTransform: 'uppercase',
-                    color: '#9ab4ff',
+                    color: 'var(--lp-brand)',
                     marginBottom: 14
                   }}
                 >
@@ -1663,7 +1665,7 @@ export default function Landpage() {
                     fontWeight: 900,
                     letterSpacing: '-0.05em',
                     lineHeight: 1.02,
-                    color: '#f5f4ff',
+                    color: 'var(--lp-ink-on-dark)',
                     marginBottom: 22
                   }}
                 >
@@ -1671,7 +1673,7 @@ export default function Landpage() {
                   <br />
                   <span
                     style={{
-                      color: '#6382ff'
+                      color: 'var(--lp-brand)'
                     }}
                   >
                     com você.
@@ -1708,21 +1710,21 @@ export default function Landpage() {
                         'Roadmap baseado no seu objetivo',
                       desc:
                         'A jornada começa a partir do que você quer alcançar.',
-                      color: '#6382ff'
+                      color: 'var(--lp-brand)'
                     },
                     {
                       label:
                         'Tópicos e subtópicos ajustados',
                       desc:
                         'A estrutura pode acompanhar seu nível e seu progresso.',
-                      color: '#3ecf8e'
+                      color: 'var(--lp-green)'
                     },
                     {
                       label:
                         'Evolução guiada pelo desempenho',
                       desc:
                         'Seus resultados ajudam a definir os próximos passos.',
-                      color: '#f5c542'
+                      color: 'var(--lp-yellow)'
                     }
                   ].map(
                     ({
@@ -1761,7 +1763,7 @@ export default function Landpage() {
                             style={{
                               fontSize: 14,
                               fontWeight: 800,
-                              color: '#f5f4ff',
+                              color: 'var(--lp-ink-on-dark)',
                               marginBottom: 3
                             }}
                           >
@@ -1819,7 +1821,7 @@ export default function Landpage() {
                     position: 'relative',
                     width: '100%',
                     minWidth: 0,
-                    background: '#f5f4ff',
+                    background: 'var(--lp-bg)',
                     borderRadius: mob ? 22 : 28,
                     padding: mob
                       ? 18
@@ -1853,7 +1855,7 @@ export default function Landpage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 800,
-                          color: '#6382ff',
+                          color: 'var(--lp-brand)',
                           letterSpacing:
                             '0.08em',
                           textTransform:
@@ -1872,7 +1874,7 @@ export default function Landpage() {
                               ? 18
                               : 20,
                           fontWeight: 900,
-                          color: '#1a1a2e',
+                          color: 'var(--lp-ink)',
                           letterSpacing:
                             '-0.03em',
                           lineHeight: 1.2
@@ -1887,13 +1889,12 @@ export default function Landpage() {
                         width: mob ? 39 : 43,
                         height: mob ? 39 : 43,
                         borderRadius: 14,
-                        background:
-                          '#1a1a2e',
+                        background: 'var(--lp-navy)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent:
                           'center',
-                        color: '#f5f4ff',
+                        color: 'var(--lp-ink-on-dark)',
                         fontWeight: 900,
                         flexShrink: 0
                       }}
@@ -1908,7 +1909,7 @@ export default function Landpage() {
                     style={{
                       padding: mob ? 13 : 16,
                       borderRadius: 17,
-                      background: '#ffffff',
+                      background: 'var(--lp-surface)',
                       border:
                         '1px solid rgba(99,130,255,0.09)',
                       marginBottom: 12
@@ -1928,7 +1929,7 @@ export default function Landpage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 800,
-                          color: '#1a1a2e'
+                          color: 'var(--lp-ink)'
                         }}
                       >
                         Progresso da trilha
@@ -1938,7 +1939,7 @@ export default function Landpage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 900,
-                          color: '#6382ff'
+                          color: 'var(--lp-brand)'
                         }}
                       >
                         68%
@@ -1960,7 +1961,7 @@ export default function Landpage() {
                           height: '100%',
                           borderRadius: 99,
                           background:
-                            '#6382ff'
+                            'var(--lp-brand)'
                         }}
                       />
                     </div>
@@ -1975,7 +1976,7 @@ export default function Landpage() {
                       desc:
                         'Equações do 2º grau',
                       pct: 80,
-                      color: '#6382ff'
+                      color: 'var(--lp-brand)'
                     },
                     {
                       subject:
@@ -1983,7 +1984,7 @@ export default function Landpage() {
                       desc:
                         'Past perfect tense',
                       pct: 45,
-                      color: '#f5c542'
+                      color: 'var(--lp-yellow)'
                     },
                     {
                       subject:
@@ -1991,7 +1992,7 @@ export default function Landpage() {
                       desc:
                         'Busca binária',
                       pct: 100,
-                      color: '#3ecf8e'
+                      color: 'var(--lp-green)'
                     }
                   ].map(
                     ({
@@ -2008,8 +2009,7 @@ export default function Landpage() {
                               ? '13px 13px'
                               : '15px 16px',
                           borderRadius: 17,
-                          background:
-                            '#ffffff',
+                          background: 'var(--lp-surface)',
                           border:
                             '1px solid rgba(99,130,255,0.09)',
                           marginBottom: 10
@@ -2040,8 +2040,8 @@ export default function Landpage() {
                               fontWeight: 800,
                               color:
                                 pct === 100
-                                  ? '#3ecf8e'
-                                  : '#6b6b8a',
+                                  ? 'var(--lp-green)'
+                                  : 'var(--lp-ink-2)',
                               flexShrink: 0
                             }}
                           >
@@ -2053,7 +2053,7 @@ export default function Landpage() {
                           style={{
                             fontSize: 13,
                             fontWeight: 600,
-                            color: '#1a1a2e',
+                            color: 'var(--lp-ink)',
                             marginBottom: 9,
                             lineHeight: 1.4
                           }}
@@ -2101,7 +2101,7 @@ export default function Landpage() {
                     <span
                       style={{
                         fontSize: 11,
-                        color: '#6b6b8a'
+                        color: 'var(--lp-ink-2)'
                       }}
                     >
                       Próxima atividade gerada
@@ -2114,7 +2114,7 @@ export default function Landpage() {
                         borderRadius: 99,
                         background:
                           'rgba(62,207,142,0.12)',
-                        color: '#2aa86f',
+                        color: 'var(--lp-green-d)',
                         fontSize: 10,
                         fontWeight: 800,
                         flexShrink: 0
@@ -2136,7 +2136,7 @@ export default function Landpage() {
 
       <div
         style={{
-          background: '#1a1a2e',
+          background: 'var(--lp-navy)',
           lineHeight: 0
         }}
       >
@@ -2164,7 +2164,7 @@ export default function Landpage() {
       <section
         style={{
           position: 'relative',
-          background: '#eeeeff',
+          background: 'var(--lp-bg-alt)',
           padding: mob
             ? '25px 18px 75px'
             : tablet
@@ -2187,7 +2187,7 @@ export default function Landpage() {
               overflow: 'hidden',
               width: '100%',
               borderRadius: mob ? 23 : 34,
-              background: '#1a1a2e',
+              background: 'var(--lp-navy)',
               padding: mob
                 ? '55px 20px'
                 : tablet
@@ -2230,7 +2230,7 @@ export default function Landpage() {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: '#f5c542',
+                background: 'var(--lp-yellow)',
                 right: '18%',
                 top: '25%'
               }}
@@ -2242,7 +2242,7 @@ export default function Landpage() {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: '#3ecf8e',
+                background: 'var(--lp-green)',
                 left: '19%',
                 bottom: '27%'
               }}
@@ -2263,7 +2263,7 @@ export default function Landpage() {
                     letterSpacing: '0.16em',
                     textTransform:
                       'uppercase',
-                    color: '#9ab4ff',
+                    color: 'var(--lp-brand)',
                     marginBottom: 14
                   }}
                 >
@@ -2280,7 +2280,7 @@ export default function Landpage() {
                     fontWeight: 900,
                     letterSpacing: '-0.05em',
                     lineHeight: 1,
-                    color: '#f5f4ff',
+                    color: 'var(--lp-ink-on-dark)',
                     marginBottom: 19
                   }}
                 >
@@ -2328,7 +2328,7 @@ export default function Landpage() {
       <footer
         id="contato"
         style={{
-          background: '#13152a',
+          background: 'var(--lp-navy-2)',
           padding: mob
             ? '50px 18px 25px'
             : tablet
@@ -2581,7 +2581,7 @@ export default function Landpage() {
         body {
           overflow-x: hidden;
           overflow-y: auto;
-          background: #f5f4ff;
+          background: var(--lp-bg);
           width: 100%;
           max-width: 100%;
         }
@@ -2610,8 +2610,8 @@ export default function Landpage() {
         }
 
         ::selection {
-          background: #6382ff;
-          color: #f5f4ff;
+          background: var(--lp-brand);
+          color: var(--lp-ink-on-dark);
         }
 
         @media (max-width: 767px) {
@@ -2669,7 +2669,7 @@ const heroSignIn = {
   borderRadius: 9,
   border: 'none',
   background: 'transparent',
-  color: '#f5f4ff',
+  color: 'var(--lp-ink-on-dark)',
   fontSize: 13,
   fontWeight: 700,
   cursor: 'pointer',
@@ -2680,8 +2680,8 @@ const heroNavCta = {
   padding: '11px 20px',
   borderRadius: 9,
   border: 'none',
-  background: '#f5f4ff',
-  color: '#1a1a2e',
+  background: 'var(--lp-bg)',
+  color: 'var(--lp-ink)',
   fontSize: 13,
   fontWeight: 800,
   cursor: 'pointer',
@@ -2697,8 +2697,8 @@ const heroMainCta = {
   padding: '15px 22px',
   borderRadius: 11,
   border: 'none',
-  background: '#6382ff',
-  color: '#ffffff',
+  background: 'var(--lp-brand)',
+  color: 'var(--lp-brand-ink)',
   fontSize: 14,
   fontWeight: 800,
   cursor: 'pointer',
@@ -2717,7 +2717,7 @@ const heroSecondaryCta = {
     '1px solid rgba(245,244,255,0.16)',
   background:
     'rgba(245,244,255,0.04)',
-  color: '#f5f4ff',
+  color: 'var(--lp-ink-on-dark)',
   fontSize: 14,
   fontWeight: 700,
   cursor: 'pointer',
@@ -2731,8 +2731,8 @@ const finalCta = {
   padding: '15px 24px',
   borderRadius: 11,
   border: 'none',
-  background: '#f06a6a',
-  color: '#ffffff',
+  background: 'var(--lp-red)',
+  color: 'var(--lp-brand-ink)',
   fontSize: 14,
   fontWeight: 800,
   cursor: 'pointer',

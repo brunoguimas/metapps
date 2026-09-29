@@ -79,6 +79,9 @@ func (r *topicProgressRepository) Update(ctx context.Context, progress *TopicPro
 		ConfidenceScore: progress.ConfidenceScore,
 		AttemptsCount:   progress.AttemptsCount,
 		Status:          db.TopicStatus(progress.Status),
+		// Sem isso a coluna evolution_stage era gravada com string vazia a
+		// cada update, zerando a fase do topico no roadmap.
+		EvolutionStage: progress.EvolutionStage,
 	})
 	return err
 }

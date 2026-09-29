@@ -3,43 +3,113 @@ html, body, #root { height: 100%; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #0d0d0d;
+  background: var(--lp-bg);
+  color: var(--lp-ink);
+  transition: background 0.25s var(--ease), color 0.25s var(--ease);
 }
 
+/* ─── PALETA GLOBAL ───────────────────────────────────────────────
+ *
+ * Um único conjunto de nomes para as duas telas (landing e app), com os
+ * valores trocados por [data-theme]. Landpage, AuthModal, HistoryPage e
+ * GoogleCallback usam styles inline, então a paleta precisa existir como
+ * variável: style inline tem precedência sobre folha de estilo, e não dá
+ * para sobrepor hex com CSS.
+ *
+ * A landing é clara por padrão em ambas as opções, só que no escuro a
+ * "faixa escura" (hero/rodapé) deixa de ser #1a1a2e e vira uma superfície
+ * ainda mais profunda, para não existir um bloco claro solto no meio.
+ */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --lp-bg:        #f5f4ff;
+  --lp-bg-alt:    #eeeeff;
+  --lp-surface:   #ffffff;
+  --lp-surface-2: #f8f7ff;
+  --lp-navy:      #1a1a2e;
+  --lp-navy-2:    #13152a;
+  --lp-ink:       #1a1a2e;
+  --lp-ink-2:     #6b6b8a;
+  --lp-ink-3:     #8a8aa3;
+  --lp-ink-on-dark: #f5f4ff;
+  --lp-line:      #d0d0e0;
+  --lp-line-soft: #e6e6f2;
+  --lp-brand:     #6382ff;
+  --lp-brand-ink: #ffffff;
+  --lp-brand-soft:#e9eeff;
+  --lp-green:     #3ecf8e;
+  --lp-green-d:   #2aa86f;
+  --lp-green-soft:#e3f9ef;
+  --lp-yellow:    #f5c542;
+  --lp-yellow-d:  #d9a520;
+  --lp-yellow-soft:#fdf5dd;
+  --lp-red:       #f06a6a;
+  --lp-red-d:     #b23a3a;
+  --lp-red-soft:  #fdeaea;
+  --lp-violet:    #9b59f0;
+  --lp-violet-soft:#f1e8fd;
+  --lp-shadow:    0 10px 30px rgba(26, 26, 46, 0.08);
+  --lp-shadow-sm: 0 4px 14px rgba(26, 26, 46, 0.06);
+  --lp-hover:        rgba(26, 26, 46, 0.06);
+  --lp-hover-strong: rgba(26, 26, 46, 0.1);
+  --lp-ring:      rgba(99, 130, 255, 0.28);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  /* No escuro a lógica de faixas se inverte: a página fica num cinza-azulado
+     e as faixas que eram navy (#1a1a2e) viram um recesso ainda mais escuro,
+     para o ritmo claro/escuro da landing continuar visível. */
+  --lp-bg:        #101120;
+  --lp-bg-alt:    #171930;
+  --lp-surface:   #1a1c2e;
+  --lp-surface-2: #20233a;
+  --lp-navy:      #080911;
+  --lp-navy-2:    #05060c;
+  --lp-ink:       #edeffc;
+  --lp-ink-2:     #a5a9c2;
+  --lp-ink-3:     #7c8099;
+  --lp-ink-on-dark: #edeffc;
+  --lp-line:      #2b2e42;
+  --lp-line-soft: #232636;
+  --lp-brand:     #7d97ff;
+  --lp-brand-ink: #0c0d18;
+  --lp-brand-soft:#1c2440;
+  --lp-green:     #4fd79a;
+  --lp-green-d:   #2aa86f;
+  --lp-green-soft:#122c23;
+  --lp-yellow:    #f7ce5c;
+  --lp-yellow-d:  #d9a520;
+  --lp-yellow-soft:#2e2712;
+  --lp-red:       #ff7b7b;
+  --lp-red-d:     #b23a3a;
+  --lp-red-soft:  #331c1c;
+  --lp-violet:    #b07cf5;
+  --lp-violet-soft:#241a3a;
+  --lp-shadow:    0 10px 30px rgba(0, 0, 0, 0.45);
+  --lp-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --lp-hover:        rgba(255, 255, 255, 0.07);
+  --lp-hover-strong: rgba(255, 255, 255, 0.12);
+  --lp-ring:      rgba(125, 151, 255, 0.35);
+}
+
+/* Mantém o scrollbar discreto no tema escuro (a barra clara padrão
+   destoa em superfícies escuras). */
+[data-theme='dark'] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-theme='dark'] ::-webkit-scrollbar-track { background: transparent; }
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #2b2e42;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover { background: #3a3e58; background-clip: content-box; }
+
 :root {
-  --bg:      #0d0d0d;
-  --bg2:     #0e0e0e;
-  --form-bg: #111520;
-  /* Blue */
-  --blue:    #4f7edd;
-  --blue-h:  #3e6dcc;
-  --accent:  #7b9fd4;
-  /* Purple — new */
-  --purple:       #7b3fd4;
-  --purple-h:     #6a32bc;
-  --purple-dim:   rgba(123,63,212,0.15);
-  --purple-brd:   rgba(123,63,212,0.3);
-  /* Amber */
-  --amber:   #d4924a;
-  --amber-h: #c4823a;
-  /* Teal accent */
-  --teal:    #3fc4a0;
-  /* Text */
-  --t1: #e8ecf2;
-  --t2: #6e7a92;
-  --t3: #2e3649;
-  /* Inputs */
-  --ib:  rgba(255,255,255,0.1);
-  --ibf: #6c8fd4;
-  --irf: rgba(108,143,212,0.17);
-  --ibg: rgba(255,255,255,0.048);
-  --sep: rgba(255,255,255,0.06);
-  /* Errors */
-  --err-bg:  rgba(220,60,60,0.09);
-  --err-brd: rgba(220,60,60,0.2);
-  --err-t:   #e08080;
   --r: 8px;
-  --ease: cubic-bezier(0.16,1,0.3,1);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 768px) { body { overflow: auto; } }

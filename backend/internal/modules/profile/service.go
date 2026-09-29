@@ -44,6 +44,7 @@ func (s *profileService) CreateProfile(ctx context.Context, userID uuid.UUID) (*
 	}
 
 	profile := &Profile{
+		ID:               uuid.New(),
 		UserID:           userID,
 		XP:               0,
 		Streak:           0,

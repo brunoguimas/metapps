@@ -62,7 +62,7 @@ function typeLabel(t) {
   return t || '—'
 }
 
-const typeColor = t => (t === 'essay' ? '#9B59F0' : '#6382FF')
+const typeColor = t => (t === 'essay' ? 'var(--lp-violet)' : 'var(--lp-brand)')
 
 // ─── ICONES ──────────────────────────────────────────────────
 
@@ -81,14 +81,14 @@ function IconAlert() {
 function IconSpark() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="#9AB4FF" style={{ verticalAlign: '-2px', marginRight: 6 }}><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8Z" /></svg>
 }
-function IconCheck({ color = '#3ECF8E' }) {
+function IconCheck({ color = 'var(--lp-green)' }) {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 }
-function IconX({ color = '#F06A6A' }) {
+function IconX({ color = 'var(--lp-red)' }) {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="M6 6l12 12" /></svg>
 }
 function Spinner() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'metaSpin .8s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(99,130,255,0.25)" strokeWidth="3" /> <path d="M12 2a10 10 0 0 1 10 10" stroke="#6382FF" strokeWidth="3" strokeLinecap="round" /></svg>
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'metaSpin .8s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(99,130,255,0.25)" strokeWidth="3" /> <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--lp-brand)" strokeWidth="3" strokeLinecap="round" /></svg>
 }
 function GlobalStyles() {
   return (
@@ -101,42 +101,42 @@ function GlobalStyles() {
 
 // ─── ESTILOS ─────────────────────────────────────────────────
 
-const page = { minHeight: '100vh', background: '#F5F4FF', color: '#1E1E32', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased' }
-const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: '#1A1A2E', position: 'sticky', top: 0, zIndex: 10, borderRadius: '0 0 20px 20px', boxShadow: '0 8px 24px rgba(26,26,46,0.18)' }
-const headerTitle = { fontWeight: 800, color: '#f5f4ff', fontSize: 14 }
-const iconNavBtn = { width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#f5f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }
+const page = { minHeight: '100vh', background: 'var(--lp-bg)', color: 'var(--lp-navy)', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased' }
+const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--lp-navy)', position: 'sticky', top: 0, zIndex: 10, borderRadius: '0 0 20px 20px', boxShadow: '0 8px 24px rgba(26,26,46,0.18)' }
+const headerTitle = { fontWeight: 800, color: 'var(--lp-ink-on-dark)', fontSize: 14 }
+const iconNavBtn = { width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)', color: 'var(--lp-ink-on-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }
 const box = { maxWidth: 600, margin: '0 auto', padding: '24px 18px 48px', animation: 'metaFadeUp .35s ease' }
-const card = { background: '#fff', borderRadius: 22, boxShadow: '0 10px 30px rgba(99,130,255,0.1)' }
-const statCard = { background: '#fff', borderRadius: 16, padding: '14px 6px', textAlign: 'center', boxShadow: '0 6px 16px rgba(99,130,255,0.07)', flex: 1 }
-const statNum = { color: '#1E1E32', fontSize: 20, fontWeight: 800 }
-const statCaption = { color: '#8A8AA3', fontSize: 10.5, fontWeight: 700, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.4px' }
-const select = { flex: 1, padding: '11px 12px', borderRadius: 12, border: '1.5px solid rgba(99,130,255,0.2)', background: '#fff', color: '#1E1E32', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 0 }
-const attemptCard = { background: '#fff', border: '1px solid rgba(99,130,255,0.1)', borderRadius: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(99,130,255,0.06)', overflow: 'hidden' }
+const card = { background: 'var(--lp-surface)', borderRadius: 22, boxShadow: '0 10px 30px rgba(99,130,255,0.1)' }
+const statCard = { background: 'var(--lp-surface)', borderRadius: 16, padding: '14px 6px', textAlign: 'center', boxShadow: '0 6px 16px rgba(99,130,255,0.07)', flex: 1 }
+const statNum = { color: 'var(--lp-navy)', fontSize: 20, fontWeight: 800 }
+const statCaption = { color: 'var(--lp-ink-3)', fontSize: 10.5, fontWeight: 700, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.4px' }
+const select = { flex: 1, padding: '11px 12px', borderRadius: 12, border: '1.5px solid rgba(99,130,255,0.2)', background: 'var(--lp-surface)', color: 'var(--lp-navy)', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 0 }
+const attemptCard = { background: 'var(--lp-surface)', border: '1px solid rgba(99,130,255,0.1)', borderRadius: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(99,130,255,0.06)', overflow: 'hidden' }
 const attemptHead = { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', width: '100%', border: 'none', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }
-const attemptTitle = { color: '#1E1E32', fontSize: 13.5, fontWeight: 800, lineHeight: 1.35, wordBreak: 'break-word' }
+const attemptTitle = { color: 'var(--lp-navy)', fontSize: 13.5, fontWeight: 800, lineHeight: 1.35, wordBreak: 'break-word' }
 const metaRow = { display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }
 const badge = { fontSize: 10, fontWeight: 800, letterSpacing: '0.5px', padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase' }
-const dateTxt = { color: '#8A8AA3', fontSize: 11.5, fontWeight: 600 }
+const dateTxt = { color: 'var(--lp-ink-3)', fontSize: 11.5, fontWeight: 600 }
 const scoreWrap = { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }
 const scoreChip = { minWidth: 54, fontSize: 13, fontWeight: 800, borderRadius: 10, padding: '6px 10px', textAlign: 'center' }
-const chevCol = { display: 'flex', alignItems: 'center', color: '#B7B7CC' }
+const chevCol = { display: 'flex', alignItems: 'center', color: 'var(--lp-line)' }
 const detailBox = { padding: '0 16px 16px', borderTop: '1px dashed rgba(99,130,255,0.14)' }
-const detailLabel = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#6382FF', paddingTop: 14, marginBottom: 10 }
+const detailLabel = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--lp-brand)', paddingTop: 14, marginBottom: 10 }
 const reviewRow = { padding: '11px 13px', borderRadius: 12, marginBottom: 8, border: '1px solid rgba(99,130,255,0.12)' }
 const reviewRowOk = { border: '1px solid rgba(62,207,142,0.25)', background: 'rgba(62,207,142,0.05)' }
 const reviewRowBad = { border: '1px solid rgba(240,106,106,0.25)', background: 'rgba(240,106,106,0.05)' }
 const reviewHead = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }
 const reviewTitle = { fontWeight: 800, fontSize: 12.5 }
-const reviewMuted = { color: '#8A8AA3', fontSize: 12, lineHeight: 1.5, margin: '5px 0 0' }
-const respText = { background: '#F5F4FF', border: '1px solid rgba(99,130,255,0.14)', borderRadius: 12, padding: '12px 14px', color: '#4A4A66', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8 }
-const fbCard = { background: 'linear-gradient(180deg,#fff,#F8F7FF)', border: '1px solid rgba(99,130,255,0.16)', borderRadius: 14, padding: 14, marginTop: 10 }
-const fbEyebrow = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#6382FF', marginBottom: 10 }
-const fbText = { color: '#1E1E32', fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }
-const fbScore = { display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: '#0E7A55', background: 'rgba(62,207,142,0.12)', padding: '4px 10px', borderRadius: 99, marginBottom: 10 }
-const muted = { color: '#8A8AA3', fontSize: 13, lineHeight: 1.6, margin: '4px 0 12px' }
-const errStyle = { display: 'flex', alignItems: 'center', background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#B23A3A', fontWeight: 600, marginBottom: 12 }
-const btnSm = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', border: 'none', borderRadius: 12, background: '#6382FF', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 16px rgba(99,130,255,0.3)' }
-const loadingWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#8A8AA3', fontSize: 13, fontWeight: 700, padding: '40px 0' }
+const reviewMuted = { color: 'var(--lp-ink-3)', fontSize: 12, lineHeight: 1.5, margin: '5px 0 0' }
+const respText = { background: 'var(--lp-bg)', border: '1px solid rgba(99,130,255,0.14)', borderRadius: 12, padding: '12px 14px', color: 'var(--lp-ink-2)', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8 }
+const fbCard = { background: 'linear-gradient(180deg, var(--lp-surface), var(--lp-surface-2))', border: '1px solid rgba(99,130,255,0.16)', borderRadius: 14, padding: 14, marginTop: 10 }
+const fbEyebrow = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--lp-brand)', marginBottom: 10 }
+const fbText = { color: 'var(--lp-navy)', fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }
+const fbScore = { display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: 'var(--lp-green-d)', background: 'rgba(62,207,142,0.12)', padding: '4px 10px', borderRadius: 99, marginBottom: 10 }
+const muted = { color: 'var(--lp-ink-3)', fontSize: 13, lineHeight: 1.6, margin: '4px 0 12px' }
+const errStyle = { display: 'flex', alignItems: 'center', background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: 'var(--lp-red-d)', fontWeight: 600, marginBottom: 12 }
+const btnSm = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', border: 'none', borderRadius: 12, background: 'var(--lp-brand)', color: 'var(--lp-brand-ink)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 16px rgba(99,130,255,0.3)' }
+const loadingWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--lp-ink-3)', fontSize: 13, fontWeight: 700, padding: '40px 0' }
 const emptyWrap = { textAlign: 'center', padding: '36px 20px' }
 
 // ─── PÁGINA ──────────────────────────────────────────────────
@@ -287,8 +287,8 @@ export default function HistoryPage() {
         <div key={i} style={{ ...reviewRow, ...(ok ? reviewRowOk : reviewRowBad) }}>
           <div style={reviewHead}>
             {ok ? <IconCheck /> : <IconX />}
-            <span style={{ ...reviewTitle, color: ok ? '#0E7A55' : '#B23A3A' }}>Questão {idx + 1}</span>
-            {alts.length && <span style={{ marginLeft: 'auto', color: '#8A8AA3', fontSize: 11.5, fontWeight: 700 }}>Sua: {answerLabel(alts, sub)}</span>}
+            <span style={{ ...reviewTitle, color: ok ? 'var(--lp-green-d)' : 'var(--lp-red-d)' }}>Questão {idx + 1}</span>
+            {alts.length && <span style={{ marginLeft: 'auto', color: 'var(--lp-ink-3)', fontSize: 11.5, fontWeight: 700 }}>Sua: {answerLabel(alts, sub)}</span>}
           </div>
           {!ok && alts.length > 0 && <p style={reviewMuted}>Correta: {answerLabel(alts, cor)}</p>}
           {it.explanation && <p style={{ ...reviewMuted, fontStyle: 'italic' }}>{it.explanation}</p>}
@@ -354,7 +354,7 @@ export default function HistoryPage() {
 
         {!hasAttempts && !err ? (
           <div style={{ ...card, ...emptyWrap }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E1E32', marginBottom: 6 }}>Nenhuma tentativa ainda</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--lp-navy)', marginBottom: 6 }}>Nenhuma tentativa ainda</div>
             <p style={muted}>Resolva algumas tarefas no seu roadmap e seus resultados aparecem aqui.</p>
             <button type="button" onClick={() => navigate('/home')} style={btnSm}>Ir para o roadmap</button>
           </div>
@@ -366,7 +366,7 @@ export default function HistoryPage() {
                 <div style={statCaption}>Tentativas</div>
               </div>
               <div style={statCard}>
-                <div style={{ ...statNum, color: '#0E7A55' }}>{conquered}</div>
+                <div style={{ ...statNum, color: 'var(--lp-green-d)' }}>{conquered}</div>
                 <div style={statCaption}>Conquistados</div>
               </div>
               <div style={statCard}>
@@ -400,7 +400,7 @@ export default function HistoryPage() {
                 const score = typeof a.score === 'number' ? a.score : null
                 const pct = score === null ? null : Math.round(score * 100)
                 const open = expandedId === a.id
-                const scoreColor = score === null ? '#B7B7CC' : pct >= 70 ? '#3ECF8E' : pct >= 40 ? '#F5C542' : '#F06A6A'
+                const scoreColor = score === null ? 'var(--lp-line)' : pct >= 70 ? 'var(--lp-green)' : pct >= 40 ? 'var(--lp-yellow)' : 'var(--lp-red)'
                 const scoreBg = score === null ? 'rgba(99,130,255,0.1)' : 'rgba(255,255,255,1)'
 
                 return (
@@ -415,7 +415,7 @@ export default function HistoryPage() {
                       </div>
                       <div style={scoreWrap}>
                         {score === null ? (
-                          <span style={{ ...scoreChip, background: scoreBg, color: '#6382FF' }}>FEEDBACK</span>
+                          <span style={{ ...scoreChip, background: scoreBg, color: 'var(--lp-brand)' }}>FEEDBACK</span>
                         ) : (
                           <span style={{ ...scoreChip, background: scoreBg, color: scoreColor }}>{pct}%</span>
                         )}

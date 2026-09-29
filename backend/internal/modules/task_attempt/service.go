@@ -25,12 +25,12 @@ type Service interface {
 type taskAttemptService struct {
 	repo           Repository
 	taskRepo       task.Repository
-	topicRepo      topic.Repository
+	topics         topic.Service
 	profileService profile.Service
 }
 
-func NewService(r Repository, taskRepo task.Repository, topicRepo topic.Repository, profileService profile.Service) Service {
-	return &taskAttemptService{repo: r, taskRepo: taskRepo, topicRepo: topicRepo, profileService: profileService}
+func NewService(r Repository, taskRepo task.Repository, topics topic.Service, profileService profile.Service) Service {
+	return &taskAttemptService{repo: r, taskRepo: taskRepo, topics: topics, profileService: profileService}
 }
 
 func (s *taskAttemptService) Submit(c context.Context, userID, taskID uuid.UUID, input *CreateAttemptInput) (*TaskAttempt, *task.Task, error) {
@@ -67,22 +67,43 @@ func (s *taskAttemptService) Submit(c context.Context, userID, taskID uuid.UUID,
 		return nil, nil, err
 	}
 
-	// Concede XP no backend quando o tópico é dominado.
-	if score != nil && currentTask.TopicID != uuid.Nil {
-		if tr, err := s.topicRepo.Get(c, currentTask.TopicID); err == nil && tr != nil {
-			if *score >= tr.RequiredMastery {
-				xpToAdd := int(math.Round(tr.Weight * 10))
-				if xpToAdd > 0 {
-					if _, err := s.profileService.AddXP(c, userID, xpToAdd); err != nil {
-						// XP não deve quebrar o fluxo de submissão da tentativa.
-						_ = err
-					}
-				}
+	s.recordTopicOutcome(c, userID, currentTask, score)
+
+	return created, updatedTask, nil
+}
+
+// recordTopicOutcome persiste o progresso do topico da tentativa.
+//
+// Sem essa escrita o progresso vivia so no estado do frontend: apos um
+// logout o componente era desmontado e a trilha voltava sem nenhuma etapa
+// concluida, obrigando o usuario a refazer a atividade.
+//
+// O valor de XP fica no backend de proposito: no frontend ele era
+// recalculado e enviado pelo cliente, o que permitia inflar o proprio XP
+// chamando a rota diretamente.
+func (s *taskAttemptService) recordTopicOutcome(c context.Context, userID uuid.UUID, t *task.Task, score *float64) {
+	if score == nil || t.TopicID == uuid.Nil {
+		return
+	}
+
+	topic, err := s.topics.Get(c, t.TopicID)
+	if err != nil || topic == nil {
+		return
+	}
+
+	// A tentativa ja foi persistida a esta altura: falhar aqui nao pode
+	// fazer o usuario perder o trabalho, entao o erro so e engolido.
+	if _, err := s.topics.RecordAttempt(c, userID, t.TopicID, *score); err != nil {
+		_ = err
+	}
+
+	if *score >= topic.RequiredMastery {
+		if xp := int(math.Round(topic.Weight * 10)); xp > 0 {
+			if _, err := s.profileService.AddXP(c, userID, xp); err != nil {
+				_ = err
 			}
 		}
 	}
-
-	return created, updatedTask, nil
 }
 
 func (s *taskAttemptService) ListByUser(c context.Context, userID uuid.UUID) ([]*TaskAttempt, error) {

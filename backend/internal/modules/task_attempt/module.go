@@ -13,10 +13,9 @@ type Module struct {
 	Handler    *Handler
 }
 
-func NewModule(q *db.Queries, taskModule *task.Module, profiles profile.Service) *Module {
+func NewModule(q *db.Queries, taskModule *task.Module, topics topic.Service, profiles profile.Service) *Module {
 	r := NewRepository(q)
-	tr := topic.NewRepository(q)
-	s := NewService(r, taskModule.Repository, tr, profiles)
+	s := NewService(r, taskModule.Repository, topics, profiles)
 	h := NewHandler(s)
 
 	return &Module{

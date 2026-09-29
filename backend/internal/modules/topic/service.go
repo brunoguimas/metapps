@@ -19,6 +19,7 @@ type Service interface {
 	GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error)
 	GetRoadmap(c context.Context, userID, goalID uuid.UUID) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
+	RecordAttempt(c context.Context, userID, topicID uuid.UUID, score float64) (*TopicProgress, error)
 }
 
 type topicService struct {
