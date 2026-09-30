@@ -11,7 +11,7 @@ import (
 )
 
 type Service interface {
-	GenerateAccessToken(userID uuid.UUID) (string, error)
+	GenerateAccessToken(userID uuid.UUID, role string) (string, error)
 	GenerateRefreshToken(c context.Context, userID uuid.UUID) (string, error)
 	ValidateAccessToken(tokenStr string) (*claims, error)
 	ValidateRefreshToken(c context.Context, tokenStr string) (uuid.UUID, error)
@@ -39,11 +39,13 @@ func NewService(repo Repository, secretKey, issuer string, accessTokenTTL, refre
 }
 
 type claims struct {
+	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func (s *jwtService) GenerateAccessToken(userID uuid.UUID) (string, error) {
+func (s *jwtService) GenerateAccessToken(userID uuid.UUID, role string) (string, error) {
 	claims := &claims{
+		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			Subject:   userID.String(),

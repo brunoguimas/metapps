@@ -92,6 +92,7 @@ func mapUser(u db.User) *User {
 		Email:        u.Email,
 		PasswordHash: u.PasswordHash.String,
 		Verified:     u.Verified,
+		Role:         u.Role,
 		CreatedAt:    u.CreatedAt,
 	}
 }

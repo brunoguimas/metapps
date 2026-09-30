@@ -5,6 +5,8 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/middleware"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
@@ -28,7 +30,9 @@ func NewRouter(
 	t *task.Handler,
 	ta *task_attempt.Handler,
 	tcHandler *task_correction.Handler,
+	fc *flashcard.Handler,
 	p *profile.Handler,
+	cr *classroom.Handler,
 	jwtService jwt.Service,
 	cfg *config.Config,
 ) *gin.Engine {
@@ -92,10 +96,38 @@ func NewRouter(
 			corrections.GET("/attempt/:attemptID", tcHandler.GetCorrectionByAttemptID)
 			corrections.POST("/quiz/:attemptID", tcHandler.GenerateQuizCorrection)
 		}
+		flashcards := protected.Group("/flashcards")
+		{
+			flashcards.POST("/generate", fc.Generate)
+			flashcards.POST("", fc.Create)
+			flashcards.GET("", fc.ListByTopic)
+			flashcards.GET("/due", fc.ListDue)
+			flashcards.GET("/review", fc.ListReview)
+			flashcards.POST("/:id/review", fc.Review)
+			flashcards.DELETE("/:id", fc.Delete)
+		}
 		profile := protected.Group("/profile")
 		{
 			profile.GET("", p.GetProfile)
 			profile.POST("/avatar", p.UpdateAvatar)
+		}
+
+		classrooms := protected.Group("/classrooms")
+		{
+			classrooms.POST("", cr.Create)
+			classrooms.GET("", cr.List)
+			classrooms.POST("/join", cr.Join)
+			classrooms.GET("/:id", cr.Get)
+			classrooms.PUT("/:id", cr.Update)
+			classrooms.DELETE("/:id", cr.Delete)
+			classrooms.POST("/:id/invite", cr.RegenerateInviteCode)
+			classrooms.GET("/:id/members", cr.ListMembers)
+			classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
+			classrooms.DELETE("/:id/leave", cr.Leave)
+			classrooms.POST("/:id/assignments", cr.CreateAssignment)
+			classrooms.GET("/:id/assignments", cr.ListAssignments)
+			classrooms.PUT("/:id/assignments/:aId", cr.UpdateAssignment)
+			classrooms.DELETE("/:id/assignments/:aId", cr.DeleteAssignment)
 		}
 
 		protected.GET("/task-attempts", ta.ListByUser)

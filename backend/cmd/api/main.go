@@ -8,6 +8,8 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
+	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
@@ -47,6 +49,8 @@ type AppModules struct {
 	TaskModule           *task.Module
 	TaskAttemptModule    *task_attempt.Module
 	TaskCorrectionModule *task_correction.Module
+	FlashcardModule      *flashcard.Module
+	ClassroomModule      *classroom.Module
 }
 
 func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error) {
@@ -69,7 +73,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	profileModule := profile.NewModule(queries, cfg)
 
 	// OAuth module
-	oauthModule := oauth.NewModule(queries, userModule.Repository, jwtModule.Service, profileModule.Service, cfg)
+	oauthModule := oauth.NewModule(queries, userModule.Repository, userModule.Service, profileModule.Service, jwtModule.Service, cfg)
 
 	// Auth module
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
@@ -99,6 +103,24 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Task correction module
 	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)
 
+	// Flashcard module
+	classroomRepo := classroom.NewRepository(queries)
+	topicAccessChecker := classroom.NewTopicAccessChecker(classroomRepo, topicModule.Service)
+
+	flashcardModule := flashcard.NewModule(
+		queries,
+		goalModule.Service,
+		topicModule.Service,
+		topic.NewRepository(queries),
+		topic.NewProgressRepository(queries),
+		topicAccessChecker,
+		geminiClient,
+		cfg,
+	)
+
+	// Classroom module
+	classroomModule := classroom.NewModule(queries)
+
 	return &AppModules{
 		MailModule:           mailModule,
 		JWTModule:            jwtModule,
@@ -114,6 +136,8 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		TaskModule:           taskModule,
 		TaskAttemptModule:    taskAttemptModule,
 		TaskCorrectionModule: taskCorrectionModule,
+		FlashcardModule:      flashcardModule,
+		ClassroomModule:      classroomModule,
 	}, nil
 }
 
@@ -127,7 +151,9 @@ func newRouter(cfg *config.Config, modules *AppModules) *gin.Engine {
 		modules.TaskModule.Handler,
 		modules.TaskAttemptModule.Handler,
 		modules.TaskCorrectionModule.Handler,
+		modules.FlashcardModule.Handler,
 		modules.ProfileModule.Handler,
+		modules.ClassroomModule.Handler,
 		modules.JWTModule.Service,
 		cfg,
 	)

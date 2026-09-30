@@ -31,10 +31,16 @@ const (
 	ErrUnknownTaskType           Code = "UNKNOWN_TASK_TYPE"
 	ErrInvalidAIResponse         Code = "INVALID_AI_RESPONSE"
 	ErrTaskCorrectionNotFound    Code = "TASK_CORRECTION_NOT_FOUND"
+	ErrFlashcardNotFound         Code = "FLASHCARD_NOT_FOUND"
+	ErrFlashcardDuplicate        Code = "FLASHCARD_DUPLICATE"
 	ErrUnauthorized              Code = "UNAUTHORIZED"
 	ErrForbidden                 Code = "FORBIDDEN"
 	ErrProfileNotFound           Code = "PROFILE_NOT_FOUND"
 	ErrProfileAlreadyExists      Code = "PROFILE_ALREADY_EXISTS"
+	ErrClassroomNotFound         Code = "CLASSROOM_NOT_FOUND"
+	ErrClassroomAlreadyMember    Code = "CLASSROOM_ALREADY_MEMBER"
+	ErrInvalidInviteCode         Code = "INVALID_INVITE_CODE"
+	ErrNotClassroomMember        Code = "NOT_CLASSROOM_MEMBER"
 )
 
 type appError struct {
@@ -130,6 +136,10 @@ func StatusFromCode(code Code) int {
 		return http.StatusInternalServerError
 	case ErrTaskCorrectionNotFound:
 		return http.StatusNotFound
+	case ErrFlashcardNotFound:
+		return http.StatusNotFound
+	case ErrFlashcardDuplicate:
+		return http.StatusConflict
 	case ErrUnauthorized:
 		return http.StatusUnauthorized
 	case ErrForbidden:
@@ -138,6 +148,14 @@ func StatusFromCode(code Code) int {
 		return http.StatusNotFound
 	case ErrProfileAlreadyExists:
 		return http.StatusConflict
+	case ErrClassroomNotFound:
+		return http.StatusNotFound
+	case ErrClassroomAlreadyMember:
+		return http.StatusConflict
+	case ErrInvalidInviteCode:
+		return http.StatusBadRequest
+	case ErrNotClassroomMember:
+		return http.StatusForbidden
 	default:
 		return 500
 	}

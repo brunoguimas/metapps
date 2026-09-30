@@ -14,10 +14,10 @@ type Module struct {
 	Handler    *Handler
 }
 
-func NewModule(q *db.Queries, users user.Repository, tokens jwt.Service, profiles profile.Service, c *config.Config) *Module {
+func NewModule(q *db.Queries, users user.Repository, userService user.Service, profiles profile.Service, tokens jwt.Service, c *config.Config) *Module {
 	r := NewRepository(q)
 	s := NewService(r, users, profiles)
-	h := NewHandler(s, tokens, *c)
+	h := NewHandler(s, userService, tokens, *c)
 
 	return &Module{
 		Repository: r,

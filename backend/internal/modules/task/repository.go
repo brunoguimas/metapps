@@ -51,7 +51,7 @@ func (r *taskRepository) Create(c context.Context, task *Task) (*Task, error) {
 }
 func (r *taskRepository) GetByUserID(c context.Context, userID uuid.UUID) ([]*Task, error) {
 	var tasks []*Task
-	ts, err := r.queries.GetTasksByUserID(c, userID)
+	ts, err := r.queries.GetTasksByUserID(c, uuid.NullUUID{UUID: userID, Valid: true})
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't list tasks", err)
 	}
@@ -65,7 +65,7 @@ func (r *taskRepository) GetByUserID(c context.Context, userID uuid.UUID) ([]*Ta
 }
 
 func (r *taskRepository) GetByID(c context.Context, userID, id uuid.UUID) (*Task, error) {
-	t, err := r.queries.GetTaskByID(c, db.GetTaskByIDParams{ID: id, UserID: userID})
+	t, err := r.queries.GetTaskByID(c, db.GetTaskByIDParams{ID: id, UserID: uuid.NullUUID{UUID: userID, Valid: true}})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, apperrors.NewAppError(apperrors.ErrTaskNotFound, "task not found", err)
@@ -79,7 +79,7 @@ func (r *taskRepository) GetByID(c context.Context, userID, id uuid.UUID) (*Task
 func (r *taskRepository) MarkDone(c context.Context, userID, id uuid.UUID) (*Task, error) {
 	t, err := r.queries.MarkTaskDone(c, db.MarkTaskDoneParams{
 		ID:     id,
-		UserID: userID,
+		UserID: uuid.NullUUID{UUID: userID, Valid: true},
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

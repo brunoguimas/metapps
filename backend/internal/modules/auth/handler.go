@@ -93,7 +93,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(user.ID)
+	accessToken, err := h.jwt.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -131,7 +131,13 @@ func (h *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.jwt.GenerateAccessToken(t.UserID)
+	u2, err := h.users.GetUserByID(c.Request.Context(), t.UserID)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	accessToken, err := h.jwt.GenerateAccessToken(t.UserID, u2.Role)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -330,10 +336,12 @@ func (h *Handler) Me(c *gin.Context) {
 		"user": struct {
 			ID        uuid.UUID `json:"id"`
 			Email     string    `json:"email"`
+			Role      string    `json:"role"`
 			CreatedAt time.Time `json:"created_at"`
 		}{
 			u.ID,
 			u.Email,
+			u.Role,
 			u.CreatedAt,
 		},
 	})

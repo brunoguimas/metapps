@@ -105,7 +105,7 @@ func (r *fakeTaskRepository) GetByUserID(c context.Context, userID uuid.UUID) ([
 
 func (r *fakeTaskRepository) GetByID(c context.Context, userID, id uuid.UUID) (*task.Task, error) {
 	if t, ok := r.tasks[id]; ok {
-		if t.UserID != userID {
+		if !t.UserID.Valid || t.UserID.UUID != userID {
 			return nil, apperrors.NewAppError(apperrors.ErrTaskNotFound, "task not found", nil)
 		}
 		return t, nil
@@ -174,7 +174,7 @@ func TestCreateCorrection_Success(t *testing.T) {
 		tasks: map[uuid.UUID]*task.Task{
 			taskID: {
 				ID:      taskID,
-				UserID:  userID,
+				UserID:  uuid.NullUUID{UUID: userID, Valid: true},
 				Type:    task.TaskQuiz,
 				Content: json.RawMessage(`{"questions":[{"statement":"Pergunta","alternatives":["a","b","c","d"],"answer":0,"explanation":"Explicacao"}]}`),
 				Meta: task.TaskMeta{
@@ -318,7 +318,7 @@ func TestGenerateQuizCorrection_Success(t *testing.T) {
 		tasks: map[uuid.UUID]*task.Task{
 			taskID: {
 				ID:      taskID,
-				UserID:  userID,
+				UserID:  uuid.NullUUID{UUID: userID, Valid: true},
 				Type:    task.TaskQuiz,
 				Content: quizContentJSON,
 				Meta: task.TaskMeta{
@@ -371,7 +371,7 @@ func TestGenerateQuizCorrection_NotQuiz(t *testing.T) {
 		tasks: map[uuid.UUID]*task.Task{
 			taskID: {
 				ID:     taskID,
-				UserID: userID,
+				UserID: uuid.NullUUID{UUID: userID, Valid: true},
 				Type:   task.TaskType("unknown"), // Not a quiz
 			},
 		},
