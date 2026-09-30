@@ -61,6 +61,12 @@ func (s *profileService) UpdateProfile(ctx context.Context, profile *Profile) (*
 	return s.repo.Update(ctx, profile)
 }
 
+// AddXP credita XP e atualiza a sequencia de dias consecutivos.
+//
+// Nao existe rota HTTP para isso: o XP e derivado do desempenho pelo
+// task_attempt, dentro do servidor. A rota POST /protected/profile/xp que
+// existia aceitava o valor na requisicao e permitia inflar o proprio XP
+// com um unico curl.
 func (s *profileService) AddXP(ctx context.Context, userID uuid.UUID, xpToAdd int) (*Profile, error) {
 	profile, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {

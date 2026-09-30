@@ -839,57 +839,9 @@ export default function Landpage() {
           alignItems: 'center'
         }}
       >
-        {/* Decoração de fundo */}
-
-        <div
-          style={{
-            position: 'absolute',
-            width: mob
-              ? 340
-              : tablet
-                ? 480
-                : 600,
-            height: mob
-              ? 340
-              : tablet
-                ? 480
-                : 600,
-            borderRadius: '50%',
-            background: 'rgba(99,130,255,0.07)',
-            filter: 'blur(2px)',
-            top: mob ? -180 : -300,
-            right: mob ? -150 : -180,
-            pointerEvents: 'none'
-          }}
-        />
-
-        <div
-          style={{
-            position: 'absolute',
-            width: mob ? 280 : 420,
-            height: mob ? 280 : 420,
-            borderRadius: '50%',
-            border:
-              '1px dashed rgba(154,180,255,0.16)',
-            bottom: mob ? -180 : -250,
-            left: mob ? -150 : -130,
-            pointerEvents: 'none'
-          }}
-        />
-
-        <div
-          style={{
-            position: 'absolute',
-            width: mob ? 180 : 240,
-            height: mob ? 180 : 240,
-            borderRadius: '50%',
-            border:
-              '1px dashed rgba(62,207,142,0.12)',
-            top: mob ? 130 : 150,
-            right: mob ? -60 : 180,
-            pointerEvents: 'none'
-          }}
-        />
+        {/* Fundo chapado: as manchas circulares e os círculos tracejados
+            que ficavam aqui só apareciam com degradê por trás. Sobre
+            azul liso, viravam manchas visíveis. */}
 
         {/* Pequenos pontos */}
 
@@ -1004,14 +956,14 @@ export default function Landpage() {
                     marginBottom: mob ? 21 : 26
                   }}
                 >
-                  Seus estudos,
+                  Torne seus estudos
                   <br />
                   <span
                     style={{
                       color: 'var(--lp-brand)'
                     }}
                   >
-                    do seu jeito.
+                    mais inteligentes.
                   </span>
                 </h1>
 
@@ -2152,7 +2104,7 @@ export default function Landpage() {
         >
           <path
             d="M0 45 C260 90 500 5 740 52 C990 100 1190 15 1440 55 L1440 100 L0 100 Z"
-            fill="#eeeeff"
+            fill="var(--lp-bg-alt)"
           />
         </svg>
       </div>
@@ -2186,7 +2138,8 @@ export default function Landpage() {
               position: 'relative',
               overflow: 'hidden',
               width: '100%',
-              borderRadius: mob ? 23 : 34,
+              borderRadius: 8,
+              border: '1px solid var(--lp-navy)',
               background: 'var(--lp-navy)',
               padding: mob
                 ? '55px 20px'
@@ -2196,33 +2149,8 @@ export default function Landpage() {
               textAlign: 'center'
             }}
           >
-            {/* Decoração */}
-
-            <div
-              style={{
-                position: 'absolute',
-                width: mob ? 250 : 330,
-                height: mob ? 250 : 330,
-                borderRadius: '50%',
-                border:
-                  '1px dashed rgba(154,180,255,0.16)',
-                left: mob ? -140 : -160,
-                bottom: mob ? -140 : -170
-              }}
-            />
-
-            <div
-              style={{
-                position: 'absolute',
-                width: mob ? 210 : 260,
-                height: mob ? 210 : 260,
-                borderRadius: '50%',
-                border:
-                  '1px dashed rgba(62,207,142,0.13)',
-                right: mob ? -110 : -110,
-                top: mob ? -110 : -140
-              }}
-            />
+            {/* Sem decoração: os círculos tracejados só apareciam com
+                degradê por trás. */}
 
             <div
               style={{
@@ -2678,7 +2606,7 @@ const heroSignIn = {
 
 const heroNavCta = {
   padding: '11px 20px',
-  borderRadius: 9,
+  borderRadius: 11,
   border: 'none',
   background: 'var(--lp-bg)',
   color: 'var(--lp-ink)',
@@ -2687,39 +2615,42 @@ const heroNavCta = {
   cursor: 'pointer',
   whiteSpace: 'nowrap',
   boxShadow:
-    '0 8px 25px rgba(0,0,0,0.14)'
+    '0 10px 26px rgba(0,0,0,0.22)'
 }
 
 const heroMainCta = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '15px 22px',
-  borderRadius: 11,
+  padding: '12px 20px',
+  borderRadius: 3,
   border: 'none',
-  background: 'var(--lp-brand)',
-  color: 'var(--lp-brand-ink)',
-  fontSize: 14,
-  fontWeight: 800,
+  background: 'var(--lp-link)',
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
   cursor: 'pointer',
-  transition:
-    'transform 0.2s ease',
+  transition: 'background 0.15s ease',
   whiteSpace: 'nowrap'
 }
 
+/* Sobre o azul: contorno branco, sem vidro. O blur de fundo aqui só
+   fazia sentido com os degradês da seção, que não existem mais. */
 const heroSecondaryCta = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '14px 20px',
-  borderRadius: 11,
-  border:
-    '1px solid rgba(245,244,255,0.16)',
-  background:
-    'rgba(245,244,255,0.04)',
-  color: 'var(--lp-ink-on-dark)',
-  fontSize: 14,
+  padding: '12px 20px',
+  borderRadius: 3,
+  border: '1px solid rgba(255,255,255,0.4)',
+  background: 'transparent',
+  color: '#fff',
+  fontSize: 12,
   fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
   cursor: 'pointer',
   whiteSpace: 'nowrap'
 }
@@ -2728,13 +2659,15 @@ const finalCta = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '15px 24px',
-  borderRadius: 11,
+  padding: '12px 22px',
+  borderRadius: 3,
   border: 'none',
-  background: 'var(--lp-red)',
-  color: 'var(--lp-brand-ink)',
-  fontSize: 14,
-  fontWeight: 800,
+  background: 'var(--lp-link)',
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
   cursor: 'pointer',
   whiteSpace: 'nowrap'
 }

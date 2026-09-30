@@ -22,6 +22,7 @@ import {
 import perfilIcon from './assets/perfil.svg'
 import conquistaIcon from './assets/conquista.svg'
 import configIcon from './assets/config.svg'
+import pixelIcon from './assets/pixel.png'
 import { useTheme } from './theme'
 import './Homepage.css'
 
@@ -159,6 +160,7 @@ export default function Homepage() {
   const [correction, setCorrection] = useState(null)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
+  const [avatarBroken, setAvatarBroken] = useState(false)
   const [initDone, setInitDone] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
   const [editInput, setEditInput] = useState('')
@@ -447,7 +449,11 @@ export default function Homepage() {
 
   // ── avatar ──
   async function handleAvatarUpload(e) {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
+    // O value precisa ser zerado: sem isso, escolher o MESMO arquivo de novo
+    // nao dispara change e o upload parece travado.
+    input.value = ''
     if (!file) return
     const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
     if (!allowed.includes(file.type)) {
@@ -462,12 +468,24 @@ export default function Homepage() {
     setLoading(true)
     try {
       const data = await uploadAvatar(file)
-      if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
+      if (data?.avatar_url) {
+        setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
+        setAvatarBroken(false)
+      } else {
+        setErr('O servidor não devolveu o endereço da imagem.')
+      }
     } catch (e) {
       setErr(e.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  // URL antiga mantida no state enquanto o <img> novo carrega. Se a imagem
+  // falhar (404, formato que o navegador nao decodifica), volta a inicial
+  // em vez de deixar o icone de imagem quebrada na tela.
+  function handleAvatarError() {
+    setAvatarBroken(true)
   }
 
   // ── LOADING ──
@@ -502,6 +520,8 @@ export default function Homepage() {
       onLogout={handleLogout}
       theme={theme}
       onToggleTheme={toggleTheme}
+      avatarBroken={avatarBroken}
+      onAvatarError={handleAvatarError}
     >
       {view === 'home' && (
         <HomeView
@@ -589,11 +609,19 @@ export default function Homepage() {
           loading={loading}
           err={err}
           onUpload={handleAvatarUpload}
+          avatarBroken={avatarBroken}
+          onAvatarError={handleAvatarError}
         />
       )}
 
       {view === 'achievements' && (
-        <AchievementsView profile={profile} goalsCount={goals.length} />
+        <AchievementsView
+          profile={profile}
+          goalsCount={goals.length}
+          attempts={attempts}
+          completedCount={completed.length}
+          topicCount={topics.length}
+        />
       )}
 
       {view === 'settings' && (
@@ -607,6 +635,8 @@ export default function Homepage() {
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
+          avatarBroken={avatarBroken}
+          onAvatarError={handleAvatarError}
         />
       )}
 
@@ -1260,20 +1290,22 @@ function ResultView({ result, task, taskNode, correction, onRetry, onNext }) {
   )
 }
 
-function ProfileView({ profile, username, email, loading, err, onUpload }) {
+function ProfileView({ profile, username, email, loading, err, onUpload, avatarBroken, onAvatarError }) {
   const level = profile?.level || 1
   const xp = profile?.xp || 0
   const pct = xpPct(xp)
+  const initial = (username[0]?.toUpperCase() || '?')
+  const showImg = !!profile?.avatar_url && !avatarBroken
 
   return (
     <div className="mp-canvas">
       <div className="mp-profile">
         <section className="mp-card mp-card--pad" style={{ textAlign: 'center' }}>
           <label className="mp-avatar">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="avatar" />
+            {showImg ? (
+              <img src={profile.avatar_url} alt="" onError={onAvatarError} />
             ) : (
-              <div className="mp-avatar__fall">{username[0]?.toUpperCase() || '?'}</div>
+              <div className="mp-avatar__fall">{initial}</div>
             )}
             <span className="mp-avatar__lvl">{level}</span>
             <span className="mp-avatar__edit"><IconEdit /></span>
@@ -1324,20 +1356,63 @@ function ProfileView({ profile, username, email, loading, err, onUpload }) {
   )
 }
 
-function AchievementsView({ profile, goalsCount }) {
+function AchievementsView({ profile, goalsCount, attempts, completedCount, topicCount }) {
   const level = profile?.level || 1
   const xp = profile?.xp || 0
   const pct = xpPct(xp)
 
+  // Métricas derivadas de dados reais, nunca de valores fixos.
+  const answered = attempts || []
+  const scored = answered.map(a => pctOfScore(a?.score)).filter(v => v !== null)
+  const lessons = completedCount || 0
+  const topics = topicCount || 0
+  const perfect = scored.filter(v => v === 100).length
+  const good = scored.filter(v => v >= 70).length
+  const accuracy = scored.length ? Math.round(scored.reduce((s, v) => s + v, 0) / scored.length) : 0
+
   const badges = [
-    { t: 'Primeiro Passo', d: 'Crie seu primeiro objetivo', done: goalsCount >= 1, tone: 'blue', n: `${Math.min(goalsCount, 1)}/1` },
-    { t: 'Explorador', d: 'Crie 3 objetivos diferentes', done: goalsCount >= 3, tone: 'green', n: `${Math.min(goalsCount, 3)}/3` },
-    { t: 'Especialista', d: 'Alcance o nível 2', done: level >= 2, tone: 'amber', n: `Nível ${Math.min(level, 2)}/2` },
-    { t: 'Mestre', d: 'Alcance o nível 5', done: level >= 5, tone: 'violet', n: `Nível ${Math.min(level, 5)}/5` },
-    { t: 'Centenário', d: 'Acumule 100 XP', done: xp >= 100, tone: 'cyan', n: `${Math.min(xp, 100)}/100` },
-    { t: 'Lenda', d: 'Acumule 500 XP', done: xp >= 500, tone: 'green', n: `${Math.min(xp, 500)}/500` },
+    // ── primeiro passo ──
+    { t: 'Primeiro Passo', d: 'Crie seu primeiro objetivo', done: goalsCount >= 1, tone: 'blue', n: `${Math.min(goalsCount, 1)}/1`, tier: 'inicio' },
+    { t: 'Trilha Aberta', d: 'Gere um roadmap com tópicos', done: topics >= 1, tone: 'cyan', n: `${Math.min(topics, 1)}/1`, tier: 'inicio' },
+    { t: 'Mapa Completo', d: 'Tenha um roadmap com 20 tópicos', done: topics >= 20, tone: 'sky', n: `${Math.min(topics, 20)}/20`, tier: 'constancia' },
+    { t: 'Primeira Lição', d: 'Conclua 1 tópico do caminho', done: lessons >= 1, tone: 'green', n: `${Math.min(lessons, 1)}/1`, tier: 'inicio' },
+
+    // ── constancia ──
+    { t: 'Explorador', d: 'Crie 3 objetivos diferentes', done: goalsCount >= 3, tone: 'green', n: `${Math.min(goalsCount, 3)}/3`, tier: 'constancia' },
+    { t: 'Estudante Dedicado', d: 'Conclua 10 tópicos', done: lessons >= 10, tone: 'blue', n: `${Math.min(lessons, 10)}/10`, tier: 'constancia' },
+    { t: 'Maratonista', d: 'Conclua 25 tópicos', done: lessons >= 25, tone: 'teal', n: `${Math.min(lessons, 25)}/25`, tier: 'constancia' },
+    { t: 'Devorador de Tópicos', d: 'Conclua 50 tópicos', done: lessons >= 50, tone: 'violet', n: `${Math.min(lessons, 50)}/50`, tier: 'constancia' },
+
+    // ── precisao (exige nota alta, nao so volume) ──
+    { t: 'Acerta Alto', d: 'Tire 70% ou mais numa atividade', done: good >= 1, tone: 'amber', n: `${Math.min(good, 1)}/1`, tier: 'precisao' },
+    { t: 'Três Quase Perfeitos', d: 'Tire 100% em 3 atividades', done: perfect >= 3, tone: 'amber', n: `${Math.min(perfect, 3)}/3`, tier: 'precisao' },
+    { t: 'Sniper', d: 'Tire 100% em 10 atividades', done: perfect >= 10, tone: 'pink', n: `${Math.min(perfect, 10)}/10`, tier: 'precisao' },
+    { t: 'Cem por Cento', d: 'Média de 90% entre 10 atividades', done: scored.length >= 10 && accuracy >= 90, tone: 'pink', n: scored.length >= 10 ? `${accuracy}%` : `${scored.length}/10`, tier: 'precisao' },
+    { t: 'Mente Afiada', d: 'Média de 80% entre 25 atividades', done: scored.length >= 25 && accuracy >= 80, tone: 'violet', n: scored.length >= 25 ? `${accuracy}%` : `${scored.length}/25`, tier: 'precisao' },
+
+    // ── nivel e xp ──
+    { t: 'Especialista', d: 'Alcance o nível 2', done: level >= 2, tone: 'amber', n: `Nível ${Math.min(level, 2)}/2`, tier: 'xp' },
+    { t: 'Mestre', d: 'Alcance o nível 5', done: level >= 5, tone: 'violet', n: `Nível ${Math.min(level, 5)}/5`, tier: 'xp' },
+    { t: 'Centenário', d: 'Acumule 100 XP', done: xp >= 100, tone: 'cyan', n: `${Math.min(xp, 100)}/100`, tier: 'xp' },
+    { t: 'Lenda', d: 'Acumule 500 XP', done: xp >= 500, tone: 'green', n: `${Math.min(xp, 500)}/500`, tier: 'xp' },
+    { t: 'Titã', d: 'Acumule 1.000 XP', done: xp >= 1000, tone: 'pink', n: `${Math.min(xp, 1000)}/1.000`, tier: 'xp' },
+    { t: 'Lendário', d: 'Acumule 2.500 XP', done: xp >= 2500, tone: 'violet', n: `${Math.min(xp, 2500)}/2.500`, tier: 'xp' },
+
+    // ── elite: exigem combinacao de varios numeros ao mesmo tempo ──
+    { t: 'O Consagrado', d: 'Nível 10, 25 tópicos e 1.000 XP', done: level >= 10 && lessons >= 25 && xp >= 1000, tone: 'pink', n: `N${Math.min(level, 10)} · ${Math.min(lessons, 25)}/25 · ${Math.min(xp, 1000)}/1.000`, tier: 'elite' },
+    { t: 'Arquiteto', d: '5 objetivos, 50 tópicos e nível 15', done: goalsCount >= 5 && lessons >= 50 && level >= 15, tone: 'violet', n: `${Math.min(goalsCount, 5)}/5 · ${Math.min(lessons, 50)}/50 · N${Math.min(level, 15)}/15`, tier: 'elite' },
+    { t: 'Mestre da Precisão', d: '25 atividades, média 95% e nível 20', done: scored.length >= 25 && accuracy >= 95 && level >= 20, tone: 'amber', n: `${scored.length}/25 · ${accuracy}% · N${Math.min(level, 20)}/20`, tier: 'elite' },
   ]
+
   const unlocked = badges.filter(b => b.done).length
+  const tiers = [...new Set(badges.map(b => b.tier))]
+  const TIER_LABEL = {
+    inicio: 'Primeiros passos',
+    constancia: 'Consistência',
+    precisao: 'Precisão',
+    xp: 'Nível e XP',
+    elite: 'Elite',
+  }
 
   return (
     <div className="mp-canvas">
@@ -1359,46 +1434,61 @@ function AchievementsView({ profile, goalsCount }) {
             <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
             <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
             <StatCard tone="green" ico={<IconTarget />} v={goalsCount} l="Objetivos" />
+            <StatCard tone="violet" ico={<IconCheck />} v={lessons} l="Tópicos feitos" />
           </div>
         </div>
 
         <section>
           <div className="mp-h" style={{ marginBottom: 12 }}><IconStar /> Medalhas</div>
-          <div className="mp-badges">
-            {badges.map(b => (
-              <div key={b.t} className={`mp-badge ${b.done ? 'is-on' : ''}`}>
-                <div className="mp-badge__ico" style={{ background: `var(--${b.tone}-soft)` }}>
-                  <img src={conquistaIcon} alt="" draggable={false} />
+          {tiers.map(tier => {
+            const list = badges.filter(b => b.tier === tier)
+            const got = list.filter(b => b.done).length
+            return (
+              <div key={tier} className="mp-achtier">
+                <div className="mp-achtier__h">
+                  <span>{TIER_LABEL[tier]}</span>
+                  <span className="mp-achtier__n">{got}/{list.length}</span>
                 </div>
-                <div className="mp-badge__t">{b.t}</div>
-                <div className="mp-badge__d">{b.d}</div>
-                <div className="mp-badge__f">
-                  <span className="mp-tag">{b.done ? 'Desbloqueada' : 'Bloqueada'}</span>
-                  <span className="mp-badge__n">{b.n}</span>
+                <div className="mp-badges">
+                  {list.map(b => (
+                    <div key={b.t} className={`mp-badge ${b.done ? 'is-on' : ''}`}>
+                      <div className="mp-badge__ico" style={{ background: `var(--${b.tone}-soft)` }}>
+                        <img src={conquistaIcon} alt="" draggable={false} />
+                      </div>
+                      <div className="mp-badge__t">{b.t}</div>
+                      <div className="mp-badge__d">{b.d}</div>
+                      <div className="mp-badge__f">
+                        <span className="mp-tag">{b.done ? 'Desbloqueada' : 'Bloqueada'}</span>
+                        <span className="mp-badge__n">{b.n}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            )
+          })}
         </section>
       </div>
     </div>
   )
 }
 
-function SettingsView({ profile, username, email, onProfile, onAchievements, onHistory, onLogout, theme, onToggleTheme }) {
+function SettingsView({ profile, username, email, onProfile, onAchievements, onHistory, onLogout, theme, onToggleTheme, avatarBroken, onAvatarError }) {
+  const initial = (username[0]?.toUpperCase() || '?')
+  const showImg = !!profile?.avatar_url && !avatarBroken
   return (
     <div className="mp-canvas">
       <div className="mp-settings">
         <section className="mp-settinggroup">
           <div className="mp-h">Conta</div>
           <button type="button" onClick={onProfile} className="mp-row">
-            {profile?.avatar_url ? (
+            {showImg ? (
               <span className="mp-row__ico" style={{ background: 'var(--surface-2)', overflow: 'hidden' }}>
-                <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11 }} />
+                <img src={profile.avatar_url} alt="" onError={onAvatarError} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 7 }} />
               </span>
             ) : (
               <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)', fontWeight: 800, fontSize: 16 }}>
-                {username[0]?.toUpperCase() || '?'}
+                {initial}
               </span>
             )}
             <span className="mp-row__b">
@@ -1595,7 +1685,9 @@ const TITLES = {
   settings: ['Configurações', 'Conta e estudo'],
 }
 
-function AppShell({ active, onNavigate, onBack, profile, username, email, onLogout, theme, onToggleTheme, children }) {
+function AppShell({ active, onNavigate, onBack, profile, username, email, onLogout, theme, onToggleTheme, avatarBroken, onAvatarError, children }) {
+  const initial = (username[0]?.toUpperCase() || '?')
+  const showImg = !!profile?.avatar_url && !avatarBroken
   const [title, sub] = TITLES[active] || TITLES.home
 
   return (
@@ -1607,7 +1699,7 @@ function AppShell({ active, onNavigate, onBack, profile, username, email, onLogo
               <IconArrowLeft />
             </button>
           )}
-          <div className="mp-mark"><BrandGlyph /></div>
+          <div className="mp-mark mp-mark--on-navy"><BrandGlyph /></div>
           <div className="mp-top__brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
             <span className="mp-top__title">{title}</span>
             <span className="mp-top__sub">{sub}</span>
@@ -1630,7 +1722,7 @@ function AppShell({ active, onNavigate, onBack, profile, username, email, onLogo
 
       <aside className="mp-rail">
         <div className="mp-rail__brand">
-          <div className="mp-mark"><BrandGlyph /></div>
+          <div className="mp-mark mp-mark--on-navy"><BrandGlyph /></div>
           <span>Metapps</span>
         </div>
         <div className="mp-rail__nav">
@@ -1639,7 +1731,7 @@ function AppShell({ active, onNavigate, onBack, profile, username, email, onLogo
         <div className="mp-rail__foot">
           <div className="mp-user">
             <span className="mp-user__a">
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{username[0]?.toUpperCase() || '?'}</span>}
+              {showImg ? <img src={profile.avatar_url} alt="" onError={onAvatarError} /> : <span>{initial}</span>}
             </span>
             <span className="mp-user__b">
               <span className="mp-user__n">{username || 'Usuário'}</span>
@@ -1690,13 +1782,7 @@ function XpPill({ profile }) {
 // ─── ÍCONES ───────────────────────────────────────────────────────
 
 function BrandGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M5 19c0-5 3-8 7-8s7 3 7 8" />
-      <path d="M12 11V4" />
-      <path d="M8.5 6.5 12 4l3.5 2.5" />
-    </svg>
-  )
+  return <img className="mp-mark__img" src={pixelIcon} alt="" draggable={false} />
 }
 
 function IconSpark({ size = 14, style }) {

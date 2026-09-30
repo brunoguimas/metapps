@@ -95,7 +95,6 @@ func NewRouter(
 		profile := protected.Group("/profile")
 		{
 			profile.GET("", p.GetProfile)
-			profile.POST("/xp", p.AddXP)
 			profile.POST("/avatar", p.UpdateAvatar)
 		}
 

@@ -68,32 +68,6 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	})
 }
 
-func (h *Handler) AddXP(c *gin.Context) {
-	userID, err := httpx.GetFromContext(c, "user_id")
-	if err != nil {
-		httpx.ErrorFrom(c, err)
-		return
-	}
-
-	var req struct {
-		XP int `json:"xp" binding:"required,min=1"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request", err))
-		return
-	}
-
-	profile, err := h.service.AddXP(c.Request.Context(), userID, req.XP)
-	if err != nil {
-		httpx.ErrorFrom(c, err)
-		return
-	}
-
-	httpx.OK(c, gin.H{
-		"profile": profileResponse(profile),
-	})
-}
-
 func (h *Handler) UpdateAvatar(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {

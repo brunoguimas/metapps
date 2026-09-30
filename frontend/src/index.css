@@ -1,127 +1,181 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, #root { height: 100%; }
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  background: var(--lp-bg);
+  font-family: 'Open Sans', 'Lato', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--lp-ink);
-  transition: background 0.25s var(--ease), color 0.25s var(--ease);
+  background: var(--lp-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─── PALETA GLOBAL ───────────────────────────────────────────────
  *
- * Um único conjunto de nomes para as duas telas (landing e app), com os
- * valores trocados por [data-theme]. Landpage, AuthModal, HistoryPage e
- * GoogleCallback usam styles inline, então a paleta precisa existir como
- * variável: style inline tem precedência sobre folha de estilo, e não dá
- * para sobrepor hex com CSS.
+ * Um único conjunto de nomes para as duas telas (landing e app), trocados
+ * por [data-theme]. Landpage, AuthModal, HistoryPage e GoogleCallback usam
+ * styles inline, então a paleta precisa existir como variável: style inline
+ * tem precedência sobre folha de estilo e não dá para sobrepor hex.
  *
- * A landing é clara por padrão em ambas as opções, só que no escuro a
- * "faixa escura" (hero/rodapé) deixa de ser #1a1a2e e vira uma superfície
- * ainda mais profunda, para não existir um bloco claro solto no meio.
+ * Um azul domina (--lp-brand, #0056A6, matiz 252 em OKLCH). As demais cores decorativas
+ * existem para ícone e bolinha — em texto e borda, só entram o azul e o
+ * ciano. Nada de degradê, vidro ou sombra difusa: a hierarquia vem de
+ * borda fina e bloco de cor chapada.
  */
 
 :root,
 [data-theme='light'] {
   color-scheme: light;
-  --lp-bg:        #f5f4ff;
-  --lp-bg-alt:    #eeeeff;
-  --lp-surface:   #ffffff;
-  --lp-surface-2: #f8f7ff;
-  --lp-navy:      #1a1a2e;
-  --lp-navy-2:    #13152a;
-  --lp-ink:       #1a1a2e;
-  --lp-ink-2:     #6b6b8a;
-  --lp-ink-3:     #8a8aa3;
-  --lp-ink-on-dark: #f5f4ff;
-  --lp-line:      #d0d0e0;
-  --lp-line-soft: #e6e6f2;
-  --lp-brand:     #6382ff;
-  --lp-brand-ink: #ffffff;
-  --lp-brand-soft:#e9eeff;
-  --lp-green:     #3ecf8e;
-  --lp-green-d:   #2aa86f;
-  --lp-green-soft:#e3f9ef;
-  --lp-yellow:    #f5c542;
-  --lp-yellow-d:  #d9a520;
-  --lp-yellow-soft:#fdf5dd;
-  --lp-red:       #f06a6a;
-  --lp-red-d:     #b23a3a;
-  --lp-red-soft:  #fdeaea;
-  --lp-violet:    #9b59f0;
-  --lp-violet-soft:#f1e8fd;
-  --lp-shadow:    0 10px 30px rgba(26, 26, 46, 0.08);
-  --lp-shadow-sm: 0 4px 14px rgba(26, 26, 46, 0.06);
-  --lp-hover:        rgba(26, 26, 46, 0.06);
-  --lp-hover-strong: rgba(26, 26, 46, 0.1);
-  --lp-ring:      rgba(99, 130, 255, 0.28);
+
+  /* superfícies */
+  --lp-bg:          #F4F6FC;   /* fundo de página */
+  --lp-bg-alt:      #EBEEF7;
+  --lp-surface:     #FFFFFF;   /* corpo das telas */
+  --lp-surface-2:   #EBEEF7;
+
+  /* azul dominante: o original do Metapps (#3B5BFD, matiz 268) */
+  --lp-navy:        #2640D6;   /* topo, botões, blocos de destaque */
+  --lp-navy-2:      #1B2EA8;   /* navy um passo mais fundo (hover/press) */
+  --lp-brand:       #3B5BFD;
+  --lp-brand-ink:   #FFFFFF;
+  --lp-brand-soft:  #E8F0FF;   /* fundo de realce discreto */
+  --lp-accent:      #8CD1FA;   /* só sobre navy: aba ativa, foco */
+  --lp-link:        #007297;   /* links, aba ativa, paginação */
+  --lp-link-d:      #005B7F;
+  --lp-line:        #888C95;   /* borda de controle (3:1) */
+  --lp-line-2:      #DADEE6;   /* divisor decorativo */
+
+  /* texto */
+  --lp-ink:         #1E253A;   /* títulos: azul-escuro quase preto */
+  --lp-ink-2:       #545B6B;   /* legendas cinza médio */
+  --lp-ink-3:       #636976;   /* legendas mais claras */
+  --lp-ink-on-dark: #FFFFFF;
+
+  /* linhas */
+  --lp-line-soft:   #DADEE6;   /* divisória fina */
+
+  /* apoio — só em ícone e bolinha */
+  --lp-green:     #008A46;
+  --lp-green-d:   #007A3A;
+  --lp-green-soft:#DBF7E3;
+  --lp-yellow:    #B06C00;   /* âmbar */
+  --lp-yellow-d:  #9A5600;
+  --lp-yellow-soft:#FFEFD1;
+  --lp-red:       #D73246;   /* vermelho-alaranjado */
+  --lp-red-d:     #B0062D;
+  --lp-red-soft:  #FFE7E6;
+  --lp-violet:    #7150EF;   /* roxo */
+  --lp-violet-d:  #5637BF;
+  --lp-violet-soft:#EBEBFF;
+  --lp-teal:      #008A8A;   /* verde-água */
+  --lp-teal-d:    #007475;
+  --lp-teal-soft: #D7F6F5;
+  --lp-pink:      #BC4B87;
+  --lp-pink-d:    #9E366F;
+  --lp-pink-soft: #FFE5F2;
+
+  /* sombra quase invisível — a separação é da borda, não do volume */
+  --lp-shadow:    0 1px 2px rgba(30, 37, 58, 0.06);
+  --lp-shadow-sm: 0 1px 2px rgba(30, 37, 58, 0.05);
+  --lp-hover:        #F2F4F7;
+  --lp-hover-strong: #E8EBEF;
+  --lp-ring:      rgba(59, 91, 253, 0.35);
 }
+
+/* ─── TEMA ESCURO ──────────────────────────────────────────────────
+ *
+ * O produto é claro por padrão. No escuro o azul dominante continua sendo
+ * o mesmo azul, só que um passo mais claro, e o fundo vira um cinza-azulado
+ * muito escuro — a tela clara não pode virar um bloco solto de cinza
+ * médio no meio de um produto institucional.
+ */
 
 [data-theme='dark'] {
   color-scheme: dark;
-  /* No escuro a lógica de faixas se inverte: a página fica num cinza-azulado
-     e as faixas que eram navy (#1a1a2e) viram um recesso ainda mais escuro,
-     para o ritmo claro/escuro da landing continuar visível. */
-  --lp-bg:        #101120;
-  --lp-bg-alt:    #171930;
-  --lp-surface:   #1a1c2e;
-  --lp-surface-2: #20233a;
-  --lp-navy:      #080911;
-  --lp-navy-2:    #05060c;
-  --lp-ink:       #edeffc;
-  --lp-ink-2:     #a5a9c2;
-  --lp-ink-3:     #7c8099;
-  --lp-ink-on-dark: #edeffc;
-  --lp-line:      #2b2e42;
-  --lp-line-soft: #232636;
-  --lp-brand:     #7d97ff;
-  --lp-brand-ink: #0c0d18;
-  --lp-brand-soft:#1c2440;
-  --lp-green:     #4fd79a;
-  --lp-green-d:   #2aa86f;
-  --lp-green-soft:#122c23;
-  --lp-yellow:    #f7ce5c;
-  --lp-yellow-d:  #d9a520;
-  --lp-yellow-soft:#2e2712;
-  --lp-red:       #ff7b7b;
-  --lp-red-d:     #b23a3a;
-  --lp-red-soft:  #331c1c;
-  --lp-violet:    #b07cf5;
-  --lp-violet-soft:#241a3a;
-  --lp-shadow:    0 10px 30px rgba(0, 0, 0, 0.45);
-  --lp-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
-  --lp-hover:        rgba(255, 255, 255, 0.07);
-  --lp-hover-strong: rgba(255, 255, 255, 0.12);
-  --lp-ring:      rgba(125, 151, 255, 0.35);
-}
 
-/* Mantém o scrollbar discreto no tema escuro (a barra clara padrão
-   destoa em superfícies escuras). */
-[data-theme='dark'] ::-webkit-scrollbar { width: 10px; height: 10px; }
-[data-theme='dark'] ::-webkit-scrollbar-track { background: transparent; }
-[data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: #2b2e42;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  --lp-bg:          #101120;
+  --lp-bg-alt:      #16192A;
+  --lp-surface:     #1A1C2E;
+  --lp-surface-2:   #20233A;
+
+  --lp-navy:        #2330D5;
+  --lp-navy-2:      #1900B9;
+  --lp-brand:       #7D97FF;
+  --lp-brand-ink:   #FFFFFF;
+  --lp-brand-soft:  #1C2440;
+  --lp-accent:      #A8D8FF;
+  --lp-link:        #6FD4E8;
+  --lp-link-d:      #4FC3DA;
+
+  --lp-ink:         #EDEFFC;
+  --lp-ink-2:       #A5A9C2;
+  --lp-ink-3:       #878B9F;
+  --lp-ink-on-dark: #FFFFFF;
+
+  --lp-line:        #686C74;
+  --lp-line-soft:   #232636;
+
+  --lp-green:     #4FD79A;
+  --lp-green-d:   #7BE3B4;
+  --lp-green-soft:#122C23;
+  --lp-yellow:    #F7CE5C;
+  --lp-yellow-d:  #FADC85;
+  --lp-yellow-soft:#2E2712;
+  --lp-red:       #FF7B7B;
+  --lp-red-d:     #FFA0A0;
+  --lp-red-soft:  #331C1C;
+  --lp-violet:    #B07CF5;
+  --lp-violet-d:  #C7A2F9;
+  --lp-violet-soft:#241A3A;
+  --lp-teal:      #45CFC9;
+  --lp-teal-d:    #74DED9;
+  --lp-teal-soft: #10312F;
+  --lp-pink:      #E275A2;
+  --lp-pink-d:    #EE9CBC;
+  --lp-pink-soft: #331A25;
+
+  --lp-shadow:    0 1px 2px rgba(0, 0, 0, 0.4);
+  --lp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --lp-hover:        #1E2733;
+  --lp-hover-strong: #26313F;
+  --lp-ring:      rgba(125, 151, 255, 0.4);
 }
-[data-theme='dark'] ::-webkit-scrollbar-thumb:hover { background: #3a3e58; background-clip: content-box; }
 
 :root {
-  --r: 8px;
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Cantos discretos. Nada de pílula: 3px em campo, 4px em botão,
+     6px em cartão, 8px no cartão de destaque. */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+
+  --ease: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* Título de tela: maiúsculo, negrito, entreletra leve e corpo pequeno. */
+.lp-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+/* Rótulo de campo: maiúsculo, cinza, pequeno. */
+.lp-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--lp-ink-3);
 }
 
 @media (max-width: 768px) { body { overflow: auto; } }
 
+/* Motion é usado só onde carrega significado (spinner, estado de envio).
+   Nada de animação decorativa de entrada — é o que faz a interface
+   parecer template. */
 @keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes blobA   { from { transform: translate(0,0) scale(1); } to { transform: translate(52px,44px) scale(1.09); } }
-@keyframes blobB   { from { transform: translate(0,0); } to { transform: translate(-42px,-32px); } }
-@keyframes blobC   { from { transform: translate(0,0) scale(1); } to { transform: translate(-50px,46px) scale(1.08); } }
-@keyframes blobD   { from { transform: translate(0,0); } to { transform: translate(46px,-34px); } }
-@keyframes lgIn    { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
-@keyframes ftIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fIn     { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fOut    { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
-@keyframes popIn   { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
 @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lpIn    { from { opacity: 0; } to { opacity: 1; } }

@@ -1444,48 +1444,6 @@ export async function getProfile() {
 }
 
 
-// ─── PROFILE: XP ──────────────────────────────────────────────
-
-export async function addXP(
-  xp
-) {
-
-  const res =
-    await authFetch(
-      '/protected/profile/xp',
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-
-        body: JSON.stringify({
-          xp,
-        }),
-      }
-    )
-
-
-  const data =
-    await parseResponse(res)
-
-
-  if (!res.ok) {
-
-    throw createApiError(
-      data,
-      res.status,
-      'Erro ao adicionar XP.'
-    )
-  }
-
-
-  return data.profile
-}
-
-
 // ─── PROFILE: AVATAR ──────────────────────────────────────────
 
 export async function uploadAvatar(
