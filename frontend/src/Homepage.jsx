@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   logout as apiLogout,
@@ -14,17 +14,49 @@ import {
   getRoadmap,
   generateCorrection,
   listAttemptsByUser,
+  getProgressSummary,
+  listFriends,
+  searchUsers,
+  addFriend,
+  removeFriend,
   uploadAvatar,
   updateGoal,
   deleteGoal,
   setSessionExpiredHandler,
 } from './api'
-import perfilIcon from './assets/perfil.svg'
 import conquistaIcon from './assets/conquista.svg'
-import configIcon from './assets/config.svg'
-import pixelIcon from './assets/pixel.png'
+import logoImg from './assets/logo.svg'
 import { useTheme } from './theme'
+import { avatarUrl, initials } from './lib/avatar'
+import {
+  activityByDay,
+  activeDays,
+  buildCalendar,
+  currentStreak,
+  heatLevel,
+  longestStreak,
+  pctOfScore,
+  formatDateTime,
+  formatFullDate,
+  relativeDate,
+  todayKey,
+} from './lib/activity'
+import { ACHIEVEMENTS, evaluateAchievements, rememberUnlocks, resetAchievementDates } from './lib/achievements'
+import {
+  achievementEvents,
+  friendEvents,
+  markAllRead,
+  mergeNotifications,
+  persistNotifications,
+  readNotifications,
+  streakEvents,
+  unreadCount,
+} from './lib/notify'
 import './Homepage.css'
+
+// Telas da trilha: nelas o cabeçalho global some (a trilha precisa do
+// espaço vertical) e quem manda é o cabeçalho interno do caminho.
+const TRACK_VIEWS = ['roadmap', 'phase', 'task', 'result']
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 
@@ -114,28 +146,6 @@ function byRecency(goals) {
   })
 }
 
-function relativeDate(iso) {
-  const t = Date.parse(iso || '')
-  if (!t) return ''
-  const days = Math.floor((Date.now() - t) / 86400000)
-  if (days <= 0) return 'hoje'
-  if (days === 1) return 'ontem'
-  if (days < 7) return `há ${days} dias`
-  if (days < 30) return `há ${Math.floor(days / 7)} semanas`
-  return `há ${Math.floor(days / 30)} meses`
-}
-
-function pctOfScore(score) {
-  if (typeof score !== 'number' || Number.isNaN(score)) return null
-  return Math.max(0, Math.min(100, Math.round(score * 100)))
-}
-
-function formatDateTime(iso) {
-  const t = Date.parse(iso || '')
-  if (!t) return ''
-  return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-}
-
 // ─── HOMEPAGE ─────────────────────────────────────────────────────
 
 export default function Homepage() {
@@ -144,8 +154,10 @@ export default function Homepage() {
 
   const [email, setEmail] = useState('')
   const [profile, setProfile] = useState(null)
+  const [summary, setSummary] = useState(null)
   const [goals, setGoals] = useState([])
-  const [view, setView] = useState('home') // home | roadmap | phase | task | result | profile | achievements | settings
+  const [view, setView] = useState('home') // home | social | roadmap | phase | task | result | achievements | profile | settings
+  const [lastTab, setLastTab] = useState('home')
   const [input, setInput] = useState('')
   const [curGoal, setCurGoal] = useState(null)
   const [topics, setTopics] = useState([])
@@ -160,7 +172,6 @@ export default function Homepage() {
   const [correction, setCorrection] = useState(null)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
-  const [avatarBroken, setAvatarBroken] = useState(false)
   const [initDone, setInitDone] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
   const [editInput, setEditInput] = useState('')
@@ -168,6 +179,17 @@ export default function Homepage() {
   const [attempts, setAttempts] = useState([])
   const [selPhase, setSelPhase] = useState(null) // etapa aberta na view 'phase'
   const pathRef = useRef(null) // área rolável do caminho (trilha)
+
+  // social
+  const [friends, setFriends] = useState([])
+  const [friendQuery, setFriendQuery] = useState('')
+  const [candidates, setCandidates] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [socialErr, setSocialErr] = useState('')
+  const [pendingFriend, setPendingFriend] = useState('')
+
+  // sino de notificações
+  const [notifOpen, setNotifOpen] = useState(false)
 
   const username = profile?.username || email?.split('@')[0] || ''
 
@@ -205,9 +227,19 @@ export default function Homepage() {
         const g = await listGoals()
         if (!cancelled) setGoals(byRecency(g))
       } catch { /* ignore */ }
+      // Histórico inteiro (e não só os 6 últimos): o calendário e o streak
+      // precisam saber em quantos dias distintos a pessoa estudou.
       try {
         const a = await listAttemptsByUser()
-        if (!cancelled) setAttempts(sa(a).slice(0, 6))
+        if (!cancelled) setAttempts(sa(a))
+      } catch { /* ignore */ }
+      try {
+        const s = await getProgressSummary()
+        if (!cancelled) setSummary(s)
+      } catch { /* ignore */ }
+      try {
+        const f = await listFriends()
+        if (!cancelled) setFriends(sa(f))
       } catch { /* ignore */ }
       if (!cancelled) setInitDone(true)
     }
@@ -216,6 +248,98 @@ export default function Homepage() {
 
     return () => { cancelled = true }
   }, [navigate])
+
+  // ── streaks, calendário, conquistas e notificações ──
+  //
+  // Tudo isso é DERIVADO dos dados que já temos no cliente. Não existe
+  // endpoint de conquistas nem de notificações no backend, e não deve
+  // existir: são consequência de usar o app. O resumo do backend entra
+  // como fonte dos números agregados (nível/XP/masteria) e o histórico
+  // de tentativas responde "qual dia".
+  const insights = useMemo(() => {
+    const counts = activityByDay(attempts)
+    const streak = currentStreak(counts)
+    const best = longestStreak(counts)
+    const days = activeDays(counts)
+
+    const base = {
+      xp: summary?.xp ?? profile?.xp ?? 0,
+      level: summary?.level ?? profile?.level ?? 1,
+      goals: goals.length,
+      streak,
+      bestStreak: best,
+      activeDays: days,
+      activities: attempts.length,
+      mastered: summary?.topics?.mastered || 0,
+      friends: friends.length,
+      achievements: 0,
+    }
+
+    // "Coleção completa" conta as outras, então resolve antes de avaliar.
+    const others = ACHIEVEMENTS.filter(a => a.id !== 'all_of_them' && a.test(base)).length
+    const achievements = evaluateAchievements({ ...base, achievements: others })
+
+    return {
+      counts,
+      streak,
+      best,
+      days,
+      achievements,
+      unlocked: achievements.filter(a => a.unlocked).length,
+      calendar: buildCalendar(counts, 12),
+      attemptsDone: summary?.tasks?.done ?? completed.length,
+      friends: friends.length,
+      avgScore: summary?.attempts?.average_score ?? null,
+      topicsDone: summary?.topics?.mastered ?? 0,
+      topicsTotal: summary?.topics?.total ?? 0,
+      xp: base.xp,
+      level: summary?.level ?? profile?.level ?? 1,
+      xpMissing: summary?.xp_missing ?? Math.max(0, XP_STEP - xpInLevel(base.xp)),
+      levelPct: summary?.level_pct ?? xpPct(base.xp),
+    }
+  }, [attempts, goals, friends, profile, summary, completed.length])
+
+  // Notificações: o conjunto derivado vira lista persistida (o sino mostra
+  // o que é novo, uma vez só por evento). O merge é puro no render; só a
+  // gravação acontece no efeito.
+  const [notifications, setNotifications] = useState(() => readNotifications())
+  const unread = unreadCount(notifications)
+
+  useEffect(() => {
+    rememberUnlocks(insights.achievements)
+    setNotifications(prev => {
+      const merged = mergeNotifications(prev, [
+        ...achievementEvents(insights.achievements),
+        ...streakEvents(insights.best),
+        ...friendEvents(friends),
+      ])
+      return merged === prev ? prev : persistNotifications(merged)
+    })
+  }, [insights.achievements, insights.best, friends])
+
+  // Busca de amigos com debounce: o backend já limita a consulta, mas
+  // digitar não deve virar uma request por tecla.
+  useEffect(() => {
+    const term = friendQuery.trim()
+    if (term.length < 2) {
+      setCandidates([])
+      setSearching(false)
+      return
+    }
+    let cancelled = false
+    setSearching(true)
+    const t = setTimeout(async () => {
+      try {
+        const found = await searchUsers(term)
+        if (!cancelled) setCandidates(sa(found))
+      } catch {
+        if (!cancelled) setCandidates([])
+      } finally {
+        if (!cancelled) setSearching(false)
+      }
+    }, 350)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [friendQuery])
 
   // ── animação de chegada no caminho: começa no topo (troféu) e desce até a etapa atual ──
   useEffect(() => {
@@ -380,6 +504,15 @@ export default function Homepage() {
           if (updatedProfile) setProfile(updatedProfile)
         } catch { /* ignore */ }
       }
+
+      // O histórico e o resumo são a fonte do calendário, do streak e das
+      // conquistas — sem recarregar, a pessoa estuda e a tela não muda.
+      try {
+        setAttempts(sa(await listAttemptsByUser()))
+      } catch { /* ignore */ }
+      try {
+        setSummary(await getProgressSummary())
+      } catch { /* ignore */ }
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -403,8 +536,62 @@ export default function Homepage() {
 
   function handleNav(key) {
     setErr('')
+    setSocialErr('')
+    setNotifOpen(false)
+    setLastTab(key)
     if (key === 'roadmap') openRoadmap()
     else setView(key)
+  }
+
+  // ── social ──
+
+  // Depois de adicionar/remover, recarrega a lista em vez de usar o
+  // retorno do POST: a resposta do POST só traz o vínculo NewlyAdded, sem
+  // avatar/nível/streak, e a tela precisa mostrar o perfil público inteiro.
+  async function refreshFriends() {
+    try {
+      setFriends(sa(await listFriends()))
+    } catch { /* ignore */ }
+  }
+
+  async function handleAddFriend(query) {
+    const term = String(query || '').trim()
+    if (!term || pendingFriend) return
+    setSocialErr('')
+    setPendingFriend(term)
+    try {
+      await addFriend(term)
+      await refreshFriends()
+      setCandidates(prev => prev.map(c => (c.is_friend ? { ...c, is_friend: true } : c)))
+    } catch (e) {
+      setSocialErr(e.message)
+    } finally {
+      setPendingFriend('')
+    }
+  }
+
+  async function handleRemoveFriend(friend) {
+    if (pendingFriend) return
+    setSocialErr('')
+    setPendingFriend(friend.friend_id)
+    try {
+      await removeFriend(friend.friend_id)
+      setFriends(prev => prev.filter(f => f.friend_id !== friend.friend_id))
+    } catch (e) {
+      setSocialErr(e.message)
+    } finally {
+      setPendingFriend('')
+    }
+  }
+
+  function handleOpenBell() {
+    // Abrir já marca como lido: a lista é curta e derivada, esconder as
+    // não lidas atrás de um clique só faria o número nunca cair.
+    setNotifications(prev => {
+      const next = markAllRead(prev)
+      return next === prev ? prev : persistNotifications(next)
+    })
+    setNotifOpen(v => !v)
   }
 
   async function handleUpdateGoal() {
@@ -449,11 +636,7 @@ export default function Homepage() {
 
   // ── avatar ──
   async function handleAvatarUpload(e) {
-    const input = e.target
-    const file = input.files?.[0]
-    // O value precisa ser zerado: sem isso, escolher o MESMO arquivo de novo
-    // nao dispara change e o upload parece travado.
-    input.value = ''
+    const file = e.target.files?.[0]
     if (!file) return
     const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
     if (!allowed.includes(file.type)) {
@@ -468,24 +651,12 @@ export default function Homepage() {
     setLoading(true)
     try {
       const data = await uploadAvatar(file)
-      if (data?.avatar_url) {
-        setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
-        setAvatarBroken(false)
-      } else {
-        setErr('O servidor não devolveu o endereço da imagem.')
-      }
+      if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
     } catch (e) {
       setErr(e.message)
     } finally {
       setLoading(false)
     }
-  }
-
-  // URL antiga mantida no state enquanto o <img> novo carrega. Se a imagem
-  // falhar (404, formato que o navegador nao decodifica), volta a inicial
-  // em vez de deixar o icone de imagem quebrada na tela.
-  function handleAvatarError() {
-    setAvatarBroken(true)
   }
 
   // ── LOADING ──
@@ -504,36 +675,56 @@ export default function Homepage() {
     phase: () => setView('roadmap'),
     task: () => setView('roadmap'),
     result: () => setView('roadmap'),
+    social: () => setView('home'),
     profile: () => setView('home'),
     achievements: () => setView('home'),
-    settings: () => setView('home'),
+    settings: () => setView(lastTab === 'settings' ? 'home' : lastTab),
   }[view]
+
+  // O cabeçalho global some na trilha: lá quem manda é o cabeçalho interno
+  // do caminho, e a logo + sino + engrenagem só roubariam altura útil.
+  const showTopbar = !TRACK_VIEWS.includes(view)
 
   return (
     <AppShell
       active={navActive}
       onNavigate={handleNav}
       onBack={goBack}
+      showTopbar={showTopbar}
       profile={profile}
       username={username}
       email={email}
       onLogout={handleLogout}
       theme={theme}
       onToggleTheme={toggleTheme}
-      avatarBroken={avatarBroken}
-      onAvatarError={handleAvatarError}
+      onOpenSettings={() => { setLastTab(view); setErr(''); setView('settings') }}
+      onOpenBell={handleOpenBell}
+      notifOpen={notifOpen}
+      unread={unread}
+      notifications={notifications}
     >
       {view === 'home' && (
         <HomeView
-          username={username}
-          profile={profile}
-          goals={goals}
           attempts={attempts}
-          input={input}
-          setInput={setInput}
-          err={err}
-          loading={loading}
-          onSend={handleSend}
+          insights={insights}
+          onGoSocial={() => handleNav('social')}
+          onGoRoadmap={() => handleNav('roadmap')}
+          onGoAchievements={() => handleNav('achievements')}
+          onGoProfile={() => handleNav('profile')}
+        />
+      )}
+
+      {view === 'social' && (
+        <SocialView
+          friends={friends}
+          candidates={candidates}
+          query={friendQuery}
+          setQuery={setFriendQuery}
+          searching={searching}
+          err={socialErr}
+          pending={pendingFriend}
+          onAdd={handleAddFriend}
+          onRemove={handleRemoveFriend}
         />
       )}
 
@@ -552,12 +743,23 @@ export default function Homepage() {
             onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
             onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
             onOpenPhase={(ph) => { setErr(''); setSelPhase(ph); setView('phase') }}
+            onBackToList={() => {
+              setErr('')
+              setCurGoal(null)
+              setTopics([])
+              setDeps([])
+              setCompleted([])
+              setView('roadmap')
+            }}
           />
         ) : (
           <RecentTracksView
             goals={goals}
             loading={loading}
             err={err}
+            input={input}
+            setInput={setInput}
+            onSend={handleSend}
             onOpenGoal={handleOpenGoal}
             onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
             onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
@@ -597,31 +799,28 @@ export default function Homepage() {
           taskNode={taskNode}
           correction={correction}
           onRetry={() => { setView('task'); setAnswers({}); setEssay(''); setResult(null); setErr('') }}
-          onNext={() => setView('roadmap')}
+          onNext={() => { setErr(''); setView('roadmap') }}
         />
       )}
 
       {view === 'profile' && (
         <ProfileView
           profile={profile}
+          summary={summary}
           username={username}
           email={email}
+          friends={friends}
+          insights={insights}
           loading={loading}
           err={err}
           onUpload={handleAvatarUpload}
-          avatarBroken={avatarBroken}
-          onAvatarError={handleAvatarError}
+          onGoSocial={() => handleNav('social')}
+          onGoAchievements={() => handleNav('achievements')}
         />
       )}
 
       {view === 'achievements' && (
-        <AchievementsView
-          profile={profile}
-          goalsCount={goals.length}
-          attempts={attempts}
-          completedCount={completed.length}
-          topicCount={topics.length}
-        />
+        <AchievementsView achievements={insights.achievements} unlocked={insights.unlocked} />
       )}
 
       {view === 'settings' && (
@@ -629,14 +828,18 @@ export default function Homepage() {
           profile={profile}
           username={username}
           email={email}
-          onProfile={() => setView('profile')}
-          onAchievements={() => setView('achievements')}
+          insights={insights}
+          onProfile={() => { setLastTab('settings'); setView('profile') }}
+          onAchievements={() => { setLastTab('settings'); setView('achievements') }}
+          onSocial={() => { setLastTab('settings'); setView('social') }}
           onHistory={() => navigate('/history')}
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
-          avatarBroken={avatarBroken}
-          onAvatarError={handleAvatarError}
+          onClearLocal={() => {
+            resetAchievementDates()
+            setNotifications(persistNotifications(markAllRead([])))
+          }}
         />
       )}
 
@@ -694,78 +897,132 @@ export default function Homepage() {
 
 // ─── VIEWS ────────────────────────────────────────────────────────
 
-function HomeView({ username, profile, goals, attempts, input, setInput, err, loading, onSend }) {
-  const level = profile?.level || 1
-  const xp = profile?.xp || 0
+function HomeView({ insights, attempts, onGoSocial, onGoRoadmap, onGoAchievements, onGoProfile }) {
+  const recent = sa(attempts).slice(0, 5)
+  const activeToday = !!insights.counts[todayKey()]
 
   return (
     <div className="mp-canvas">
       <div className="mp-home">
-        {/* ── composer ── */}
-        <section className="mp-hero">
-          <div className="mp-hero__head">
-            <div className="mp-hero__badge"><IconSpark size={24} /></div>
-            <div style={{ minWidth: 0 }}>
-              <h1 className="mp-display">O que você quer aprender hoje?</h1>
-              <p className="mp-muted" style={{ marginTop: 4 }}>
-                {username ? `Bom te ver, ${username}. ` : ''}Descreva um objetivo e a trilha é montada na hora.
-              </p>
-            </div>
-          </div>
+        {/* 1. sequência + mapa de calor dos últimos 5 dias */}
+        <StreakCard insights={insights} />
 
-          <textarea
-            className="mp-input"
-            value={input}
-            onChange={e => { setInput(e.target.value) }}
-            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onSend() } }}
-            placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
-            rows={3}
-          />
-
-          {err && <Alert>{err}</Alert>}
-
-          <div className="mp-cta">
-            <button type="button" onClick={onSend} disabled={!input.trim() || loading} className="mp-btn">
-              {loading ? <><Spinner /> Montando a trilha…</> : <>Gerar trilha <IconArrowRight /></>}
-            </button>
-          </div>
-
-          {loading && (
-            <div className="mp-building">
-              <span className="mp-dots"><i /><i /><i /></span>
-              Montando as etapas da sua trilha…
-            </div>
-          )}
-        </section>
-
-        {/* ── números ── */}
-        <section className="mp-stats">
-          <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
-          <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
-          <StatCard tone="green" ico={<IconTarget />} v={goals.length} l="Objetivos" />
-          <StatCard tone="violet" ico={<Ring value={xpPct(xp)} />} v={`${xpPct(xp)}%`} l={`Faltam ${Math.max(0, XP_STEP - xpInLevel(xp))} XP`} />
-        </section>
-
-        {/* ── histórico ── */}
+        {/* 2. última atividade (o "Resumo" saiu) */}
         <section>
           <div className="mp-h" style={{ marginBottom: 12 }}>
-            <IconHistory /> Histórico
+            <IconHistory /> Última atividade
             <HistoryLink />
           </div>
 
-          {attempts.length === 0 ? (
-            <div className="mp-empty">
-              <IconHistory size={26} />
-              Nenhuma atividade ainda. Faça a primeira atividade de uma trilha para ela aparecer aqui.
-            </div>
+          {recent.length === 0 ? (
+            <button type="button" onClick={onGoRoadmap} className="mp-empty mp-empty--action">
+              <IconPath />
+              Nenhuma atividade ainda. Abra uma trilha para a sua primeira atividade aparecer aqui.
+            </button>
           ) : (
             <div className="mp-attempts">
-              {attempts.map(a => <AttemptRow key={a.id} attempt={a} />)}
+              {recent.map(a => <AttemptRow key={a.id} attempt={a} />)}
             </div>
           )}
         </section>
+
+        {/* ── atalhos ── */}
+        <section className="mp-shortcuts">
+          <button type="button" onClick={onGoRoadmap} className="mp-shortcut">
+            <span className="mp-shortcut__i" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}><IconPath /></span>
+            <span className="mp-shortcut__t">Abrir trilha</span>
+          </button>
+          <button type="button" onClick={onGoSocial} className="mp-shortcut">
+            <span className="mp-shortcut__i" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
+            <span className="mp-shortcut__t">Ver amigos</span>
+          </button>
+          <button type="button" onClick={onGoAchievements} className="mp-shortcut">
+            <span className="mp-shortcut__i" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
+              <img src={conquistaIcon} alt="" draggable={false} />
+            </span>
+            <span className="mp-shortcut__t">Conquistas</span>
+          </button>
+          <button type="button" onClick={onGoProfile} className="mp-shortcut">
+            <span className="mp-shortcut__i" style={{ background: 'var(--violet-soft)', color: 'var(--violet-d)' }}><IconUser /></span>
+            <span className="mp-shortcut__t">Meu perfil</span>
+          </button>
+        </section>
+
+        {!activeToday && insights.days > 0 && (
+          <Alert tone="info" style={{ marginTop: 0 }}>
+            Você ainda não estudou hoje. Uma atividade qualquer já mantém sua sequência.
+          </Alert>
+        )}
       </div>
     </div>
+  )
+}
+
+// ─── CARD DE SEQUÊNCIA ────────────────────────────────────────────
+//
+// Um dia conta como ativo quando existe pelo menos UMA atividade nele.
+// O mapa de calor mostra só os 5 últimos dias (hoje é o último), saindo do
+// mesmo `calendar` que já existia: achata as semanas, descarta os dias
+// futuros e pega os 5 finais.
+function StreakCard({ insights }) {
+  const { streak, best, days, calendar, counts } = insights
+  const recentDays = calendar.flat().filter(d => !d.future).slice(-5)
+  const lastIdx = recentDays.length - 1
+
+  return (
+    <section className="mp-streak">
+      <div className="mp-streak__top">
+        <div className="mp-streak__num">
+          <span className="mp-streak__flame"><IconFlame size={30} /></span>
+          <strong>{streak}</strong>
+          <span className="mp-streak__unit">
+            {streak === 1 ? 'dia seguido' : 'dias seguidos'}
+          </span>
+        </div>
+        <p className="mp-streak__hint">
+          {streak === 0
+            ? (days === 0
+              ? 'Sua sequência começa na primeira atividade de hoje.'
+              : 'Estude hoje para retomar sua sequência.')
+            : (streak === 1
+              ? 'Voltou! Estude mais uma vez hoje para chegar a 2 dias.'
+              : `Mantenha o ritmo: mais ${7 - (streak % 7 || 7)} dias e você bate uma semana.`)}
+        </p>
+      </div>
+
+      <div className="mp-heat">
+        <div className="mp-heat__grid">
+          {recentDays.map((d, i) => (
+            <div key={d.key} className={`mp-heat__d ${i === lastIdx ? 'is-today' : ''}`}>
+              <span
+                className="mp-heat__cell"
+                data-level={heatLevel(d.count)}
+                title={`${d.label} · ${d.count} ${d.count === 1 ? 'atividade' : 'atividades'}`}
+              >
+                {d.count > 0 ? d.count : ''}
+              </span>
+              <span className="mp-heat__lbl">
+                {i === lastIdx ? 'Hoje' : d.date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mp-streak__foot">
+        <div className="mp-streak__stat">
+          <b>{best}</b>
+          <span>Melhor sequência</span>
+        </div>
+        <div className="mp-streak__stat">
+          <b>{days}</b>
+          <span>Dias ativos</span>
+        </div>
+        {!!counts[todayKey()] && (
+          <span className="mp-streak__done"><IconCheck size={14} /> Hoje registrado</span>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -886,18 +1143,56 @@ function GoalCard({ goal, onOpen, onEdit, onDelete }) {
   )
 }
 
-function RecentTracksView({ goals, loading, err, onOpenGoal, onEditGoal, onDeleteGoal }) {
+// A aba Trilha é a casa da criação: o composer saiu do Início e veio
+// para cá, junto da lista, para o Início ficar só com sequência/resumo.
+function RecentTracksView({ goals, loading, err, input, setInput, onSend, onOpenGoal, onEditGoal, onDeleteGoal }) {
   const list = byRecency(goals)
 
   return (
     <div className="mp-canvas">
       <div className="mp-home">
+        <section className="mp-trackbar">
+          <div className="mp-trackbar__head">
+            <span className="mp-trackbar__back"><IconPath /></span>
+            <div style={{ minWidth: 0 }}>
+              <div className="mp-trackbar__t">Minhas trilhas</div>
+              <div className="mp-trackbar__s">Descreva o que quer aprender</div>
+            </div>
+          </div>
+
+          <div className="mp-trackbar__form">
+            <textarea
+              className="mp-input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
+              rows={2}
+              style={{ minHeight: 62 }}
+            />
+            <button
+              type="button"
+              onClick={onSend}
+              disabled={!input.trim() || loading}
+              className="mp-btn mp-btn--sm"
+            >
+              {loading ? <><Spinner /> Montando…</> : <>Gerar <IconArrowRight size={15} /></>}
+            </button>
+          </div>
+
+          {loading && (
+            <div className="mp-building">
+              <span className="mp-dots"><i /><i /><i /></span>
+              Montando as etapas da sua trilha…
+            </div>
+          )}
+        </section>
+
         <section>
           <div className="mp-h" style={{ marginBottom: 4 }}>
             <IconTarget /> Trilhas recentes
           </div>
           <p className="mp-muted" style={{ marginBottom: 16 }}>
-            Retome de onde parou ou comece uma trilha nova pelo Início.
+            Retome de onde parou ou comece uma trilha nova aí em cima.
           </p>
 
           {err && <Alert>{err}</Alert>}
@@ -905,7 +1200,7 @@ function RecentTracksView({ goals, loading, err, onOpenGoal, onEditGoal, onDelet
           {list.length === 0 ? (
             <div className="mp-empty">
               <IconTarget size={26} />
-              {loading ? 'Carregando suas trilhas…' : 'Nenhuma trilha ainda. Vá para o Início e descreva o que você quer aprender.'}
+              {loading ? 'Carregando suas trilhas…' : 'Nenhuma trilha ainda. Descreva o que você quer aprender acima.'}
             </div>
           ) : (
             <div className="mp-goals">
@@ -926,7 +1221,7 @@ function RecentTracksView({ goals, loading, err, onOpenGoal, onEditGoal, onDelet
   )
 }
 
-function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathRef, onOpenGoal, onEditGoal, onDeleteGoal, onOpenPhase }) {
+function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathRef, onOpenGoal, onEditGoal, onDeleteGoal, onOpenPhase, onBackToList }) {
   const phases = buildPhases(topics, deps, completed)
   const totalLeaves = getAvailable(topics, deps, completed).length
   const doneLeaves = sa(topics).filter(t => completed.includes(t.id)).length
@@ -951,14 +1246,42 @@ function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathR
     <div className="mp-canvas">
       <div className="mp-trilha">
         <div>
-          <div className="mp-card mp-card--pad mp-progress" style={{ marginBottom: 18 }}>
-            <div className="mp-progress__top">
-              <span>Progresso da trilha</span>
-              <b>{doneLeaves}/{totalLeaves} · {pct}%</b>
+          {/* Cabeçalho da trilha. Nas telas de trilha o cabeçalho global
+              (logo + sino + engrenagem) não aparece, então este é o único
+              lugar de onde se volta — precisa de voltar e de trocar de
+              trilha. */}
+          <div className="mp-trackbar">
+            <div className="mp-trackbar__head">
+              <span className="mp-trackbar__back"><IconPath /></span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="mp-trackbar__t">{curGoal?.title || 'Sua trilha'}</div>
+                <div className="mp-trackbar__s">Progresso da trilha</div>
+              </div>
+              {goals.length > 1 && (
+                <button
+                  type="button"
+                  onClick={onBackToList}
+                  className="mp-iconbtn"
+                  aria-label="Trocar de trilha"
+                  title="Trocar de trilha"
+                >
+                  <IconList />
+                </button>
+              )}
             </div>
-            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
-            {err && <Alert>{err}</Alert>}
+
+            <div className="mp-trackbar__form">
+              <div className="mp-trackbar__form" style={{ display: 'block', width: '100%' }}>
+                <div className="mp-progress__top">
+                  <span>Progresso da trilha</span>
+                  <b>{doneLeaves}/{totalLeaves} · {pct}%</b>
+                </div>
+                <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
+              </div>
+            </div>
           </div>
+
+          {err && <div style={{ marginTop: 14 }}><Alert>{err}</Alert></div>}
 
           {loading && (
             <div className="mp-card mp-card--pad" style={{ textAlign: 'center', marginBottom: 18 }}>
@@ -1290,24 +1613,20 @@ function ResultView({ result, task, taskNode, correction, onRetry, onNext }) {
   )
 }
 
-function ProfileView({ profile, username, email, loading, err, onUpload, avatarBroken, onAvatarError }) {
-  const level = profile?.level || 1
-  const xp = profile?.xp || 0
-  const pct = xpPct(xp)
-  const initial = (username[0]?.toUpperCase() || '?')
-  const showImg = !!profile?.avatar_url && !avatarBroken
+function ProfileView({ profile, username, email, friends, insights, loading, err, onUpload, onGoSocial, onGoAchievements }) {
+  const avatar = avatarUrl(profile?.avatar_url)
 
   return (
     <div className="mp-canvas">
       <div className="mp-profile">
         <section className="mp-card mp-card--pad" style={{ textAlign: 'center' }}>
           <label className="mp-avatar">
-            {showImg ? (
-              <img src={profile.avatar_url} alt="" onError={onAvatarError} />
+            {avatar ? (
+              <img src={avatar} alt="avatar" />
             ) : (
-              <div className="mp-avatar__fall">{initial}</div>
+              <div className="mp-avatar__fall">{initials(username)}</div>
             )}
-            <span className="mp-avatar__lvl">{level}</span>
+            <span className="mp-avatar__lvl">{insights.level}</span>
             <span className="mp-avatar__edit"><IconEdit /></span>
             <input
               type="file"
@@ -1317,178 +1636,272 @@ function ProfileView({ profile, username, email, loading, err, onUpload, avatarB
             />
           </label>
 
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.4px', marginTop: 16 }}>{username}</div>
+          <div className="mp-profile__name">{username}</div>
           <div className="mp-faint" style={{ marginTop: 2 }}>{email}</div>
 
           {err && <Alert style={{ textAlign: 'left' }}>{err}</Alert>}
 
           <div className="mp-xpbar">
             <div className="mp-xpbar__top">
-              <span>Nível {level}</span>
-              <span style={{ color: 'var(--ink-3)' }}>{xpInLevel(xp)} / {XP_STEP} XP</span>
+              <span>Nível {insights.level}</span>
+              <span style={{ color: 'var(--ink-3)' }}>{insights.xp - insights.xpMissing} / {insights.xp} XP</span>
             </div>
-            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
+            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${insights.levelPct}%` }} /></div>
             <div className="mp-faint" style={{ textAlign: 'right', marginTop: 8 }}>
-              {Math.max(0, XP_STEP - xpInLevel(xp))} XP para o nível {level + 1}
+              {insights.xpMissing} XP para o nível {insights.level + 1}
             </div>
           </div>
 
           {loading && <div className="mp-faint" style={{ marginTop: 14 }}><Spinner /> Enviando…</div>}
         </section>
 
-        <div className="mp-aside">
-          <div className="mp-stats">
-            <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
-            <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
-            <StatCard tone="green" ico={<IconSpark />} v={Math.max(0, XP_STEP - xpInLevel(xp))} l="XP restante" />
-          </div>
+        {/* números que o usuário pediu: nível, amigos, conquistas, streak */}
+        <section className="mp-stats">
+          <StatCard tone="blue" ico={<IconBolt />} v={insights.level} l="Nível" />
+          <StatCard tone="red" ico={<IconFlame />} v={insights.streak} l="Dias seguidos" />
+          <StatCard tone="cyan" ico={<IconUsers />} v={friends.length} l="Amigos" />
+          <StatCard tone="amber" ico={<IconTrophy />} v={insights.unlocked} l="Conquistas" />
+        </section>
 
-          <div className="mp-card mp-card--pad">
-            <div className="mp-h" style={{ marginBottom: 12 }}><IconBolt /> Como funciona</div>
-            <p className="mp-muted" style={{ margin: 0 }}>
-              Cada lição concluída com o mínimo de acerto rende XP. A cada {XP_STEP} XP você sobe um nível
-              e desbloqueia novas conquistas.
-            </p>
+        <section className="mp-card mp-card--pad">
+          <div className="mp-h" style={{ marginBottom: 12 }}><IconSpark /> Sua movimentação</div>
+          <div className="mp-mini">
+            <div className="mp-mini__i"><span>Melhor sequência</span><b>{insights.best} dias</b></div>
+            <div className="mp-mini__i"><span>Dias ativos</span><b>{insights.days}</b></div>
+            <div className="mp-mini__i"><span>Atividades feitas</span><b>{insights.attemptsDone}</b></div>
+            <div className="mp-mini__i"><span>Tópicos dominados</span><b>{insights.topicsDone}</b></div>
           </div>
+        </section>
+
+        <div className="mp-aside">
+          <button type="button" onClick={onGoSocial} className="mp-row mp-row--card">
+            <span className="mp-row__ico" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Meus amigos</span>
+              <span className="mp-row__s">{friends.length ? `${friends.length} na sua lista` : 'Adicione alguém pelo e-mail ou @usuário'}</span>
+            </span>
+            <IconChevron />
+          </button>
+          <button type="button" onClick={onGoAchievements} className="mp-row mp-row--card">
+            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
+              <img src={conquistaIcon} alt="" draggable={false} />
+            </span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Minhas conquistas</span>
+              <span className="mp-row__s">{insights.unlocked} de {ACHIEVEMENTS.length} desbloqueadas</span>
+            </span>
+            <IconChevron />
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function AchievementsView({ profile, goalsCount, attempts, completedCount, topicCount }) {
-  const level = profile?.level || 1
-  const xp = profile?.xp || 0
-  const pct = xpPct(xp)
+// ─── SOCIAL ────────────────────────────────────────────────────────
 
-  // Métricas derivadas de dados reais, nunca de valores fixos.
-  const answered = attempts || []
-  const scored = answered.map(a => pctOfScore(a?.score)).filter(v => v !== null)
-  const lessons = completedCount || 0
-  const topics = topicCount || 0
-  const perfect = scored.filter(v => v === 100).length
-  const good = scored.filter(v => v >= 70).length
-  const accuracy = scored.length ? Math.round(scored.reduce((s, v) => s + v, 0) / scored.length) : 0
-
-  const badges = [
-    // ── primeiro passo ──
-    { t: 'Primeiro Passo', d: 'Crie seu primeiro objetivo', done: goalsCount >= 1, tone: 'blue', n: `${Math.min(goalsCount, 1)}/1`, tier: 'inicio' },
-    { t: 'Trilha Aberta', d: 'Gere um roadmap com tópicos', done: topics >= 1, tone: 'cyan', n: `${Math.min(topics, 1)}/1`, tier: 'inicio' },
-    { t: 'Mapa Completo', d: 'Tenha um roadmap com 20 tópicos', done: topics >= 20, tone: 'sky', n: `${Math.min(topics, 20)}/20`, tier: 'constancia' },
-    { t: 'Primeira Lição', d: 'Conclua 1 tópico do caminho', done: lessons >= 1, tone: 'green', n: `${Math.min(lessons, 1)}/1`, tier: 'inicio' },
-
-    // ── constancia ──
-    { t: 'Explorador', d: 'Crie 3 objetivos diferentes', done: goalsCount >= 3, tone: 'green', n: `${Math.min(goalsCount, 3)}/3`, tier: 'constancia' },
-    { t: 'Estudante Dedicado', d: 'Conclua 10 tópicos', done: lessons >= 10, tone: 'blue', n: `${Math.min(lessons, 10)}/10`, tier: 'constancia' },
-    { t: 'Maratonista', d: 'Conclua 25 tópicos', done: lessons >= 25, tone: 'teal', n: `${Math.min(lessons, 25)}/25`, tier: 'constancia' },
-    { t: 'Devorador de Tópicos', d: 'Conclua 50 tópicos', done: lessons >= 50, tone: 'violet', n: `${Math.min(lessons, 50)}/50`, tier: 'constancia' },
-
-    // ── precisao (exige nota alta, nao so volume) ──
-    { t: 'Acerta Alto', d: 'Tire 70% ou mais numa atividade', done: good >= 1, tone: 'amber', n: `${Math.min(good, 1)}/1`, tier: 'precisao' },
-    { t: 'Três Quase Perfeitos', d: 'Tire 100% em 3 atividades', done: perfect >= 3, tone: 'amber', n: `${Math.min(perfect, 3)}/3`, tier: 'precisao' },
-    { t: 'Sniper', d: 'Tire 100% em 10 atividades', done: perfect >= 10, tone: 'pink', n: `${Math.min(perfect, 10)}/10`, tier: 'precisao' },
-    { t: 'Cem por Cento', d: 'Média de 90% entre 10 atividades', done: scored.length >= 10 && accuracy >= 90, tone: 'pink', n: scored.length >= 10 ? `${accuracy}%` : `${scored.length}/10`, tier: 'precisao' },
-    { t: 'Mente Afiada', d: 'Média de 80% entre 25 atividades', done: scored.length >= 25 && accuracy >= 80, tone: 'violet', n: scored.length >= 25 ? `${accuracy}%` : `${scored.length}/25`, tier: 'precisao' },
-
-    // ── nivel e xp ──
-    { t: 'Especialista', d: 'Alcance o nível 2', done: level >= 2, tone: 'amber', n: `Nível ${Math.min(level, 2)}/2`, tier: 'xp' },
-    { t: 'Mestre', d: 'Alcance o nível 5', done: level >= 5, tone: 'violet', n: `Nível ${Math.min(level, 5)}/5`, tier: 'xp' },
-    { t: 'Centenário', d: 'Acumule 100 XP', done: xp >= 100, tone: 'cyan', n: `${Math.min(xp, 100)}/100`, tier: 'xp' },
-    { t: 'Lenda', d: 'Acumule 500 XP', done: xp >= 500, tone: 'green', n: `${Math.min(xp, 500)}/500`, tier: 'xp' },
-    { t: 'Titã', d: 'Acumule 1.000 XP', done: xp >= 1000, tone: 'pink', n: `${Math.min(xp, 1000)}/1.000`, tier: 'xp' },
-    { t: 'Lendário', d: 'Acumule 2.500 XP', done: xp >= 2500, tone: 'violet', n: `${Math.min(xp, 2500)}/2.500`, tier: 'xp' },
-
-    // ── elite: exigem combinacao de varios numeros ao mesmo tempo ──
-    { t: 'O Consagrado', d: 'Nível 10, 25 tópicos e 1.000 XP', done: level >= 10 && lessons >= 25 && xp >= 1000, tone: 'pink', n: `N${Math.min(level, 10)} · ${Math.min(lessons, 25)}/25 · ${Math.min(xp, 1000)}/1.000`, tier: 'elite' },
-    { t: 'Arquiteto', d: '5 objetivos, 50 tópicos e nível 15', done: goalsCount >= 5 && lessons >= 50 && level >= 15, tone: 'violet', n: `${Math.min(goalsCount, 5)}/5 · ${Math.min(lessons, 50)}/50 · N${Math.min(level, 15)}/15`, tier: 'elite' },
-    { t: 'Mestre da Precisão', d: '25 atividades, média 95% e nível 20', done: scored.length >= 25 && accuracy >= 95 && level >= 20, tone: 'amber', n: `${scored.length}/25 · ${accuracy}% · N${Math.min(level, 20)}/20`, tier: 'elite' },
-  ]
-
-  const unlocked = badges.filter(b => b.done).length
-  const tiers = [...new Set(badges.map(b => b.tier))]
-  const TIER_LABEL = {
-    inicio: 'Primeiros passos',
-    constancia: 'Consistência',
-    precisao: 'Precisão',
-    xp: 'Nível e XP',
-    elite: 'Elite',
-  }
+// Privacidade: a lista de amigos mostra só o perfil público (avatar,
+// nível, sequência, última atividade). Nada de metas, trilhas ou tópicos
+// do outro — o backend também não devolve esses campos.
+function SocialView({ friends, candidates, query, setQuery, searching, err, pending, onAdd, onRemove }) {
+  const already = new Set(friends.map(f => f.friend_id))
+  const suggestions = (candidates || []).filter(c => !already.has(c.id))
 
   return (
     <div className="mp-canvas">
-      <div className="mp-ach">
-        <div className="mp-aside">
-          <div className="mp-heroach">
-            <Ring big value={pct} tone="var(--amber)" />
-            <div style={{ minWidth: 0 }}>
-              <div className="mp-heroach__t">Conquistas</div>
-              <div className="mp-heroach__s">{unlocked}/{badges.length} desbloqueadas. Continue estudando para ganhar novas medalhas!</div>
-              <span className="mp-chip">
-                <img src={conquistaIcon} alt="" draggable={false} />
-                {goalsCount} {goalsCount === 1 ? 'objetivo' : 'objetivos'}
-              </span>
-            </div>
+      <div className="mp-social">
+        <section className="mp-card mp-card--pad mp-addfriend">
+          <div className="mp-h" style={{ marginBottom: 10 }}><IconUsers /> Adicionar amigo</div>
+          <p className="mp-muted" style={{ marginTop: 0 }}>
+            Busque pelo e-mail cadastrado ou pelo nome de usuário.
+          </p>
+
+          <div className="mp-addfriend__row">
+            <span className="mp-addfriend__ico"><IconSearch /></span>
+            <input
+              className="mp-input mp-input--bare"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="e-mail ou @usuário"
+              autoCapitalize="none"
+              autoCorrect="off"
+            />
+            {query && (
+              <button
+                type="button"
+                className="mp-addfriend__go"
+                onClick={() => onAdd(query)}
+                disabled={!!pending || query.trim().length < 2}
+                aria-label="Adicionar"
+              >
+                {pending === query.trim() ? <Spinner /> : <IconPlus />}
+              </button>
+            )}
           </div>
 
-          <div className="mp-stats">
-            <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
-            <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
-            <StatCard tone="green" ico={<IconTarget />} v={goalsCount} l="Objetivos" />
-            <StatCard tone="violet" ico={<IconCheck />} v={lessons} l="Tópicos feitos" />
-          </div>
-        </div>
+          {err && <Alert>{err}</Alert>}
+
+          {searching && <div className="mp-faint" style={{ marginTop: 10 }}><Spinner /> Procurando…</div>}
+
+          {!searching && suggestions.length > 0 && (
+            <div className="mp-cands">
+              {suggestions.map(c => (
+                <div className="mp-cand" key={c.id}>
+                  <Avatar src={avatarUrl(c.avatar_url)} name={c.username} level={c.level} size={38} />
+                  <span className="mp-cand__b">
+                    <span className="mp-cand__t">@{c.username}</span>
+                    <span className="mp-cand__s">Nível {c.level} · {c.streak} {c.streak === 1 ? 'dia' : 'dias'} seguidos</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="mp-btn mp-btn--sm"
+                    onClick={() => onAdd(c.username)}
+                    disabled={!!pending}
+                  >
+                    {pending === c.username ? <Spinner /> : 'Adicionar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!searching && query.trim().length >= 2 && suggestions.length === 0 && !err && (
+            <div className="mp-faint" style={{ marginTop: 10 }}>
+              Ninguém encontrado para “{query.trim()}”.
+            </div>
+          )}
+        </section>
 
         <section>
-          <div className="mp-h" style={{ marginBottom: 12 }}><IconStar /> Medalhas</div>
-          {tiers.map(tier => {
-            const list = badges.filter(b => b.tier === tier)
-            const got = list.filter(b => b.done).length
-            return (
-              <div key={tier} className="mp-achtier">
-                <div className="mp-achtier__h">
-                  <span>{TIER_LABEL[tier]}</span>
-                  <span className="mp-achtier__n">{got}/{list.length}</span>
+          <div className="mp-h" style={{ marginBottom: 12 }}>
+            <IconUsers /> Seus amigos
+            {friends.length > 0 && <span className="mp-count">{friends.length}</span>}
+          </div>
+
+          {friends.length === 0 ? (
+            <div className="mp-empty">
+              <IconUsers size={26} />
+              Nenhum amigo ainda. Busque alguém pelo e-mail ou @usuário acima.
+            </div>
+          ) : (
+            <div className="mp-friends">
+              {friends.map(f => (
+                <div className="mp-friend" key={f.friend_id}>
+                  <Avatar src={avatarUrl(f.avatar_url)} name={f.username} level={f.level} size={46} />
+                  <span className="mp-friend__b">
+                    <span className="mp-friend__t">@{f.username}</span>
+                    <span className="mp-friend__s">
+                      Nível {f.level} · {f.xp} XP
+                      {f.streak > 0 && ` · ${f.streak} ${f.streak === 1 ? 'dia' : 'dias'} seguidos`}
+                    </span>
+                    {f.last_activity_date && (
+                      <span className="mp-friend__s">
+                        Última atividade {relativeDate(f.last_activity_date)}
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="mp-iconbtn mp-iconbtn--danger"
+                    onClick={() => onRemove(f)}
+                    disabled={!!pending}
+                    aria-label={`Remover ${f.username}`}
+                  >
+                    {pending === f.friend_id ? <Spinner /> : <IconTrash />}
+                  </button>
                 </div>
-                <div className="mp-badges">
-                  {list.map(b => (
-                    <div key={b.t} className={`mp-badge ${b.done ? 'is-on' : ''}`}>
-                      <div className="mp-badge__ico" style={{ background: `var(--${b.tone}-soft)` }}>
-                        <img src={conquistaIcon} alt="" draggable={false} />
-                      </div>
-                      <div className="mp-badge__t">{b.t}</div>
-                      <div className="mp-badge__d">{b.d}</div>
-                      <div className="mp-badge__f">
-                        <span className="mp-tag">{b.done ? 'Desbloqueada' : 'Bloqueada'}</span>
-                        <span className="mp-badge__n">{b.n}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
   )
 }
 
-function SettingsView({ profile, username, email, onProfile, onAchievements, onHistory, onLogout, theme, onToggleTheme, avatarBroken, onAvatarError }) {
-  const initial = (username[0]?.toUpperCase() || '?')
-  const showImg = !!profile?.avatar_url && !avatarBroken
+// Conquista bloqueada não mostra como conseguir — só o título e o cadeado.
+// A descrição aparece quando desbloqueada, com a data do desbloqueio.
+function AchievementsView({ achievements, unlocked }) {
+  const total = achievements.length
+  const pct = total ? Math.round((unlocked / total) * 100) : 0
+  const on = achievements.filter(a => a.unlocked)
+  const off = achievements.filter(a => !a.unlocked)
+
+  return (
+    <div className="mp-canvas">
+      <div className="mp-ach">
+        <section className="mp-heroach">
+          <Ring big value={pct} tone="var(--amber)" />
+          <div style={{ minWidth: 0 }}>
+            <div className="mp-heroach__t">Conquistas</div>
+            <div className="mp-heroach__s">{unlocked} de {total} desbloqueadas</div>
+            <span className="mp-chip">
+              <img src={conquistaIcon} alt="" draggable={false} />
+              {unlocked === total ? 'Coleção completa!' : `${total - unlocked} ainda bloqueadas`}
+            </span>
+          </div>
+        </section>
+
+        {on.length > 0 && (
+          <section>
+            <div className="mp-h" style={{ marginBottom: 12 }}><IconTrophy /> Desbloqueadas</div>
+            <div className="mp-badges">
+              {on.map(a => (
+                <div key={a.id} className="mp-badge is-on">
+                  <div className="mp-badge__ico" style={{ background: `var(--${a.tone}-soft)` }}>
+                    <img src={conquistaIcon} alt="" draggable={false} />
+                  </div>
+                  <div className="mp-badge__t">{a.title}</div>
+                  <div className="mp-badge__d">{a.desc}</div>
+                  <div className="mp-badge__f">
+                    <span className="mp-tag">Desbloqueada</span>
+                    {a.unlockedAt && <span className="mp-badge__n">{formatFullDate(a.unlockedAt)}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {off.length > 0 && (
+          <section>
+            <div className="mp-h" style={{ marginBottom: 12 }}><IconLock /> Bloqueadas</div>
+            <div className="mp-badges">
+              {off.map(a => (
+                <div key={a.id} className="mp-badge">
+                  <div className="mp-badge__ico">
+                    <IconLock size={22} />
+                  </div>
+                  <div className="mp-badge__t">{a.title}</div>
+                  <div className="mp-badge__f">
+                    <span className="mp-tag mp-tag--muted">Bloqueada</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SettingsView({ profile, username, email, insights, onProfile, onAchievements, onSocial, onHistory, onLogout, theme, onToggleTheme, onClearLocal }) {
+  const avatar = avatarUrl(profile?.avatar_url)
+
   return (
     <div className="mp-canvas">
       <div className="mp-settings">
         <section className="mp-settinggroup">
           <div className="mp-h">Conta</div>
           <button type="button" onClick={onProfile} className="mp-row">
-            {showImg ? (
-              <span className="mp-row__ico" style={{ background: 'var(--surface-2)', overflow: 'hidden' }}>
-                <img src={profile.avatar_url} alt="" onError={onAvatarError} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 7 }} />
+            {avatar ? (
+              <span className="mp-row__ico" style={{ overflow: 'hidden' }}>
+                <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11 }} />
               </span>
             ) : (
-              <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)', fontWeight: 800, fontSize: 16 }}>
-                {initial}
+              <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)', fontWeight: 800, fontSize: 15 }}>
+                {initials(username)}
               </span>
             )}
             <span className="mp-row__b">
@@ -1502,15 +1915,29 @@ function SettingsView({ profile, username, email, onProfile, onAchievements, onH
         <section className="mp-settinggroup">
           <div className="mp-h">Estudo</div>
           <button type="button" onClick={onAchievements} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--amber-soft)' }}>
+            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
               <img src={conquistaIcon} alt="" draggable={false} />
             </span>
-            <span className="mp-row__b"><span className="mp-row__t">Minhas conquistas</span></span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Minhas conquistas</span>
+              <span className="mp-row__s">{insights.unlocked} de {ACHIEVEMENTS.length}</span>
+            </span>
+            <IconChevron />
+          </button>
+          <button type="button" onClick={onSocial} className="mp-row">
+            <span className="mp-row__ico" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Meus amigos</span>
+              <span className="mp-row__s">{insights.friends} na sua lista</span>
+            </span>
             <IconChevron />
           </button>
           <button type="button" onClick={onHistory} className="mp-row">
             <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}><IconHistory /></span>
-            <span className="mp-row__b"><span className="mp-row__t">Histórico de estudo</span></span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Histórico de estudo</span>
+              <span className="mp-row__s">Todas as suas atividades</span>
+            </span>
             <IconChevron />
           </button>
         </section>
@@ -1538,14 +1965,18 @@ function SettingsView({ profile, username, email, onProfile, onAchievements, onH
         </section>
 
         <section className="mp-settinggroup">
-          <div className="mp-h">Perfil</div>
-          <button type="button" onClick={onProfile} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)' }}>
-              <img src={perfilIcon} alt="" draggable={false} />
+          <div className="mp-h">Dados</div>
+          <button type="button" onClick={onClearLocal} className="mp-row">
+            <span className="mp-row__ico" style={{ background: 'var(--surface-2)', color: 'var(--ink-3)' }}><IconTrash /></span>
+            <span className="mp-row__b">
+              <span className="mp-row__t">Limpar dados locais</span>
+              <span className="mp-row__s">Datas das conquistas e notificações deste navegador</span>
             </span>
-            <span className="mp-row__b"><span className="mp-row__t">Meu perfil</span></span>
-            <IconChevron />
           </button>
+        </section>
+
+        <section className="mp-settinggroup">
+          <div className="mp-h">Sobre</div>
           <button type="button" onClick={() => window.open('/termos.html', '_blank')} className="mp-row">
             <span className="mp-row__ico" style={{ background: 'var(--green-soft)', color: 'var(--green-d)' }}><IconFlag /></span>
             <span className="mp-row__b">
@@ -1570,21 +2001,6 @@ function SettingsView({ profile, username, email, onProfile, onAchievements, onH
 }
 
 // ─── PEÇAS ────────────────────────────────────────────────────────
-
-function ThemeToggle({ theme, onToggle }) {
-  const dark = theme === 'dark'
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="mp-iconbtn"
-      aria-label={dark ? 'Ativar tema claro' : 'Ativar tema escuro'}
-      title={dark ? 'Tema claro' : 'Tema escuro'}
-    >
-      {dark ? <IconSun /> : <IconMoon />}
-    </button>
-  )
-}
 
 function LessonRow({ n, done, current, onClick }) {
   return (
@@ -1651,8 +2067,14 @@ function Modal({ children, onClose }) {
   )
 }
 
-function Alert({ children, style }) {
-  return <div className="mp-alert" style={style}><IconAlert /> {children}</div>
+// tone="info" usa âmbar em vez de vermelho: erro é vermelho, lembrete
+// amigável ("você ainda não estudou hoje") não é.
+function Alert({ children, style, tone = 'error' }) {
+  return (
+    <div className={`mp-alert ${tone === 'info' ? 'mp-alert--info' : ''}`} style={style}>
+      <IconAlert /> {children}
+    </div>
+  )
 }
 
 function Spinner({ size = 15 }) {
@@ -1666,52 +2088,87 @@ function Spinner({ size = 15 }) {
 
 // ─── SHELL + NAVEGAÇÃO ────────────────────────────────────────────
 
+// A ordem é do usuário: Início, Social, Trilha, Conquistas, Perfil. A
+// Trilha fica no centro e é a única que ganha o botão elevado — é a ação
+// principal do app, o resto é navegação.
 const NAV = [
-  { key: 'home', label: 'Início', Icon: IconHome, src: null },
-  { key: 'roadmap', label: 'Trilha', Icon: IconPath, src: null },
-  { key: 'achievements', label: 'Conquistas', Icon: null, src: conquistaIcon },
-  { key: 'profile', label: 'Perfil', Icon: null, src: perfilIcon },
-  { key: 'settings', label: 'Config', Icon: null, src: configIcon },
+  { key: 'home', label: 'Início', Icon: IconHome },
+  { key: 'social', label: 'Social', Icon: IconUsers },
+  { key: 'roadmap', label: 'Trilha', Icon: IconPath, primary: true },
+  { key: 'achievements', label: 'Conquistas', Icon: IconTrophy },
+  { key: 'profile', label: 'Perfil', Icon: IconUser },
 ]
 
+// Títulos só valem para o rail do desktop; no mobile o cabeçalho é
+// minimalista (logo + 2 ícones) e quem nomeia a tela é a própria view.
 const TITLES = {
-  home: ['Início', 'Escolha o que aprender agora'],
+  home: ['Início', 'Sua sequência de estudos'],
+  social: ['Social', 'Acompanhe seus amigos'],
   roadmap: ['Trilha', 'Siga o caminho até o objetivo'],
   phase: ['Etapa', 'Lições deste módulo'],
   task: ['Tarefa', 'Responda para avançar'],
   result: ['Resultado', 'Veja como você foi'],
-  profile: ['Perfil', 'Seus dados e progresso'],
   achievements: ['Conquistas', 'Suas medalhas'],
+  profile: ['Perfil', 'Seus dados e progresso'],
   settings: ['Configurações', 'Conta e estudo'],
 }
 
-function AppShell({ active, onNavigate, onBack, profile, username, email, onLogout, theme, onToggleTheme, avatarBroken, onAvatarError, children }) {
-  const initial = (username[0]?.toUpperCase() || '?')
-  const showImg = !!profile?.avatar_url && !avatarBroken
+function AppShell({
+  active,
+  onNavigate,
+  onBack,
+  showTopbar,
+  profile,
+  username,
+  email,
+  onLogout,
+  theme,
+  onToggleTheme,
+  onOpenSettings,
+  onOpenBell,
+  notifOpen,
+  unread,
+  notifications,
+  children,
+}) {
   const [title, sub] = TITLES[active] || TITLES.home
+  const avatar = avatarUrl(profile?.avatar_url)
 
   return (
     <div className="mp">
       <div className="mp-stage">
-        <header className="mp-top">
-          {onBack && (
-            <button type="button" onClick={onBack} className="mp-iconbtn" aria-label="Voltar">
-              <IconArrowLeft />
+        {showTopbar && (
+          <header className="mp-top">
+            <button type="button" onClick={onBack} className="mp-top__logo" aria-label="Início">
+              <span className="mp-mark mp-mark--sm"></span>
             </button>
-          )}
-          <div className="mp-mark mp-mark--on-navy"><BrandGlyph /></div>
-          <div className="mp-top__brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-            <span className="mp-top__title">{title}</span>
-            <span className="mp-top__sub">{sub}</span>
-          </div>
-          <div className="mp-top__actions">
-            <XpPill profile={profile} />
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-            <button type="button" onClick={onLogout} className="mp-iconbtn mp-iconbtn--danger" aria-label="Sair">
-              <IconLogout />
-            </button>
-          </div>
-        </header>
+
+            <div className="mp-top__actions">
+              <button
+                type="button"
+                onClick={onOpenBell}
+                className={`mp-iconbtn ${notifOpen ? 'is-on' : ''}`}
+                aria-label={unread > 0 ? `Notificações (${unread} novas)` : 'Notificações'}
+                aria-expanded={notifOpen}
+              >
+                <IconBell />
+                {unread > 0 && <span className="mp-badge-dot">{unread > 9 ? '9+' : unread}</span>}
+              </button>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="mp-iconbtn"
+                aria-label="Configurações"
+              >
+                <IconGear />
+              </button>
+            </div>
+
+            {notifOpen && (
+              <NotificationPanel notifications={notifications} onClose={onOpenBell} />
+            )}
+          </header>
+        )}
 
         {children}
       </div>
@@ -1722,22 +2179,32 @@ function AppShell({ active, onNavigate, onBack, profile, username, email, onLogo
 
       <aside className="mp-rail">
         <div className="mp-rail__brand">
-          <div className="mp-mark mp-mark--on-navy"><BrandGlyph /></div>
+          <div className="mp-mark"><BrandGlyph /></div>
           <span>Metapps</span>
         </div>
+
+        <div className="mp-rail__title">
+          <span className="mp-rail__t">{title}</span>
+          <span className="mp-rail__s">{sub}</span>
+        </div>
+
         <div className="mp-rail__nav">
           {NAV.map(it => <NavButton key={it.key} item={it} active={active === it.key} onNavigate={onNavigate} />)}
         </div>
+
         <div className="mp-rail__foot">
           <div className="mp-user">
             <span className="mp-user__a">
-              {showImg ? <img src={profile.avatar_url} alt="" onError={onAvatarError} /> : <span>{initial}</span>}
+              {avatar ? <img src={avatar} alt="" /> : <span>{initials(username)}</span>}
             </span>
             <span className="mp-user__b">
               <span className="mp-user__n">{username || 'Usuário'}</span>
               <span className="mp-user__e">{email}</span>
             </span>
           </div>
+          <button type="button" onClick={onToggleTheme} className="mp-signout" role="switch" aria-checked={theme === 'dark'}>
+            {theme === 'dark' ? <IconSun /> : <IconMoon />} {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          </button>
           <button type="button" onClick={onLogout} className="mp-signout">
             <IconLogout /> Sair da conta
           </button>
@@ -1747,42 +2214,85 @@ function AppShell({ active, onNavigate, onBack, profile, username, email, onLogo
   )
 }
 
+function NotificationPanel({ notifications, onClose }) {
+  return (
+    <>
+      <button type="button" className="mp-sheet__scrim" onClick={onClose} aria-label="Fechar notificações" />
+      <div className="mp-sheet mp-notif" role="dialog" aria-label="Notificações">
+        <div className="mp-sheet__grab" />
+        <div className="mp-sheet__head">
+          <span className="mp-sheet__t">Notificações</span>
+        </div>
+
+        {notifications.length === 0 ? (
+          <div className="mp-empty" style={{ border: 0 }}>
+            <IconBell size={24} />
+            Nada por aqui ainda. Conquistas e marcos de sequência aparecem nesta lista.
+          </div>
+        ) : (
+          <div className="mp-notif__list">
+            {notifications.map(n => (
+              <div key={n.id} className={`mp-notif__i ${n.read ? '' : 'is-new'}`}>
+                <span className={`mp-notif__ico mp-notif__ico--${n.tone || 'blue'}`}>
+                  {n.kind === 'achievement'
+                    ? <img src={conquistaIcon} alt="" draggable={false} />
+                    : n.kind === 'streak' ? <IconFlame /> : <IconUsers />}
+                </span>
+                <span className="mp-notif__b">
+                  <span className="mp-notif__t">{n.title}</span>
+                  <span className="mp-notif__d">{n.body}</span>
+                </span>
+                <span className="mp-notif__when">{relativeDate(n.at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
 function NavButton({ item, active, onNavigate }) {
   return (
     <button
       type="button"
-      className={`mp-nav ${active ? 'is-on' : ''}`}
+      className={`mp-nav ${active ? 'is-on' : ''} ${item.primary ? 'mp-nav--primary' : ''}`}
       onClick={() => onNavigate(item.key)}
       aria-label={item.label}
       aria-current={active ? 'page' : undefined}
     >
-      <span className="mp-nav__ico">
-        {item.src ? <img src={item.src} alt="" draggable={false} /> : <item.Icon />}
-      </span>
+      <span className="mp-nav__ico"><item.Icon /></span>
       <span className="mp-nav__label">{item.label}</span>
     </button>
   )
 }
 
-function XpPill({ profile }) {
-  const level = profile?.level || 1
-  const xp = profile?.xp || 0
-  const pct = xpPct(xp)
+function Avatar({ src, name, level, size = 44 }) {
+  const [broken, setBroken] = useState(false)
+  const show = src && !broken
+
   return (
-    <div className="mp-xp" title={`Nível ${level} · ${xp} XP`}>
-      <div className="mp-xp__meta">
-        <div className="mp-xp__lvl">Nível {level}</div>
-        <div className="mp-xp__val">{xp} XP</div>
-      </div>
-      <Ring value={pct} />
-    </div>
+    <span className="mp-av" style={{ '--mp-av': `${size}px` }}>
+      {show ? (
+        <img src={src} alt="" onError={() => setBroken(true)} />
+      ) : (
+        <span className="mp-av__fall">{initials(name)}</span>
+      )}
+      {level != null && <span className="mp-av__lvl">{level}</span>}
+    </span>
   )
 }
 
 // ─── ÍCONES ───────────────────────────────────────────────────────
 
 function BrandGlyph() {
-  return <img className="mp-mark__img" src={pixelIcon} alt="" draggable={false} />
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 19c0-5 3-8 7-8s7 3 7 8" />
+      <path d="M12 11V4" />
+      <path d="M8.5 6.5 12 4l3.5 2.5" />
+    </svg>
+  )
 }
 
 function IconSpark({ size = 14, style }) {
@@ -1832,6 +2342,47 @@ function IconHome() {
 
 function IconPath() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="6" cy="18" r="2.6" /><circle cx="18" cy="6" r="2.6" /><path d="M8.6 18H14a4 4 0 0 0 0-8h-4a4 4 0 0 1 0-8h5.4" /></svg>
+}
+
+function IconUsers() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="9" cy="8" r="3.4" /><path d="M3.4 19.5a5.6 5.6 0 0 1 11.2 0" /><path d="M16.2 5a3.4 3.4 0 0 1 0 6.1" /><path d="M17.2 14.4a5.6 5.6 0 0 1 3.4 5.1" /></svg>
+}
+
+function IconUser() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8.4" r="3.6" /><path d="M4.8 19.6a7.2 7.2 0 0 1 14.4 0" /></svg>
+}
+
+function IconTrophy({ size = 20 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" /><path d="M8 5.4H5.4V7a3.4 3.4 0 0 0 3.4 3.4" /><path d="M16 5.4h2.6V7a3.4 3.4 0 0 1-3.4 3.4" /><path d="M12 13v3.6" /><path d="M8.6 20h6.8" /><path d="M10.4 16.6h3.2L15.2 20H8.8l1.6-3.4Z" /></svg>
+}
+
+function IconFlame({ size = 20, style }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" style={style} aria-hidden>
+      <path d="M13.3 2.4c.6 3-1 4.6-2.6 6.1-1.7 1.6-3.5 3.2-3.5 5.8A6.9 6.9 0 0 0 14.1 21c3.5 0 6.1-2.6 6.1-6.1 0-3-1.6-4.7-3.2-6.5-1.5-1.7-3.1-3.2-3.7-6Z" />
+      <path d="M11 12.6c.3 1.5-.5 2.4-1.3 3.1-.7.6-1.2 1.3-1.2 2.3a3.1 3.1 0 0 0 6.2.4c0-1.5-.9-2.5-1.8-3.3-.8-.7-1.5-1.5-1.9-2.5Z" opacity=".5" />
+    </svg>
+  )
+}
+
+function IconBell({ size = 20 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6.4 10a5.6 5.6 0 0 1 11.2 0c0 4 1.5 5.2 1.5 5.2H4.9S6.4 14 6.4 10Z" /><path d="M10.2 18.6a2 2 0 0 0 3.6 0" /></svg>
+}
+
+function IconGear({ size = 20 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="3.1" /><path d="M12 3.6v2.2M12 18.2v2.2M20.4 12h-2.2M5.8 12H3.6M17.9 6.1l-1.5 1.5M7.6 16.4l-1.5 1.5M17.9 17.9l-1.5-1.5M7.6 7.6 6.1 6.1" /></svg>
+}
+
+function IconSearch({ size = 18 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="6" /><path d="M15.4 15.4 20 20" /></svg>
+}
+
+function IconList({ size = 19 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 6.5h16M4 12h16M4 17.5h10" /></svg>
+}
+
+function IconPlus({ size = 18 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5.2v13.6M5.2 12h13.6" /></svg>
 }
 
 function IconLogout() {

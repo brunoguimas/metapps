@@ -12,6 +12,8 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
+	"github.com/brunoguimas/metapps/backend/internal/modules/progress"
+	"github.com/brunoguimas/metapps/backend/internal/modules/social"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
@@ -32,7 +34,9 @@ func NewRouter(
 	tcHandler *task_correction.Handler,
 	fc *flashcard.Handler,
 	p *profile.Handler,
+	pr *progress.Handler,
 	cr *classroom.Handler,
+	so *social.Handler,
 	jwtService jwt.Service,
 	cfg *config.Config,
 ) *gin.Engine {
@@ -109,6 +113,10 @@ func NewRouter(
 		profile := protected.Group("/profile")
 		{
 			profile.GET("", p.GetProfile)
+			// Leitura agregada de progresso. Fica dentro do grupo de
+			// perfil porque e o resumo do mesmo usuario, e nao tem POST:
+			// XP e creditado pelo servidor quando a tarefa e corrigida.
+			profile.GET("/progress", pr.GetSummary)
 			profile.POST("/avatar", p.UpdateAvatar)
 		}
 
@@ -122,12 +130,22 @@ func NewRouter(
 			classrooms.DELETE("/:id", cr.Delete)
 			classrooms.POST("/:id/invite", cr.RegenerateInviteCode)
 			classrooms.GET("/:id/members", cr.ListMembers)
-			classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
+classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
 			classrooms.DELETE("/:id/leave", cr.Leave)
 			classrooms.POST("/:id/assignments", cr.CreateAssignment)
-			classrooms.GET("/:id/assignments", cr.ListAssignments)
 			classrooms.PUT("/:id/assignments/:aId", cr.UpdateAssignment)
 			classrooms.DELETE("/:id/assignments/:aId", cr.DeleteAssignment)
+		}
+
+		// Social: lista de amigos, busca por e-mail/username e o resumo
+		// com a contagem. Nada aqui expõe goals/roadmaps de terceiros.
+		socialGroup := protected.Group("/social")
+		{
+			socialGroup.GET("/friends", so.List)
+			socialGroup.POST("/friends", so.Add)
+			socialGroup.DELETE("/friends/:friendID", so.Remove)
+			socialGroup.GET("/summary", so.Summary)
+			socialGroup.GET("/search", so.Search)
 		}
 
 		protected.GET("/task-attempts", ta.ListByUser)

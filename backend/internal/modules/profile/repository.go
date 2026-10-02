@@ -3,6 +3,7 @@ package profile
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/platform/database/db"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -83,8 +84,41 @@ func mapProfile(row db.Profile) *Profile {
 		XP:               int(row.Xp),
 		Streak:           int(row.Streak),
 		LastActivityDate: row.LastActivityDate,
-		AvatarURL:        avatarURL,
+		AvatarURL:        NormalizeAvatarURL(avatarURL),
 		CreatedAt:        row.CreatedAt,
 		UpdatedAt:        row.UpdatedAt,
 	}
+}
+
+// NormalizeAvatarURL conserta URLs salvas antes da correção do prefixo.
+//
+// Os uploads antigos gravaram "http://host/uuid.jpg" (sem o /avatars), que
+// aponta para uma rota inexistente. Sem isto, quem já tinha foto continuaria
+// sem vê-la mesmo depois do handler ser arrumado.
+func NormalizeAvatarURL(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	// Só normaliza URL absoluta de host que não tem o prefixo.
+	// URL relativa (ou já correta) é devolvida como está.
+	idx := strings.Index(raw, "://")
+	if idx < 0 {
+		return raw
+	}
+
+	pathStart := idx + 3
+	slash := strings.Index(raw[pathStart:], "/")
+	if slash < 0 {
+		return raw
+	}
+
+	host := raw[:pathStart+slash]
+	path := raw[pathStart+slash:]
+
+	if strings.HasPrefix(path, AvatarPath+"/") {
+		return raw
+	}
+
+	return host + AvatarPath + path
 }

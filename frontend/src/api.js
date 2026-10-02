@@ -1416,6 +1416,157 @@ export async function createCorrection(
 }
 
 
+// ─── PROGRESSO (resumo agregado) ─────────────────────────────
+
+export async function getProgressSummary() {
+
+  const res = await authFetch(
+    '/protected/profile/progress'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o resumo de progresso.'
+    )
+  }
+
+  return data.progress
+}
+
+
+// ─── SOCIAL: AMIGOS ─────────────────────────────────────────
+//
+// O backend nunca devolve goals/roadmaps de terceiros: a lista de amigos
+// traz só o perfil público (avatar, nível, streak, quando foi a última
+// atividade). A tela de social respeita essa regra.
+
+export async function listFriends() {
+
+  const res = await authFetch(
+    '/protected/social/friends'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar seus amigos.'
+    )
+  }
+
+  return data.friends
+}
+
+
+export async function getSocialSummary() {
+
+  const res = await authFetch(
+    '/protected/social/summary'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o resumo social.'
+    )
+  }
+
+  return data.summary
+}
+
+
+export async function searchUsers(term) {
+
+  const res = await authFetch(
+    `/protected/social/search?q=${encodeURIComponent(term)}`
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar usuários.'
+    )
+  }
+
+  return data.candidates
+}
+
+
+// addFriend aceita e-mail OU nome de usuário — o usuário digita o que
+// lembrar e o backend decide o que procurar.
+export async function addFriend(query) {
+
+  const res = await authFetch(
+    '/protected/social/friends',
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify({
+        query,
+      }),
+    }
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao adicionar o amigo.'
+    )
+  }
+
+  return data.friend
+}
+
+
+export async function removeFriend(friendId) {
+
+  const res = await authFetch(
+    `/protected/social/friends/${friendId}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao remover o amigo.'
+    )
+  }
+
+  return data
+}
+
+
 // ─── PROFILE ──────────────────────────────────────────────────
 
 export async function getProfile() {
@@ -1436,6 +1587,48 @@ export async function getProfile() {
       data,
       res.status,
       'Erro ao buscar perfil.'
+    )
+  }
+
+
+  return data.profile
+}
+
+
+// ─── PROFILE: XP ──────────────────────────────────────────────
+
+export async function addXP(
+  xp
+) {
+
+  const res =
+    await authFetch(
+      '/protected/profile/xp',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          xp,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao adicionar XP.'
     )
   }
 

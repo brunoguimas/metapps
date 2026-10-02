@@ -41,6 +41,8 @@ const (
 	ErrClassroomAlreadyMember    Code = "CLASSROOM_ALREADY_MEMBER"
 	ErrInvalidInviteCode         Code = "INVALID_INVITE_CODE"
 	ErrNotClassroomMember        Code = "NOT_CLASSROOM_MEMBER"
+	ErrAlreadyFriend             Code = "ALREADY_FRIEND"
+	ErrNotFriend                 Code = "NOT_FRIEND"
 )
 
 type appError struct {
@@ -156,6 +158,10 @@ func StatusFromCode(code Code) int {
 		return http.StatusBadRequest
 	case ErrNotClassroomMember:
 		return http.StatusForbidden
+	case ErrAlreadyFriend:
+		return http.StatusConflict
+	case ErrNotFriend:
+		return http.StatusNotFound
 	default:
 		return 500
 	}

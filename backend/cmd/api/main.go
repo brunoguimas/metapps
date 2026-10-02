@@ -16,6 +16,8 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
+	"github.com/brunoguimas/metapps/backend/internal/modules/progress"
+	"github.com/brunoguimas/metapps/backend/internal/modules/social"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
@@ -51,6 +53,8 @@ type AppModules struct {
 	TaskCorrectionModule *task_correction.Module
 	FlashcardModule      *flashcard.Module
 	ClassroomModule      *classroom.Module
+	SocialModule         *social.Module
+	ProgressModule       *progress.Module
 }
 
 func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error) {
@@ -121,6 +125,20 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Classroom module
 	classroomModule := classroom.NewModule(queries)
 
+	// Social module: amigos por e-mail/username
+	socialModule := social.NewModule(queries)
+
+	// Progress module: leitura agregada sobre os modulos acima
+	progressModule := progress.NewModule(
+		profileModule.Service,
+		goalModule.Service,
+		taskModule.Service,
+		taskAttemptModule.Service,
+		topic.NewRepository(queries),
+		topic.NewProgressRepository(queries),
+		flashcardModule.Service,
+	)
+
 	return &AppModules{
 		MailModule:           mailModule,
 		JWTModule:            jwtModule,
@@ -138,6 +156,8 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		TaskCorrectionModule: taskCorrectionModule,
 		FlashcardModule:      flashcardModule,
 		ClassroomModule:      classroomModule,
+		SocialModule:         socialModule,
+		ProgressModule:       progressModule,
 	}, nil
 }
 
@@ -153,7 +173,9 @@ func newRouter(cfg *config.Config, modules *AppModules) *gin.Engine {
 		modules.TaskCorrectionModule.Handler,
 		modules.FlashcardModule.Handler,
 		modules.ProfileModule.Handler,
+		modules.ProgressModule.Handler,
 		modules.ClassroomModule.Handler,
+		modules.SocialModule.Handler,
 		modules.JWTModule.Service,
 		cfg,
 	)

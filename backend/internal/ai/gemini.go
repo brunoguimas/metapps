@@ -18,6 +18,7 @@ const (
 type GeminiClient struct {
 	client   *genai.Client
 	apiKey   string
+	model    string
 	mockOnce sync.Once
 }
 
@@ -29,9 +30,15 @@ func NewGeminiClient(ctx context.Context, cfg config.Config) (*GeminiClient, err
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't create gemini client", err)
 	}
 
+	model := cfg.GeminiModel
+	if model == "" {
+		model = config.DefaultGeminiModel
+	}
+
 	return &GeminiClient{
 		client: client,
 		apiKey: cfg.GeminiKey,
+		model:  model,
 	}, nil
 }
 
@@ -45,7 +52,7 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 
 	resp, err := g.client.Models.GenerateContent(
 		ctx,
-		Model,
+		g.model,
 		genai.Text(prompt),
 		nil,
 	)

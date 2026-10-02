@@ -170,6 +170,13 @@ type FlashcardProgress struct {
 	UpdatedAt      time.Time
 }
 
+type Friendship struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	FriendID  uuid.UUID
+	CreatedAt time.Time
+}
+
 type Goal struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

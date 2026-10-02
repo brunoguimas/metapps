@@ -113,7 +113,7 @@ func (h *Handler) UpdateAvatar(c *gin.Context) {
 		return
 	}
 
-	avatarURL := h.cfg.AvatarBaseURL + "/" + filename
+	avatarURL := BuildAvatarURL(h.cfg.AvatarBaseURL, filename)
 	_, err = h.service.UpdateAvatar(c.Request.Context(), userID, avatarURL)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -134,6 +134,24 @@ func GetFileExtension(filename string) string {
 	default:
 		return ""
 	}
+}
+
+// AvatarPath é o prefixo da rota estática que serve os arquivos de avatar
+// (ver router.NewRouter: r.Static("/avatars", "./avatars")).
+const AvatarPath = "/avatars"
+
+// BuildAvatarURL monta a URL pública do avatar.
+//
+// O prefixo "/avatars" não era opcional: o handler montava
+// baseURL + "/" + nome, o que gerava http://host/uuid.jpg e caía em 404
+// porque os arquivos são servidos em /avatars/uuid.jpg. Daí a foto sumir
+// depois do upload.
+func BuildAvatarURL(baseURL, filename string) string {
+	base := strings.TrimRight(baseURL, "/")
+	if strings.HasSuffix(base, AvatarPath) {
+		return base + "/" + filename
+	}
+	return base + AvatarPath + "/" + filename
 }
 
 func ensureDir(dir string) error {

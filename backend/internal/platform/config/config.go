@@ -48,6 +48,7 @@ func Load() *Config {
 	}
 
 	port := getEnv("PORT", ":8080")
+	rawPort := strings.TrimPrefix(port, ":")
 	if port != "" && !strings.HasPrefix(port, ":") {
 		port = ":" + port
 	}
@@ -71,8 +72,8 @@ func Load() *Config {
 	smtpPass := getEnv("SMTP_PASS", "")
 	requireEmailVerification := getEnvBool("REQUIRE_EMAIL_VERIFICATION", true)
 	geminiKey := mustGetenv("GEMINI_API_KEY")
-	geminiModel := mustGetenv("GEMINI_MODEL")
-	avatarBaseURL := getEnv("AVATAR_BASE_URL", "http://localhost:"+port)
+	geminiModel := normalizeGeminiModel(getEnv("GEMINI_MODEL", DefaultGeminiModel))
+	avatarBaseURL := strings.TrimRight(getEnv("AVATAR_BASE_URL", "http://localhost:"+rawPort), "/")
 
 	accessTtl, err := time.ParseDuration(accessTtlStr)
 	if err != nil {
@@ -147,6 +148,22 @@ func Load() *Config {
 		GeminiModel:              geminiModel,
 		AvatarBaseURL:            avatarBaseURL,
 	}
+}
+
+// DefaultGeminiModel é usado quando GEMINI_MODEL não está definido no ambiente.
+const DefaultGeminiModel = "models/gemini-3.6-flash"
+
+// normalizeGeminiModel aceita tanto "gemini-x" quanto "models/gemini-x",
+// já que a SDK do Gemini espera o prefixo "models/".
+func normalizeGeminiModel(model string) string {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return DefaultGeminiModel
+	}
+	if !strings.HasPrefix(model, "models/") {
+		return "models/" + model
+	}
+	return model
 }
 
 func getEnv(key, fallback string) string {

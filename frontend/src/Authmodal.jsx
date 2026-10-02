@@ -358,16 +358,16 @@ function VerifyPane({ email, onSuccess }) {
 
   return (
     <div style={{ animation: 'authSlideIn .4s cubic-bezier(0.16,1,0.3,1) both', textAlign: 'center' }}>
-      <div style={{ width: 44, height: 44, margin: '0 auto 16px', background: 'var(--lp-brand)', border: 'none', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <div style={{ width: 52, height: 52, margin: '0 auto 18px', background: 'rgba(99,130,255,0.1)', border: '1px solid rgba(99,130,255,0.3)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="22" height="22" fill="none" stroke="var(--lp-brand)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <rect x="2" y="4" width="20" height="16" rx="2" />
           <path d="M2 4l10 9 10-9" />
         </svg>
       </div>
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--lp-ink)', marginBottom: 8 }}>Verifique seu e-mail</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--lp-ink)', letterSpacing: '-0.4px', marginBottom: 8 }}>Verifique seu e-mail</h2>
 
-      <p style={{ fontSize: 13, color: 'var(--lp-ink-2)', lineHeight: 1.6, marginBottom: 24 }}>
+      <p style={{ fontSize: 14, color: 'var(--lp-ink-2)', lineHeight: 1.65, marginBottom: 28 }}>
         Enviamos um código de 6 dígitos para<br />
         <strong style={{ color: 'var(--lp-ink)', fontWeight: 700 }}>{email}</strong>
       </p>
@@ -384,12 +384,13 @@ function VerifyPane({ email, onSuccess }) {
             onChange={(e) => handleDigit(index, e.target.value)}
             onKeyDown={(e) => handleKey(index, e)}
             style={{
-              width: 44, height: 52, textAlign: 'center', fontSize: 20, fontWeight: 700,
+              width: 44, height: 54, textAlign: 'center', fontSize: 24, fontWeight: 800,
               background: 'var(--lp-surface)',
-              border: `1px solid ${err ? 'var(--lp-red)' : digit ? 'var(--lp-brand)' : 'var(--lp-line)'}`,
-              borderRadius: 3, color: 'var(--lp-ink)',
-              fontFamily: "'Open Sans','Lato',-apple-system,sans-serif", outline: 'none',
-              transition: 'border-color .15s',
+              border: `2px solid ${err ? 'var(--lp-red)' : digit ? 'var(--lp-brand)' : 'var(--lp-line)'}`,
+              borderRadius: 12, color: 'var(--lp-ink)',
+              fontFamily: "'Inter',-apple-system,sans-serif", outline: 'none',
+              transition: 'border-color .15s, box-shadow .15s',
+              boxShadow: digit ? '0 0 0 3px rgba(99,130,255,0.2)' : 'none',
               caretColor: 'transparent',
             }}
           />
@@ -944,42 +945,37 @@ function Divider() {
 
 // ─── ESTILOS ────────────────────────────────────────────────────────────────
 
-const iconSlot = { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--lp-ink-3)', display: 'flex', pointerEvents: 'none' }
+const iconSlot = { position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(26,26,46,0.35)', display: 'flex', pointerEvents: 'none' }
 
-/* Campo: 3px de raio, 1px de borda, altura de 40px. */
 const inp = {
-  width: '100%', background: 'var(--lp-surface)', border: '1px solid var(--lp-line)', borderRadius: 3, color: 'var(--lp-ink)',
-  fontFamily: "'Open Sans','Lato',-apple-system,sans-serif", fontSize: 14, padding: '10px 12px', outline: 'none',
-  transition: 'border-color .15s', WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box',
+  width: '100%', background: 'var(--lp-surface)', border: '1.5px solid var(--lp-line)', borderRadius: 10, color: 'var(--lp-ink)',
+  fontFamily: "'Inter',-apple-system,sans-serif", fontSize: 14, padding: '12px 14px', outline: 'none',
+  transition: 'border-color .2s, box-shadow .2s', WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box',
 }
 
-const eyeBtn = { position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', borderRadius: 3, color: 'var(--lp-ink-3)' }
+const eyeBtn = { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', borderRadius: 6, color: 'rgba(26,26,46,0.35)' }
 
-/* Título do formulário em maiúsculas, 15px — é um rótulo de seção,
-   não um título de landing. */
-const title = { fontSize: 15, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--lp-ink)', lineHeight: 1.3, marginBottom: 6 }
-const sub = { fontSize: 13, color: 'var(--lp-ink-2)', lineHeight: 1.5, marginBottom: 16 }
-const field = { marginBottom: 12 }
-const lbl = { display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--lp-ink-2)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 5 }
+const title = { fontSize: 26, fontWeight: 900, color: 'var(--lp-ink)', letterSpacing: '-0.5px', lineHeight: 1.2, marginBottom: 6 }
+const sub = { fontSize: 14, color: 'var(--lp-ink-2)', lineHeight: 1.5, marginBottom: 20 }
+const field = { marginBottom: 14 }
+const lbl = { display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--lp-ink-2)', letterSpacing: '0.2px', marginBottom: 6 }
 const fieldErrTxt = { fontSize: 11.5, color: 'var(--lp-red-d)', marginTop: 5, lineHeight: 1.4 }
 
 const errBox = {
-  background: 'var(--lp-red-soft)', border: '1px solid var(--lp-red)', borderLeftWidth: 3, borderRadius: 3,
-  padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--lp-red-d)', lineHeight: 1.45, marginBottom: 12,
+  background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 8,
+  padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--lp-red-d)', lineHeight: 1.45, marginBottom: 13,
 }
 
 const btnPrimary = {
-  width: '100%', padding: '11px', border: 'none', borderRadius: 3, fontFamily: "'Open Sans','Lato',-apple-system,sans-serif",
-  fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  gap: 8, background: 'var(--lp-brand)', color: '#fff', transition: 'background .15s',
+  width: '100%', padding: '13px', border: 'none', borderRadius: 10, fontFamily: "'Inter',-apple-system,sans-serif",
+  fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  gap: 8, background: 'var(--lp-brand)', color: 'var(--lp-brand-ink)', transition: 'all .2s',
 }
 
 const btnGoogle = {
-  width: '100%', padding: '11px', borderRadius: 3, border: '1px solid var(--lp-line)', background: 'var(--lp-surface)',
-  fontFamily: "'Open Sans','Lato',-apple-system,sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
-  textTransform: 'uppercase', color: 'var(--lp-ink)', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background .15s',
+  width: '100%', padding: '13px', borderRadius: 10, border: '1.5px solid var(--lp-line)', background: 'var(--lp-surface)',
+  fontFamily: "'Inter',-apple-system,sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--lp-ink)', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background .2s',
 }
 
 const footTxt = { fontSize: 13.5, color: 'var(--lp-ink-2)', textAlign: 'center', marginTop: 24 }
@@ -997,43 +993,41 @@ const AUTH_MODAL_STYLES = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Overlay sem desfoque: o blur era o efeito de vidro do tema
-     anterior. Fundo chapado a 50% já separa o cartão do resto. */
   .authModalOverlay {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background: rgba(16,24,48,0.5);
+    background: rgba(26,26,46,0.55);
+    backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    animation: authFadeIn .16s ease both;
+    padding: 20px;
+    animation: authFadeIn .2s ease both;
   }
 
-  /* Cartão: branco, borda 1px, 6px de raio, sem sombra. */
   .authModalCard {
     position: relative;
     width: 100%;
     max-width: 420px;
     max-height: 90vh;
     overflow-y: auto;
-    background: var(--lp-surface);
-    border: 1px solid var(--lp-line);
-    border-radius: 6px;
-    padding: 24px 24px;
-    animation: authCardIn .2s cubic-bezier(0.16,1,0.3,1) both;
+    background: var(--lp-bg);
+    border-radius: 20px;
+    padding: 36px 32px;
+    box-shadow: 0 30px 80px rgba(26,26,46,0.35);
+    animation: authCardIn .32s cubic-bezier(0.16,1,0.3,1) both;
   }
 
   .authModalClose {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 16px;
+    right: 16px;
     width: 32px;
     height: 32px;
-    border-radius: 3px;
-    border: 1px solid var(--lp-line);
-    background: var(--lp-surface);
+    border-radius: 8px;
+    border: none;
+    background: var(--lp-hover);
     color: var(--lp-ink-2);
     display: flex;
     align-items: center;
@@ -1043,16 +1037,17 @@ const AUTH_MODAL_STYLES = `
   }
 
   .authModalClose:hover {
-    background: var(--lp-bg-alt);
+    background: var(--lp-hover-strong);
     color: var(--lp-ink);
   }
 
   .authModalContent {
-    animation: authSlideIn .2s ease both;
+    animation: authSlideIn .25s ease both;
   }
 
   .authModalCard input:focus {
     border-color: var(--lp-brand) !important;
+    box-shadow: 0 0 0 3px rgba(99,130,255,0.2) !important;
     outline: none;
   }
 
@@ -1070,9 +1065,9 @@ const AUTH_MODAL_STYLES = `
       max-width: none;
       width: 100%;
       max-height: 92vh;
-      border-radius: 6px 6px 0 0;
-      padding: 20px 16px;
-      animation: authCardIn .2s ease both;
+      border-radius: 24px 24px 0 0;
+      padding: 30px 22px 28px;
+      animation: authCardIn .28s ease both;
     }
   }
 
