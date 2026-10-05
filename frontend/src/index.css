@@ -5,120 +5,127 @@ body {
   -webkit-font-smoothing: antialiased;
   background: var(--lp-bg);
   color: var(--lp-ink);
-  transition: background 0.25s var(--ease), color 0.25s var(--ease);
 }
 
-/* ─── PALETA GLOBAL ───────────────────────────────────────────────
- *
- * Um único conjunto de nomes para as duas telas (landing e app), com os
- * valores trocados por [data-theme]. Landpage, AuthModal, HistoryPage e
- * GoogleCallback usam styles inline, então a paleta precisa existir como
- * variável: style inline tem precedência sobre folha de estilo, e não dá
- * para sobrepor hex com CSS.
- *
- * A landing é clara por padrão em ambas as opções, só que no escuro a
- * "faixa escura" (hero/rodapé) deixa de ser #1a1a2e e vira uma superfície
- * ainda mais profunda, para não existir um bloco claro solto no meio.
- */
+/* ══════════════════════════════════════════════════════════════════════
+   METAPPS — SISTEMA DE TEMA ÚNICO (CLARO)
 
-:root,
-[data-theme='light'] {
+   O app tem UM ÚNICO tema. Não existe alternância, não existe
+   prefers-color-scheme, não existe atributo data-theme no <html>: o bloco
+   abaixo é a única fonte de verdade e vale para qualquer dispositivo.
+
+   `color-scheme: light` é declarado de propósito — é o que impede o
+   navegador de repintar scrollbars, campos de formulário e o fundo da
+   página no escuro quando o SO está em modo escuro.
+
+   ── Paleta 60 / 30 / 10 ───────────────────────────────────────────────
+     60%  azul      superfícies off-white azuladas, ações primárias,
+                    ícones, navegação, barras de progresso.
+     30%  laranja   energia e hierarquia: sequência, marcos, Destaques,
+                    estados "agora", etiquetas de mapa.
+     10%  verde     sucesso: concluído, gabarito certo, positivo.
+     vermelho fica reservado a erro/destrutivo; ciano e violeta só
+     aparecem como tons categóricos de badges (conquistas,Convites).
+
+   Fundos nunca são #FFFFFF puro: as superfícies grandes ficam em
+   branco-azulado (#EFF4FC / #FBFCFE), o que reduz o cansaço de leitura
+   em sessão longa sem perder o contraste.
+
+   Landpage, AuthModal, HistoryPage e GoogleCallback usam styles inline,
+   então a paleta precisa existir como variável: style inline tem
+   precedência sobre folha de estilo, e não dá para sobrepor hex com CSS.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
   color-scheme: light;
-  --lp-bg:        #f5f4ff;
-  --lp-bg-alt:    #eeeeff;
-  --lp-surface:   #ffffff;
-  --lp-surface-2: #f8f7ff;
-  --lp-navy:      #1a1a2e;
-  --lp-navy-2:    #13152a;
-  --lp-ink:       #1a1a2e;
-  --lp-ink-2:     #6b6b8a;
-  --lp-ink-3:     #8a8aa3;
-  --lp-ink-on-dark: #f5f4ff;
-  --lp-line:      #d0d0e0;
-  --lp-line-soft: #e6e6f2;
-  --lp-brand:     #6382ff;
-  --lp-brand-ink: #ffffff;
-  --lp-brand-soft:#e9eeff;
-  --lp-green:     #3ecf8e;
-  --lp-green-d:   #2aa86f;
-  --lp-green-soft:#e3f9ef;
-  --lp-yellow:    #f5c542;
-  --lp-yellow-d:  #d9a520;
-  --lp-yellow-soft:#fdf5dd;
-  --lp-red:       #f06a6a;
-  --lp-red-d:     #b23a3a;
-  --lp-red-soft:  #fdeaea;
-  --lp-violet:    #9b59f0;
-  --lp-violet-soft:#f1e8fd;
-  --lp-shadow:    0 10px 30px rgba(26, 26, 46, 0.08);
-  --lp-shadow-sm: 0 4px 14px rgba(26, 26, 46, 0.06);
-  --lp-hover:        rgba(26, 26, 46, 0.06);
-  --lp-hover-strong: rgba(26, 26, 46, 0.1);
-  --lp-ring:      rgba(99, 130, 255, 0.28);
-}
 
-[data-theme='dark'] {
-  color-scheme: dark;
-  /* No escuro a lógica de faixas se inverte: a página fica num cinza-azulado
-     e as faixas que eram navy (#1a1a2e) viram um recesso ainda mais escuro,
-     para o ritmo claro/escuro da landing continuar visível. */
-  --lp-bg:        #101120;
-  --lp-bg-alt:    #171930;
-  --lp-surface:   #1a1c2e;
-  --lp-surface-2: #20233a;
-  --lp-navy:      #080911;
-  --lp-navy-2:    #05060c;
-  --lp-ink:       #edeffc;
-  --lp-ink-2:     #a5a9c2;
-  --lp-ink-3:     #7c8099;
-  --lp-ink-on-dark: #edeffc;
-  --lp-line:      #2b2e42;
-  --lp-line-soft: #232636;
-  --lp-brand:     #7d97ff;
-  --lp-brand-ink: #0c0d18;
-  --lp-brand-soft:#1c2440;
-  --lp-green:     #4fd79a;
-  --lp-green-d:   #2aa86f;
-  --lp-green-soft:#122c23;
-  --lp-yellow:    #f7ce5c;
-  --lp-yellow-d:  #d9a520;
-  --lp-yellow-soft:#2e2712;
-  --lp-red:       #ff7b7b;
-  --lp-red-d:     #b23a3a;
-  --lp-red-soft:  #331c1c;
-  --lp-violet:    #b07cf5;
-  --lp-violet-soft:#241a3a;
-  --lp-shadow:    0 10px 30px rgba(0, 0, 0, 0.45);
-  --lp-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
-  --lp-hover:        rgba(255, 255, 255, 0.07);
-  --lp-hover-strong: rgba(255, 255, 255, 0.12);
-  --lp-ring:      rgba(125, 151, 255, 0.35);
-}
+  /* ── superfícies ───────────────────────────────────────────────── */
+  --lp-bg:        #f4f4f1;   /* fundo da página — off-white neutro */
+  --lp-bg-alt:    #ebebe6;
+  --lp-surface:   #fcfcfb;   /* cartões, painéis, campos */
+  --lp-surface-2: #f3f3ef;   /* inset dentro de um cartão */
+  --lp-surface-3: #e7e7e1;   /* trilhos, faixas, estados neutros */
 
-/* Mantém o scrollbar discreto no tema escuro (a barra clara padrão
-   destoa em superfícies escuras). */
-[data-theme='dark'] ::-webkit-scrollbar { width: 10px; height: 10px; }
-[data-theme='dark'] ::-webkit-scrollbar-track { background: transparent; }
-[data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: #2b2e42;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  /* Faixa profunda da landing (hero/rodapé): azul-noite forte. É o azul
+     no máximo da sua intensidade — identidade, não "calmaria". */
+  --lp-deep:      #16255a;
+  --lp-deep-2:    #0e1a44;
+
+  /* ── tinta ─────────────────────────────────────────────────────── */
+  --lp-ink:          #14243f;  /* títulos e corpo — navy, não preto */
+  --lp-ink-2:        #455066;  /* texto secundário */
+  --lp-ink-3:        #5a6274;  /* legendas, timestamps */
+  --lp-ink-on-deep:  #e6edfb;  /* texto sobre as faixas profundas */
+
+  /* ── linhas ────────────────────────────────────────────────────── */
+  --lp-line:      #dededa;
+  --lp-line-soft: #ebebe6;
+  /* Limite de campos e controles: 3:1 contra a superfície (WCAG 1.4.11). */
+  --lp-line-strong: #6e7686;
+
+  /* ── laranja · progresso (cor de ação) ────────────────────────── */
+  --lp-orange:      #e2701a;  /* preenchimentos, gráficos, ilustração */
+  --lp-orange-d:    #a5470a;  /* texto e ícone sobre fundo claro */
+  --lp-orange-soft: #fdefe2;
+
+  /* ── verde · sucesso ───────────────────────────────────────────── */
+  --lp-green:      #159158;
+  --lp-green-d:    #0a6b3e;
+  --lp-green-soft: #e5f5ec;
+
+  /* ── azul · identidade (acento forte, uso raro) ─────────────────── */
+  --lp-brand:      #1b47c4;
+  --lp-brand-d:    #11307f;   /* hover e texto sobre fundo claro */
+  --lp-brand-ink:  #ffffff;
+  --lp-brand-soft: #e9edfa;
+
+  /* ── apoio ────────────────────────────────────────────────────── */
+  --lp-red:      #d33f36;
+  --lp-red-d:    #ab251d;
+  --lp-red-soft: #fcebe9;
+
+  /* Tons categéricos — só para distinguir badges entre si. */
+  --lp-cyan:        #0e8fa8;
+  --lp-cyan-d:      #0a6b7f;
+  --lp-cyan-soft:   #e2f4f8;
+  --lp-violet:      #6151ce;
+  --lp-violet-d:    #4b3da6;
+  --lp-violet-soft: #eeebfb;
+
+  /* ── estados e profundidade ────────────────────────────────────── */
+  --lp-hover:        rgba(22, 41, 79, 0.05);
+  --lp-hover-strong: rgba(22, 41, 79, 0.09);
+  --lp-ring:         rgba(225, 112, 26, 0.26);
+  --lp-shadow-sm:  0 1px 2px rgba(16, 42, 92, 0.05), 0 2px 8px rgba(16, 42, 92, 0.05);
+  --lp-shadow:     0 2px 6px rgba(16, 42, 92, 0.05), 0 12px 28px rgba(16, 42, 92, 0.08);
+  --lp-shadow-lg:  0 8px 24px rgba(16, 42, 92, 0.10), 0 24px 56px rgba(16, 42, 92, 0.14);
 }
-[data-theme='dark'] ::-webkit-scrollbar-thumb:hover { background: #3a3e58; background-clip: content-box; }
 
 :root {
   --r: 8px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Scrollbar discreto e coerente com o tema claro. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #c7d3e6;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #adbcd6; background-clip: content-box; }
+
+::selection { background: var(--lp-brand-soft); color: var(--lp-ink); }
+
 @media (max-width: 768px) { body { overflow: auto; } }
 
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes blobA   { from { transform: translate(0,0) scale(1); } to { transform: translate(52px,44px) scale(1.09); } }
-@keyframes blobB   { from { transform: translate(0,0); } to { transform: translate(-42px,-32px); } }
+@keyframes blobB   { from { transform: translate(0,0); } to { transform: translate(-42px,-32px) scale(1); } }
 @keyframes blobC   { from { transform: translate(0,0) scale(1); } to { transform: translate(-50px,46px) scale(1.08); } }
-@keyframes blobD   { from { transform: translate(0,0); } to { transform: translate(46px,-34px); } }
+@keyframes blobD   { from { transform: translate(0,0) scale(1); } to { transform: translate(46px,-34px) scale(1); } }
 @keyframes lgIn    { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
 @keyframes ftIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fIn     { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

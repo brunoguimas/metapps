@@ -62,7 +62,7 @@ function typeLabel(t) {
   return t || '—'
 }
 
-const typeColor = t => (t === 'essay' ? 'var(--lp-violet)' : 'var(--lp-brand)')
+const typeColor = t => (t === 'essay' ? 'var(--lp-orange-d)' : 'var(--lp-brand)')
 
 // ─── ICONES ──────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ function IconAlert() {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-3px', marginRight: 6, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 8v5" /><path d="M12 16h.01" /></svg>
 }
 function IconSpark() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="#9AB4FF" style={{ verticalAlign: '-2px', marginRight: 6 }}><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8Z" /></svg>
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="#6699e8" style={{ verticalAlign: '-2px', marginRight: 6 }}><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8Z" /></svg>
 }
 function IconCheck({ color = 'var(--lp-green)' }) {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -88,7 +88,7 @@ function IconX({ color = 'var(--lp-red)' }) {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="M6 6l12 12" /></svg>
 }
 function Spinner() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'metaSpin .8s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(99,130,255,0.25)" strokeWidth="3" /> <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--lp-brand)" strokeWidth="3" strokeLinecap="round" /></svg>
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'metaSpin .8s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(42,99,212,0.25)" strokeWidth="3" /> <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--lp-brand)" strokeWidth="3" strokeLinecap="round" /></svg>
 }
 function GlobalStyles() {
   return (
@@ -101,41 +101,41 @@ function GlobalStyles() {
 
 // ─── ESTILOS ─────────────────────────────────────────────────
 
-const page = { minHeight: '100vh', background: 'var(--lp-bg)', color: 'var(--lp-navy)', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased' }
-const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--lp-navy)', position: 'sticky', top: 0, zIndex: 10, borderRadius: '0 0 20px 20px', boxShadow: '0 8px 24px rgba(26,26,46,0.18)' }
-const headerTitle = { fontWeight: 800, color: 'var(--lp-ink-on-dark)', fontSize: 14 }
-const iconNavBtn = { width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)', color: 'var(--lp-ink-on-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }
+const page = { minHeight: '100vh', background: 'var(--lp-bg)', color: 'var(--lp-deep)', fontFamily: "'Inter',-apple-system,sans-serif", WebkitFontSmoothing: 'antialiased' }
+const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--lp-deep)', position: 'sticky', top: 0, zIndex: 10, borderRadius: '0 0 20px 20px', boxShadow: '0 8px 24px rgba(22,41,79,0.18)' }
+const headerTitle = { fontWeight: 800, color: 'var(--lp-ink-on-deep)', fontSize: 14 }
+const iconNavBtn = { width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)', color: 'var(--lp-ink-on-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }
 const box = { maxWidth: 600, margin: '0 auto', padding: '24px 18px 48px', animation: 'metaFadeUp .35s ease' }
-const card = { background: 'var(--lp-surface)', borderRadius: 22, boxShadow: '0 10px 30px rgba(99,130,255,0.1)' }
-const statCard = { background: 'var(--lp-surface)', borderRadius: 16, padding: '14px 6px', textAlign: 'center', boxShadow: '0 6px 16px rgba(99,130,255,0.07)', flex: 1 }
-const statNum = { color: 'var(--lp-navy)', fontSize: 20, fontWeight: 800 }
+const card = { background: 'var(--lp-surface)', borderRadius: 22, boxShadow: '0 10px 30px rgba(42,99,212,0.1)' }
+const statCard = { background: 'var(--lp-surface)', borderRadius: 16, padding: '14px 6px', textAlign: 'center', boxShadow: '0 6px 16px rgba(42,99,212,0.07)', flex: 1 }
+const statNum = { color: 'var(--lp-deep)', fontSize: 20, fontWeight: 800 }
 const statCaption = { color: 'var(--lp-ink-3)', fontSize: 10.5, fontWeight: 700, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.4px' }
-const select = { flex: 1, padding: '11px 12px', borderRadius: 12, border: '1.5px solid rgba(99,130,255,0.2)', background: 'var(--lp-surface)', color: 'var(--lp-navy)', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 0 }
-const attemptCard = { background: 'var(--lp-surface)', border: '1px solid rgba(99,130,255,0.1)', borderRadius: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(99,130,255,0.06)', overflow: 'hidden' }
+const select = { flex: 1, padding: '11px 12px', borderRadius: 12, border: '1.5px solid var(--lp-line-strong)', background: 'var(--lp-surface)', color: 'var(--lp-deep)', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 0 }
+const attemptCard = { background: 'var(--lp-surface)', border: '1px solid rgba(42,99,212,0.1)', borderRadius: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(42,99,212,0.06)', overflow: 'hidden' }
 const attemptHead = { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', width: '100%', border: 'none', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }
-const attemptTitle = { color: 'var(--lp-navy)', fontSize: 13.5, fontWeight: 800, lineHeight: 1.35, wordBreak: 'break-word' }
+const attemptTitle = { color: 'var(--lp-deep)', fontSize: 13.5, fontWeight: 800, lineHeight: 1.35, wordBreak: 'break-word' }
 const metaRow = { display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }
 const badge = { fontSize: 10, fontWeight: 800, letterSpacing: '0.5px', padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase' }
 const dateTxt = { color: 'var(--lp-ink-3)', fontSize: 11.5, fontWeight: 600 }
 const scoreWrap = { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }
 const scoreChip = { minWidth: 54, fontSize: 13, fontWeight: 800, borderRadius: 10, padding: '6px 10px', textAlign: 'center' }
 const chevCol = { display: 'flex', alignItems: 'center', color: 'var(--lp-line)' }
-const detailBox = { padding: '0 16px 16px', borderTop: '1px dashed rgba(99,130,255,0.14)' }
+const detailBox = { padding: '0 16px 16px', borderTop: '1px dashed rgba(42,99,212,0.14)' }
 const detailLabel = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--lp-brand)', paddingTop: 14, marginBottom: 10 }
-const reviewRow = { padding: '11px 13px', borderRadius: 12, marginBottom: 8, border: '1px solid rgba(99,130,255,0.12)' }
-const reviewRowOk = { border: '1px solid rgba(62,207,142,0.25)', background: 'rgba(62,207,142,0.05)' }
-const reviewRowBad = { border: '1px solid rgba(240,106,106,0.25)', background: 'rgba(240,106,106,0.05)' }
+const reviewRow = { padding: '11px 13px', borderRadius: 12, marginBottom: 8, border: '1px solid rgba(42,99,212,0.12)' }
+const reviewRowOk = { border: '1px solid rgba(22,160,94,0.25)', background: 'rgba(22,160,94,0.05)' }
+const reviewRowBad = { border: '1px solid rgba(224,72,63,0.25)', background: 'rgba(224,72,63,0.05)' }
 const reviewHead = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }
 const reviewTitle = { fontWeight: 800, fontSize: 12.5 }
 const reviewMuted = { color: 'var(--lp-ink-3)', fontSize: 12, lineHeight: 1.5, margin: '5px 0 0' }
-const respText = { background: 'var(--lp-bg)', border: '1px solid rgba(99,130,255,0.14)', borderRadius: 12, padding: '12px 14px', color: 'var(--lp-ink-2)', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8 }
-const fbCard = { background: 'linear-gradient(180deg, var(--lp-surface), var(--lp-surface-2))', border: '1px solid rgba(99,130,255,0.16)', borderRadius: 14, padding: 14, marginTop: 10 }
+const respText = { background: 'var(--lp-bg)', border: '1px solid rgba(42,99,212,0.14)', borderRadius: 12, padding: '12px 14px', color: 'var(--lp-ink-2)', fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 8 }
+const fbCard = { background: 'linear-gradient(180deg, var(--lp-surface), var(--lp-surface-2))', border: '1px solid rgba(42,99,212,0.16)', borderRadius: 14, padding: 14, marginTop: 10 }
 const fbEyebrow = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--lp-brand)', marginBottom: 10 }
-const fbText = { color: 'var(--lp-navy)', fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }
-const fbScore = { display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: 'var(--lp-green-d)', background: 'rgba(62,207,142,0.12)', padding: '4px 10px', borderRadius: 99, marginBottom: 10 }
+const fbText = { color: 'var(--lp-deep)', fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }
+const fbScore = { display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: 'var(--lp-green-d)', background: 'rgba(22,160,94,0.12)', padding: '4px 10px', borderRadius: 99, marginBottom: 10 }
 const muted = { color: 'var(--lp-ink-3)', fontSize: 13, lineHeight: 1.6, margin: '4px 0 12px' }
-const errStyle = { display: 'flex', alignItems: 'center', background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: 'var(--lp-red-d)', fontWeight: 600, marginBottom: 12 }
-const btnSm = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', border: 'none', borderRadius: 12, background: 'var(--lp-brand)', color: 'var(--lp-brand-ink)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 16px rgba(99,130,255,0.3)' }
+const errStyle = { display: 'flex', alignItems: 'center', background: 'rgba(224,72,63,0.08)', border: '1px solid rgba(224,72,63,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: 'var(--lp-red-d)', fontWeight: 600, marginBottom: 12 }
+const btnSm = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', border: 'none', borderRadius: 12, background: 'var(--lp-brand)', color: 'var(--lp-brand-ink)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 16px rgba(42,99,212,0.3)' }
 const loadingWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--lp-ink-3)', fontSize: 13, fontWeight: 700, padding: '40px 0' }
 const emptyWrap = { textAlign: 'center', padding: '36px 20px' }
 
@@ -354,7 +354,7 @@ export default function HistoryPage() {
 
         {!hasAttempts && !err ? (
           <div style={{ ...card, ...emptyWrap }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--lp-navy)', marginBottom: 6 }}>Nenhuma tentativa ainda</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--lp-deep)', marginBottom: 6 }}>Nenhuma tentativa ainda</div>
             <p style={muted}>Resolva algumas tarefas no seu roadmap e seus resultados aparecem aqui.</p>
             <button type="button" onClick={() => navigate('/home')} style={btnSm}>Ir para o roadmap</button>
           </div>
@@ -400,8 +400,8 @@ export default function HistoryPage() {
                 const score = typeof a.score === 'number' ? a.score : null
                 const pct = score === null ? null : Math.round(score * 100)
                 const open = expandedId === a.id
-                const scoreColor = score === null ? 'var(--lp-line)' : pct >= 70 ? 'var(--lp-green)' : pct >= 40 ? 'var(--lp-yellow)' : 'var(--lp-red)'
-                const scoreBg = score === null ? 'rgba(99,130,255,0.1)' : 'rgba(255,255,255,1)'
+                const scoreColor = score === null ? 'var(--lp-line)' : pct >= 70 ? 'var(--lp-green)' : pct >= 40 ? 'var(--lp-orange-d)' : 'var(--lp-red)'
+                const scoreBg = score === null ? 'rgba(42,99,212,0.1)' : 'var(--lp-surface)'
 
                 return (
                   <div key={a.id} style={attemptCard}>

@@ -186,8 +186,8 @@ export default function GoogleCallback() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "var(--lp-navy)",
-                color: "var(--lp-ink-on-dark)",
+                background: "var(--lp-bg)",
+                color: "var(--lp-ink-2)",
                 fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 WebkitFontSmoothing: "antialiased"
             }}
@@ -198,14 +198,18 @@ export default function GoogleCallback() {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 14
+                    gap: 14,
+                    padding: "32px 40px",
+                    borderRadius: 24,
+                    background: "var(--lp-surface)",
+                    boxShadow: "0 2px 6px rgba(16,42,92,0.05), 0 12px 28px rgba(16,42,92,0.08)"
                 }}
             >
                 <div
                     style={{
                         width: 32,
                         height: 32,
-                        border: "3px solid rgba(245,244,255,0.18)",
+                        border: "3px solid var(--lp-brand-soft)",
                         borderTopColor: "var(--lp-brand)",
                         borderRadius: "50%",
                         animation: "googleCallbackSpin .7s linear infinite"
@@ -217,7 +221,7 @@ export default function GoogleCallback() {
                         margin: 0,
                         fontSize: 15,
                         fontWeight: 600,
-                        color: "rgba(245,244,255,0.85)"
+                        color: "var(--lp-ink-2)"
                     }}
                 >
                     Entrando...

@@ -125,36 +125,54 @@ func (s *flashcardService) Generate(c context.Context, userID, topicID uuid.UUID
 		Schema:           string(schema),
 	}
 
-	var lastError error
-	for attempt := 0; attempt < 3; attempt++ {
+	// lastErr é o erro devolvido ao cliente; lastResponseErr só alimenta o
+	// prompt de feedback. Um 503 do provedor não é defeito da resposta, então
+	// não adianta pedir para o modelo "corrigir" um erro de rede.
+	var lastErr, lastResponseErr error
+	for attempt := 0; attempt < ai.MaxAttempts; attempt++ {
 		prompt, err := ai.RenderPrompt("generate_cards.txt", data)
 		if err != nil {
 			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't render prompt", err)
 		}
-		if attempt > 0 && lastError != nil {
-			prompt = enhancePromptWithFeedback(prompt, lastError)
+		if attempt > 0 && lastResponseErr != nil {
+			prompt = enhancePromptWithFeedback(prompt, lastResponseErr)
 		}
 
 		raw, err := s.ai.Generate(c, prompt)
 		if err != nil {
-			lastError = err
+			lastErr = err
+
+			if !ai.IsUpstreamUnavailable(err) {
+				continue
+			}
+			if attempt == ai.MaxAttempts-1 {
+				break
+			}
+			if waitErr := ai.Backoff(c, attempt); waitErr != nil {
+				return nil, apperrors.NewAppError(
+					apperrors.ErrUpstreamUnavailable,
+					"ai provider is temporarily unavailable, please try again",
+					err,
+				)
+			}
 			continue
 		}
 
 		cards, err := parseGeneratedCards(raw)
 		if err != nil {
-			lastError = err
+			lastErr, lastResponseErr = err, err
 			continue
 		}
 		if len(cards) == 0 {
-			lastError = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "AI returned no flashcards", nil)
+			lastErr = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "AI returned no flashcards", nil)
+			lastResponseErr = lastErr
 			continue
 		}
 
 		return s.persistGenerated(c, userID, topicID, cards)
 	}
 
-	return nil, lastError
+	return nil, lastErr
 }
 
 func (s *flashcardService) persistGenerated(c context.Context, userID, topicID uuid.UUID, cards []generatedCard) ([]*Flashcard, error) {

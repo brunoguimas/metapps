@@ -9,11 +9,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; color-scheme: light; }
   body {
     font-family: 'Inter', -apple-system, sans-serif;
-    background: #1a1a2e;                /* fundo escuro igual ao landpage */
-    color: #f5f4ff;                     /* texto principal claro */
+    background: #eff4fc;                  /* --lp-bg */
+    color: #16294f;                       /* --lp-ink */
     -webkit-font-smoothing: antialiased;
     line-height: 1.6;
   }
@@ -21,9 +21,9 @@
   /* ── Header ── */
   .header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(26,26,46,0.92);    /* #1a1a2e com transparência */
+    background: rgba(251,252,254,0.90);   /* --lp-surface translúcido */
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(99,130,255,0.1);
+    border-bottom: 1px solid rgba(42,99,212,0.16);
   }
   .nav {
     max-width: 1040px; margin: 0 auto; padding: 0 28px;
@@ -32,47 +32,46 @@
   .nav-logo {
     display: flex; align-items: center; cursor: pointer;
     text-decoration: none;
-  }
-  .nav-logo img {
-    height: 32px; width: auto; opacity: 0.95;
+    font-size: 17px; font-weight: 800; letter-spacing: -0.4px;
+    color: #16294f;
   }
   .nav-links { display: flex; align-items: center; gap: 20px; }
   .nav-links button {
-    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
     cursor: pointer; transition: color .15s;
     background: none; border: none; font-family: inherit; padding: 0;
   }
-  .nav-links button:hover { color: #f5f4ff; }
+  .nav-links button:hover { color: #16294f; }
   .nav-back {
-    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
     cursor: pointer; transition: color .15s;
-    background: none; border: 1px solid rgba(245,244,255,0.15);
+    background: none; border: 1px solid rgba(22,41,79,0.16);
     padding: 6px 14px; border-radius: 6px; font-family: inherit;
     margin-left: 12px;
   }
-  .nav-back:hover { color: #f5f4ff; border-color: rgba(245,244,255,0.3); }
+  .nav-back:hover { color: #16294f; border-color: rgba(22,41,79,0.34); }
 
   /* ── Hero ── */
-  .hero { padding: 44px 0 36px; border-bottom: 1px solid rgba(99,130,255,0.08); }
+  .hero { padding: 44px 0 36px; border-bottom: 1px solid rgba(42,99,212,0.14); }
   .container { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
   .hero h1 {
     font-size: clamp(24px, 4vw, 36px); font-weight: 800;
-    letter-spacing: -0.6px; color: #f5f4ff; line-height: 1.2;
+    letter-spacing: -0.6px; color: #16294f; line-height: 1.2;
     margin-bottom: 10px;
   }
-  .hero p { font-size: 14px; color: rgba(245,244,255,0.55); max-width: 580px; line-height: 1.65; }
+  .hero p { font-size: 14px; color: rgba(22,41,79,0.72); max-width: 580px; line-height: 1.65; }
   .meta { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   .badge {
     display: inline-flex; align-items: center; border-radius: 99px;
     padding: 3px 11px; font-size: 11.5px; font-weight: 600;
   }
   .badge-neutral {
-    background: rgba(245,244,255,0.06); border: 1px solid rgba(245,244,255,0.1);
-    color: rgba(245,244,255,0.5);
+    background: rgba(22,41,79,0.05); border: 1px solid rgba(22,41,79,0.12);
+    color: rgba(22,41,79,0.68);
   }
   .badge-blue {
-    background: rgba(99,130,255,0.12); border: 1px solid rgba(99,130,255,0.25);
-    color: #6382ff;
+    background: rgba(42,99,212,0.10); border: 1px solid rgba(42,99,212,0.30);
+    color: #1f4fb4;
   }
 
   /* ── Layout ── */
@@ -80,37 +79,38 @@
   .sidebar { position: sticky; top: 82px; }
   .toc-label {
     font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; color: rgba(245,244,255,0.35); margin-bottom: 10px;
+    text-transform: uppercase; color: rgba(22,41,79,0.60); margin-bottom: 10px;
   }
   .toc-btn {
     display: block; width: 100%; padding: 8px 12px; border-radius: 6px;
-    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
     text-align: left; background: none; border: none; cursor: pointer;
     transition: background .14s, color .14s; margin-bottom: 2px;
     font-family: 'Inter', -apple-system, sans-serif;
   }
-  .toc-btn:hover { background: rgba(245,244,255,0.04); color: #f5f4ff; }
+  .toc-btn:hover { background: rgba(22,41,79,0.04); color: #16294f; }
   .toc-btn.active {
-    background: rgba(99,130,255,0.08); color: #6382ff; font-weight: 600;
-    border-left: 2px solid #6382ff; padding-left: 10px;
+    background: rgba(42,99,212,0.14); color: #1f4fb4; font-weight: 600;
+    border-left: 2px solid #1f4fb4; padding-left: 10px;
   }
-  .toc-sep { height: 1px; background: rgba(99,130,255,0.08); margin: 10px 0; }
+  .toc-sep { height: 1px; background: rgba(42,99,212,0.14); margin: 10px 0; }
   .back-btn {
     display: flex; align-items: center; gap: 6px;
-    font-size: 13px; font-weight: 500; color: rgba(245,244,255,0.5);
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
     padding: 8px 12px; border-radius: 6px; cursor: pointer;
     transition: background .14s, color .14s;
     background: none; border: none;
     font-family: 'Inter', -apple-system, sans-serif;
     width: 100%; text-align: left;
   }
-  .back-btn:hover { background: rgba(245,244,255,0.04); color: #f5f4ff; }
+  .back-btn:hover { background: rgba(22,41,79,0.04); color: #16294f; }
 
   /* ── Content card ── */
   .content-card {
-    background: #212842;                  /* um pouco mais claro que o fundo para contraste */
-    border: 1px solid rgba(99,130,255,0.08);
-    border-radius: 12px; overflow: hidden;
+    background: #fbfcfe;                  /* --lp-surface: cartão sobre o fundo */
+    border: 1px solid rgba(42,99,212,0.14);
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(16,42,92,0.05), 0 12px 28px rgba(16,42,92,0.08);
   }
   .tab { display: none; padding: 40px 44px; animation: fi .2s ease; }
   .tab.active { display: block; }
@@ -120,50 +120,50 @@
   .sec { margin-bottom: 32px; }
   .sec:last-child { margin-bottom: 0; }
   .sec h2 {
-    font-size: 16px; font-weight: 700; color: #f5f4ff;
+    font-size: 16px; font-weight: 700; color: #16294f;
     margin-bottom: 12px; padding-bottom: 10px;
-    border-bottom: 1px solid rgba(99,130,255,0.06);
+    border-bottom: 1px solid rgba(42,99,212,0.10);
   }
-  .sec p { font-size: 14px; color: rgba(245,244,255,0.65); line-height: 1.7; margin-bottom: 10px; }
+  .sec p { font-size: 14px; color: rgba(22,41,79,0.72); line-height: 1.7; margin-bottom: 10px; }
   .sec p:last-child { margin-bottom: 0; }
-  .sec strong { color: #f5f4ff; font-weight: 600; }
+  .sec strong { color: #16294f; font-weight: 600; }
   .sec ul { margin: 8px 0 12px 18px; }
-  .sec li { font-size: 14px; color: rgba(245,244,255,0.65); line-height: 1.65; margin-bottom: 5px; }
+  .sec li { font-size: 14px; color: rgba(22,41,79,0.72); line-height: 1.65; margin-bottom: 5px; }
 
   /* ── Note box ── */
   .note {
-    background: rgba(99,130,255,0.06);
-    border: 1px solid rgba(99,130,255,0.15);
-    border-left: 3px solid #6382ff;
+    background: rgba(42,99,212,0.10);
+    border: 1px solid rgba(42,99,212,0.24);
+    border-left: 3px solid #1f4fb4;
     border-radius: 0 6px 6px 0;
     padding: 12px 16px; margin: 14px 0;
   }
-  .note p { margin: 0; font-size: 13px; color: rgba(245,244,255,0.55); font-weight: 500; }
+  .note p { margin: 0; font-size: 13px; color: rgba(22,41,79,0.72); font-weight: 500; }
 
   /* ── Contact box ── */
   .contact-box {
-    background: rgba(99,130,255,0.06);
-    border: 1px solid rgba(99,130,255,0.15);
+    background: rgba(42,99,212,0.10);
+    border: 1px solid rgba(42,99,212,0.24);
     border-radius: 8px; padding: 16px 20px; margin-top: 18px;
   }
-  .contact-box p { font-size: 14px; color: rgba(245,244,255,0.65); margin-bottom: 6px; }
-  .contact-box a { color: #6382ff; font-weight: 600; text-decoration: none; }
+  .contact-box p { font-size: 14px; color: rgba(22,41,79,0.72); margin-bottom: 6px; }
+  .contact-box a { color: #1f4fb4; font-weight: 600; text-decoration: none; }
   .contact-box a:hover { text-decoration: underline; }
 
-  hr { border: none; height: 1px; background: rgba(99,130,255,0.08); margin: 28px 0; }
-  .foot-note { font-size: 12px; color: rgba(245,244,255,0.25); text-align: center; }
+  hr { border: none; height: 1px; background: rgba(42,99,212,0.14); margin: 28px 0; }
+  .foot-note { font-size: 12px; color: rgba(22,41,79,0.58); text-align: center; }
 
   /* ── Footer ── */
-  .page-footer { border-top: 1px solid rgba(99,130,255,0.08); padding: 24px 0; background: #1a1a2e; }
-  .footer-inner { text-align: center; font-size: 13px; color: rgba(245,244,255,0.25); }
+  .page-footer { border-top: 1px solid rgba(42,99,212,0.14); padding: 24px 0; background: #eff4fc; }
+  .footer-inner { text-align: center; font-size: 13px; color: rgba(22,41,79,0.58); }
   .footer-inner button {
-    color: rgba(245,244,255,0.5); background: none; border: none;
+    color: rgba(22,41,79,0.68); background: none; border: none;
     font-family: inherit; font-size: 13px; font-weight: 500;
     cursor: pointer; padding: 0; transition: color .14s;
   }
-  .footer-inner button:hover { color: #6382ff; }
-  .footer-inner a { color: rgba(245,244,255,0.5); text-decoration: none; font-weight: 500; }
-  .footer-inner a:hover { color: #6382ff; }
+  .footer-inner button:hover { color: #1f4fb4; }
+  .footer-inner a { color: rgba(22,41,79,0.68); text-decoration: none; font-weight: 500; }
+  .footer-inner a:hover { color: #1f4fb4; }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
@@ -173,7 +173,7 @@
     .sidebar { position: static; }
     .toc-btns { display: flex; gap: 6px; }
     .toc-btn { white-space: nowrap; font-size: 12px; padding: 6px 10px; }
-    .toc-btn.active { border-left: none; border-bottom: 2px solid #6382ff; padding-left: 10px; padding-bottom: 4px; }
+    .toc-btn.active { border-left: none; border-bottom: 2px solid #1f4fb4; padding-left: 10px; padding-bottom: 4px; }
     .tab { padding: 28px 24px; }
     .hero { padding: 32px 0 28px; }
     .nav-links button:not(.nav-back) { display: none; }
@@ -189,7 +189,8 @@
 <header class="header">
   <nav class="nav container">
     <a class="nav-logo" onclick="goBack()" title="Voltar ao Metapps">
-      <img src="assets/icon.svg" alt="Metapps" onerror="this.style.display='none'">
+      <!-- O logo em imagem não existe em /public; a marca é o nome, como no app. -->
+      <span>Metapps</span>
     </a>
     <div class="nav-links">
       <button onclick="switchTab('termos')">Termos</button>
@@ -277,8 +278,8 @@
             <p style="margin-top:8px;font-weight:600">
               <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
             </p>
-            <p style="font-size:13px;color:rgba(245,244,255,0.35);margin-top:4px">
-              Telefone: <strong style="color:#f5f4ff;">19 98119 1739</strong>
+            <p style="font-size:13px;color:rgba(22,41,79,0.60);margin-top:4px">
+              Telefone: <strong style="color:#16294f;">19 98119 1739</strong>
             </p>
           </div>
         </div>
@@ -328,8 +329,8 @@
             <p style="margin-top:8px;font-weight:600">
               <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
             </p>
-            <p style="font-size:13px;color:rgba(245,244,255,0.35);margin-top:4px">
-              Telefone: <strong style="color:#f5f4ff;">19 98119 1739</strong>
+            <p style="font-size:13px;color:rgba(22,41,79,0.60);margin-top:4px">
+              Telefone: <strong style="color:#16294f;">19 98119 1739</strong>
             </p>
           </div>
         </div>
@@ -367,7 +368,7 @@
       }
       if (e.data.type === 'close' && e.data.target === MY_ID) {
         window.close()
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f5f4ff;background:#1a1a2e;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(245,244,255,0.5)">Esta página já está aberta em outra aba.</p></div></div>'
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#16294f;background:#eff4fc;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(22,41,79,0.68)">Esta página já está aberta em outra aba.</p></div></div>'
       }
     }
     bc.postMessage({ type: 'open', id: MY_ID })
@@ -376,7 +377,7 @@
     const KEY = 'metapps_termos_open'
     const existing = localStorage.getItem(KEY)
     if (existing && existing !== MY_ID) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#f5f4ff;background:#1a1a2e;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(245,244,255,0.5)">Esta página já está aberta em outra aba.</p></div></div>'
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#16294f;background:#eff4fc;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(22,41,79,0.68)">Esta página já está aberta em outra aba.</p></div></div>'
     } else {
       localStorage.setItem(KEY, MY_ID)
       window.addEventListener('beforeunload', () => {

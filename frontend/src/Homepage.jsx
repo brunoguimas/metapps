@@ -25,8 +25,7 @@ import {
   setSessionExpiredHandler,
 } from './api'
 import conquistaIcon from './assets/conquista.svg'
-import logoImg from './assets/logo.svg'
-import { useTheme } from './theme'
+import trilhaIcon from './assets/pixel.png'
 import { avatarUrl, initials } from './lib/avatar'
 import {
   activityByDay,
@@ -61,6 +60,26 @@ const TRACK_VIEWS = ['roadmap', 'phase', 'task', 'result']
 // ─── HELPERS ─────────────────────────────────────────────────────
 
 const sa = v => (Array.isArray(v) ? v : [])
+
+// O Gemini entra em alta demanda com frequência. Quando isso acontece o
+// backend responde 503 / UPSTREAM_UNAVAILABLE, que significa "tente de
+// novo" — não "algo quebrou".
+//
+// O backend também mascara 5xx internos com a string literal
+// "internal server error" (ver httpx.shouldSanitize). Se ela chegar até
+// aqui, traduzimos em vez de exibir inglês no meio de uma tela toda em
+// português.
+function msgDeErro(e) {
+  if (e?.status === 503 || e?.code === 'UPSTREAM_UNAVAILABLE') {
+    return 'A IA está sobrecarregada agora. Aguarde alguns segundos e tente novamente.'
+  }
+
+  const msg = e?.message
+  if (!msg || /^internal server error$/i.test(msg)) {
+    return 'Algo quebrou ao gerar. Tente novamente em instantes.'
+  }
+  return msg
+}
 
 const XP_STEP = 100
 const xpInLevel = xp => (xp || 0) % XP_STEP
@@ -150,7 +169,6 @@ function byRecency(goals) {
 
 export default function Homepage() {
   const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
 
   const [email, setEmail] = useState('')
   const [profile, setProfile] = useState(null)
@@ -385,7 +403,7 @@ export default function Homepage() {
       setView('roadmap')
       setInput('')
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -416,7 +434,7 @@ export default function Homepage() {
       setSelPhase(null)
       setView('roadmap')
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -437,7 +455,7 @@ export default function Homepage() {
       setCorrection(null)
       setView('task')
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -514,7 +532,7 @@ export default function Homepage() {
         setSummary(await getProgressSummary())
       } catch { /* ignore */ }
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -604,7 +622,7 @@ export default function Homepage() {
       setEditingGoal(null)
       setEditInput('')
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -628,7 +646,7 @@ export default function Homepage() {
       }
       setDeletingGoal(null)
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -653,7 +671,7 @@ export default function Homepage() {
       const data = await uploadAvatar(file)
       if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
     } catch (e) {
-      setErr(e.message)
+      setErr(msgDeErro(e))
     } finally {
       setLoading(false)
     }
@@ -695,8 +713,6 @@ export default function Homepage() {
       username={username}
       email={email}
       onLogout={handleLogout}
-      theme={theme}
-      onToggleTheme={toggleTheme}
       onOpenSettings={() => { setLastTab(view); setErr(''); setView('settings') }}
       onOpenBell={handleOpenBell}
       notifOpen={notifOpen}
@@ -707,10 +723,7 @@ export default function Homepage() {
         <HomeView
           attempts={attempts}
           insights={insights}
-          onGoSocial={() => handleNav('social')}
           onGoRoadmap={() => handleNav('roadmap')}
-          onGoAchievements={() => handleNav('achievements')}
-          onGoProfile={() => handleNav('profile')}
         />
       )}
 
@@ -834,8 +847,6 @@ export default function Homepage() {
           onSocial={() => { setLastTab('settings'); setView('social') }}
           onHistory={() => navigate('/history')}
           onLogout={handleLogout}
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onClearLocal={() => {
             resetAchievementDates()
             setNotifications(persistNotifications(markAllRead([])))
@@ -897,7 +908,7 @@ export default function Homepage() {
 
 // ─── VIEWS ────────────────────────────────────────────────────────
 
-function HomeView({ insights, attempts, onGoSocial, onGoRoadmap, onGoAchievements, onGoProfile }) {
+function HomeView({ insights, attempts, onGoRoadmap }) {
   const recent = sa(attempts).slice(0, 5)
   const activeToday = !!insights.counts[todayKey()]
 
@@ -926,27 +937,8 @@ function HomeView({ insights, attempts, onGoSocial, onGoRoadmap, onGoAchievement
           )}
         </section>
 
-        {/* ── atalhos ── */}
-        <section className="mp-shortcuts">
-          <button type="button" onClick={onGoRoadmap} className="mp-shortcut">
-            <span className="mp-shortcut__i" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}><IconPath /></span>
-            <span className="mp-shortcut__t">Abrir trilha</span>
-          </button>
-          <button type="button" onClick={onGoSocial} className="mp-shortcut">
-            <span className="mp-shortcut__i" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
-            <span className="mp-shortcut__t">Ver amigos</span>
-          </button>
-          <button type="button" onClick={onGoAchievements} className="mp-shortcut">
-            <span className="mp-shortcut__i" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
-              <img src={conquistaIcon} alt="" draggable={false} />
-            </span>
-            <span className="mp-shortcut__t">Conquistas</span>
-          </button>
-          <button type="button" onClick={onGoProfile} className="mp-shortcut">
-            <span className="mp-shortcut__i" style={{ background: 'var(--violet-soft)', color: 'var(--violet-d)' }}><IconUser /></span>
-            <span className="mp-shortcut__t">Meu perfil</span>
-          </button>
-        </section>
+        {/* Os atalhos saíram daqui: Início é sequência + histórico, e o
+           resto (Trilha, Social, Conquistas, Perfil) já vive no rail. */}
 
         {!activeToday && insights.days > 0 && (
           <Alert tone="info" style={{ marginTop: 0 }}>
@@ -1153,7 +1145,7 @@ function RecentTracksView({ goals, loading, err, input, setInput, onSend, onOpen
       <div className="mp-home">
         <section className="mp-trackbar">
           <div className="mp-trackbar__head">
-            <span className="mp-trackbar__back"><IconPath /></span>
+            <span className="mp-trackbar__back"><img className="mp-trackbar__ico" src={trilhaIcon} alt="" draggable={false} /></span>
             <div style={{ minWidth: 0 }}>
               <div className="mp-trackbar__t">Minhas trilhas</div>
               <div className="mp-trackbar__s">Descreva o que quer aprender</div>
@@ -1252,7 +1244,7 @@ function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathR
               trilha. */}
           <div className="mp-trackbar">
             <div className="mp-trackbar__head">
-              <span className="mp-trackbar__back"><IconPath /></span>
+              <span className="mp-trackbar__back"><img className="mp-trackbar__ico" src={trilhaIcon} alt="" draggable={false} /></span>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="mp-trackbar__t">{curGoal?.title || 'Sua trilha'}</div>
                 <div className="mp-trackbar__s">Progresso da trilha</div>
@@ -1526,7 +1518,7 @@ function ResultView({ result, task, taskNode, correction, onRetry, onNext }) {
   const attempt = result.task_attempt || result
   const score = typeof attempt.score === 'number' ? attempt.score : 0
   const pct = Math.round(score * 100)
-  const tone = score >= 0.7 ? 'var(--green)' : score >= 0.4 ? 'var(--amber)' : 'var(--red)'
+  const tone = score >= 0.7 ? 'var(--green-d)' : score >= 0.4 ? 'var(--amber-d)' : 'var(--red-d)'
   let ev = null
   try { ev = typeof attempt.task_evaluation === 'string' ? JSON.parse(attempt.task_evaluation) : attempt.task_evaluation } catch { /* ignore */ }
   const content = task?.content || {}
@@ -1657,10 +1649,10 @@ function ProfileView({ profile, username, email, friends, insights, loading, err
 
         {/* números que o usuário pediu: nível, amigos, conquistas, streak */}
         <section className="mp-stats">
-          <StatCard tone="blue" ico={<IconBolt />} v={insights.level} l="Nível" />
-          <StatCard tone="red" ico={<IconFlame />} v={insights.streak} l="Dias seguidos" />
-          <StatCard tone="cyan" ico={<IconUsers />} v={friends.length} l="Amigos" />
-          <StatCard tone="amber" ico={<IconTrophy />} v={insights.unlocked} l="Conquistas" />
+          <StatCard tone="amber" ico={<IconBolt />} v={insights.level} l="Nível" />
+          <StatCard tone="amber" ico={<IconFlame />} v={insights.streak} l="Dias seguidos" />
+          <StatCard tone="blue" ico={<IconUsers />} v={friends.length} l="Amigos" />
+          <StatCard tone="green" ico={<IconTrophy />} v={insights.unlocked} l="Conquistas" />
         </section>
 
         <section className="mp-card mp-card--pad">
@@ -1675,7 +1667,7 @@ function ProfileView({ profile, username, email, friends, insights, loading, err
 
         <div className="mp-aside">
           <button type="button" onClick={onGoSocial} className="mp-row mp-row--card">
-            <span className="mp-row__ico" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
+            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue-d)' }}><IconUsers /></span>
             <span className="mp-row__b">
               <span className="mp-row__t">Meus amigos</span>
               <span className="mp-row__s">{friends.length ? `${friends.length} na sua lista` : 'Adicione alguém pelo e-mail ou @usuário'}</span>
@@ -1831,7 +1823,7 @@ function AchievementsView({ achievements, unlocked }) {
     <div className="mp-canvas">
       <div className="mp-ach">
         <section className="mp-heroach">
-          <Ring big value={pct} tone="var(--amber)" />
+          <Ring big value={pct} tone="var(--amber-d)" />
           <div style={{ minWidth: 0 }}>
             <div className="mp-heroach__t">Conquistas</div>
             <div className="mp-heroach__s">{unlocked} de {total} desbloqueadas</div>
@@ -1886,7 +1878,7 @@ function AchievementsView({ achievements, unlocked }) {
   )
 }
 
-function SettingsView({ profile, username, email, insights, onProfile, onAchievements, onSocial, onHistory, onLogout, theme, onToggleTheme, onClearLocal }) {
+function SettingsView({ profile, username, email, insights, onProfile, onAchievements, onSocial, onHistory, onLogout, onClearLocal }) {
   const avatar = avatarUrl(profile?.avatar_url)
 
   return (
@@ -1925,7 +1917,7 @@ function SettingsView({ profile, username, email, insights, onProfile, onAchieve
             <IconChevron />
           </button>
           <button type="button" onClick={onSocial} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--cyan-soft)', color: 'var(--cyan-d)' }}><IconUsers /></span>
+            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue-d)' }}><IconUsers /></span>
             <span className="mp-row__b">
               <span className="mp-row__t">Meus amigos</span>
               <span className="mp-row__s">{insights.friends} na sua lista</span>
@@ -1939,28 +1931,6 @@ function SettingsView({ profile, username, email, insights, onProfile, onAchieve
               <span className="mp-row__s">Todas as suas atividades</span>
             </span>
             <IconChevron />
-          </button>
-        </section>
-
-        <section className="mp-settinggroup">
-          <div className="mp-h">Aparência</div>
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            className="mp-row"
-            role="switch"
-            aria-checked={theme === 'dark'}
-          >
-            <span className="mp-row__ico" style={{ background: 'var(--violet-soft)', color: 'var(--violet-d)' }}>
-              {theme === 'dark' ? <IconMoon /> : <IconSun />}
-            </span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Tema escuro</span>
-              <span className="mp-row__s">{theme === 'dark' ? 'Ligado' : 'Desligado'}</span>
-            </span>
-            <span className={`mp-switch ${theme === 'dark' ? 'is-on' : ''}`} aria-hidden>
-              <span className="mp-switch__dot" />
-            </span>
           </button>
         </section>
 
@@ -2067,8 +2037,10 @@ function Modal({ children, onClose }) {
   )
 }
 
-// tone="info" usa âmbar em vez de vermelho: erro é vermelho, lembrete
-// amigável ("você ainda não estudou hoje") não é.
+// tone="info" é o azul de identidade, não o âmbar de progresso: erro é
+// vermelho, e lembrete amigável ("você ainda não estudou hoje") é
+// informação — não é progresso, então não fala a língua do botão
+// principal.
 function Alert({ children, style, tone = 'error' }) {
   return (
     <div className={`mp-alert ${tone === 'info' ? 'mp-alert--info' : ''}`} style={style}>
@@ -2122,8 +2094,6 @@ function AppShell({
   username,
   email,
   onLogout,
-  theme,
-  onToggleTheme,
   onOpenSettings,
   onOpenBell,
   notifOpen,
@@ -2140,7 +2110,8 @@ function AppShell({
         {showTopbar && (
           <header className="mp-top">
             <button type="button" onClick={onBack} className="mp-top__logo" aria-label="Início">
-              <span className="mp-mark mp-mark--sm"></span>
+              <span className="mp-mark mp-mark--sm" />
+              <span className="mp-top__brand">Metapps</span>
             </button>
 
             <div className="mp-top__actions">
@@ -2202,9 +2173,6 @@ function AppShell({
               <span className="mp-user__e">{email}</span>
             </span>
           </div>
-          <button type="button" onClick={onToggleTheme} className="mp-signout" role="switch" aria-checked={theme === 'dark'}>
-            {theme === 'dark' ? <IconSun /> : <IconMoon />} {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-          </button>
           <button type="button" onClick={onLogout} className="mp-signout">
             <IconLogout /> Sair da conta
           </button>
@@ -2261,7 +2229,11 @@ function NavButton({ item, active, onNavigate }) {
       aria-label={item.label}
       aria-current={active ? 'page' : undefined}
     >
-      <span className="mp-nav__ico"><item.Icon /></span>
+      <span className="mp-nav__ico">
+        {item.primary
+          ? <img className="mp-nav__img" src={trilhaIcon} alt="" draggable={false} />
+          : <item.Icon />}
+      </span>
       <span className="mp-nav__label">{item.label}</span>
     </button>
   )
@@ -2391,14 +2363,6 @@ function IconLogout() {
 
 function IconHistory() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v5h5" /><path d="M12 7.5V12l3 2" /></svg>
-}
-
-function IconSun() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M5.8 5.8 4.2 4.2M19.8 19.8l-1.6-1.6M18.2 5.8l1.6-1.6M4.2 19.8l1.6-1.6" /></svg>
-}
-
-function IconMoon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z" /></svg>
 }
 
 function IconFlag() {

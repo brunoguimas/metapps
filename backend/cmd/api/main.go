@@ -189,6 +189,16 @@ func main() {
 	platformlogger.LogSystemInfo("configuration loaded", "port", cfg.Port, "frontend_origin", cfg.FrontendOrigin)
 
 	conn := database.Connect(cfg)
+
+	// Aplica as migrations pendentes antes de montar qualquer módulo.
+	// Sem isso, uma migration nova (ex.: a de `friendships`) só entra no
+	// banco quando alguém roda `make migrate_up` na mão — e o sintoma é um
+	// 500 genérico no endpoint que dependeu da tabela nova.
+	if err := database.RunMigrations(conn); err != nil {
+		platformlogger.LogSystemError("couldn't apply migrations", err)
+		os.Exit(1)
+	}
+
 	queries := db.New(conn)
 	platformlogger.LogSystemInfo("database connection initialized")
 

@@ -3,6 +3,8 @@ package apperrors
 import (
 	"errors"
 	"net/http"
+
+	"github.com/lib/pq"
 )
 
 type Code string
@@ -30,6 +32,7 @@ const (
 	ErrInvalidAnswerIndex        Code = "INVALID_ANSWER_INDEX"
 	ErrUnknownTaskType           Code = "UNKNOWN_TASK_TYPE"
 	ErrInvalidAIResponse         Code = "INVALID_AI_RESPONSE"
+	ErrUpstreamUnavailable       Code = "UPSTREAM_UNAVAILABLE"
 	ErrTaskCorrectionNotFound    Code = "TASK_CORRECTION_NOT_FOUND"
 	ErrFlashcardNotFound         Code = "FLASHCARD_NOT_FOUND"
 	ErrFlashcardDuplicate        Code = "FLASHCARD_DUPLICATE"
@@ -43,6 +46,7 @@ const (
 	ErrNotClassroomMember        Code = "NOT_CLASSROOM_MEMBER"
 	ErrAlreadyFriend             Code = "ALREADY_FRIEND"
 	ErrNotFriend                 Code = "NOT_FRIEND"
+	ErrSchemaOutOfSync           Code = "SCHEMA_OUT_OF_SYNC"
 )
 
 type appError struct {
@@ -60,12 +64,42 @@ type AppError interface {
 }
 
 func NewAppError(code Code, message string, err error) error {
+	// Tabela/coluna que não existe é sempre migration faltando, não bug de
+	// lógica. Promover a ErrInternal genérica para um código próprio evita o
+	// 500 "internal server error" sem pista que esse erro produzia.
+	if code == ErrInternal && isMissingSchema(err) {
+		return appError{
+			status:  StatusFromCode(ErrSchemaOutOfSync),
+			code:    ErrSchemaOutOfSync,
+			message: "database schema is out of sync with the code: a migration is missing",
+			err:     err,
+		}
+	}
+
 	return appError{
 		status:  StatusFromCode(code),
 		code:    code,
 		message: message,
 		err:     err,
 	}
+}
+
+// isMissingSchema detecta os códigos SQLSTATE do Postgres que significam
+// "esse objeto não está no banco".
+func isMissingSchema(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+
+	switch pqErr.Code {
+	case "42P01", // undefined_table
+		"42703", // undefined_column
+		"3F000", // invalid_schema_name
+		"42P07": // duplicate_table (migration partially applied)
+		return true
+	}
+	return false
 }
 func (e appError) Error() string {
 	return e.message
@@ -95,6 +129,8 @@ func As(err error) (AppError, bool) {
 func StatusFromCode(code Code) int {
 	switch code {
 	case ErrInternal:
+		return http.StatusInternalServerError
+	case ErrSchemaOutOfSync:
 		return http.StatusInternalServerError
 	case ErrInvalidInput:
 		return http.StatusBadRequest
@@ -136,6 +172,10 @@ func StatusFromCode(code Code) int {
 		return http.StatusInternalServerError
 	case ErrInvalidAIResponse:
 		return http.StatusInternalServerError
+	case ErrUpstreamUnavailable:
+		// O Gemini está sob carga ou fora do ar. Não é culpa da requisição:
+		// 503 diz ao cliente que repetir pode funcionar, diferente do 500.
+		return http.StatusServiceUnavailable
 	case ErrTaskCorrectionNotFound:
 		return http.StatusNotFound
 	case ErrFlashcardNotFound:

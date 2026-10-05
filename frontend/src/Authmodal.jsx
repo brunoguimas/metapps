@@ -255,7 +255,7 @@ function PwField({ value, onChange, placeholder, autoComplete, invalid }) {
         onChange={onChange}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        style={{ ...inp, paddingLeft: 42, paddingRight: 44, borderColor: invalid ? 'var(--lp-red)' : 'var(--lp-line)' }}
+        style={{ ...inp, paddingLeft: 42, paddingRight: 44, borderColor: invalid ? 'var(--lp-red-d)' : 'var(--lp-line-strong)' }}
       />
       <button type="button" onClick={() => setShow((v) => !v)} style={eyeBtn} aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}>
         {show ? <EyeHide /> : <EyeShow />}
@@ -267,7 +267,7 @@ function PwField({ value, onChange, placeholder, autoComplete, invalid }) {
 function Match({ pw, cpw }) {
   if (!cpw.length) return <div style={{ height: 12 }} />
   return (
-    <div style={{ fontSize: 11, marginTop: 5, color: pw === cpw ? 'var(--lp-green)' : 'var(--lp-red)' }}>
+    <div style={{ fontSize: 11, marginTop: 5, color: pw === cpw ? 'var(--lp-green-d)' : 'var(--lp-red-d)' }}>
       {pw === cpw ? 'Senhas conferem' : 'Senhas não conferem'}
     </div>
   )
@@ -358,7 +358,7 @@ function VerifyPane({ email, onSuccess }) {
 
   return (
     <div style={{ animation: 'authSlideIn .4s cubic-bezier(0.16,1,0.3,1) both', textAlign: 'center' }}>
-      <div style={{ width: 52, height: 52, margin: '0 auto 18px', background: 'rgba(99,130,255,0.1)', border: '1px solid rgba(99,130,255,0.3)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 52, height: 52, margin: '0 auto 18px', background: 'rgba(42,99,212,0.1)', border: '1px solid rgba(42,99,212,0.3)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width="22" height="22" fill="none" stroke="var(--lp-brand)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <rect x="2" y="4" width="20" height="16" rx="2" />
           <path d="M2 4l10 9 10-9" />
@@ -386,11 +386,11 @@ function VerifyPane({ email, onSuccess }) {
             style={{
               width: 44, height: 54, textAlign: 'center', fontSize: 24, fontWeight: 800,
               background: 'var(--lp-surface)',
-              border: `2px solid ${err ? 'var(--lp-red)' : digit ? 'var(--lp-brand)' : 'var(--lp-line)'}`,
+              border: `2px solid ${err ? 'var(--lp-red-d)' : digit ? 'var(--lp-brand)' : 'var(--lp-line-strong)'}`,
               borderRadius: 12, color: 'var(--lp-ink)',
               fontFamily: "'Inter',-apple-system,sans-serif", outline: 'none',
               transition: 'border-color .15s, box-shadow .15s',
-              boxShadow: digit ? '0 0 0 3px rgba(99,130,255,0.2)' : 'none',
+              boxShadow: digit ? '0 0 0 3px rgba(42,99,212,0.2)' : 'none',
               caretColor: 'transparent',
             }}
           />
@@ -415,7 +415,7 @@ function VerifyPane({ email, onSuccess }) {
         </span>
       </p>
 
-      {sent && <p style={{ fontSize: 12, color: 'var(--lp-green)', marginTop: 8 }}>Código reenviado!</p>}
+      {sent && <p style={{ fontSize: 12, color: 'var(--lp-green-d)', marginTop: 8 }}>Código reenviado!</p>}
     </div>
   )
 }
@@ -681,7 +681,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
 
         {lErr && (
           <div style={{ ...errBox, display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--lp-red)', marginTop: 1 }}><IconAlert /></span>
+            <span style={{ color: 'var(--lp-red-d)', marginTop: 1 }}><IconAlert /></span>
             <span>{lErr}</span>
           </div>
         )}
@@ -728,7 +728,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
               value={uname}
               onChange={(e) => { setUname(e.target.value); clearFieldError('username') }}
               aria-invalid={!!fieldErr.username}
-              style={{ ...inp, paddingLeft: 42, borderColor: fieldErr.username ? 'var(--lp-red)' : 'var(--lp-line)' }}
+              style={{ ...inp, paddingLeft: 42, borderColor: fieldErr.username ? 'var(--lp-red-d)' : 'var(--lp-line-strong)' }}
             />
           </div>
           {fieldErr.username && <div style={fieldErrTxt}>{fieldErr.username}</div>}
@@ -745,7 +745,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
               value={email}
               onChange={(e) => { setEmail(e.target.value); clearFieldError('email') }}
               aria-invalid={!!fieldErr.email}
-              style={{ ...inp, paddingLeft: 42, borderColor: fieldErr.email ? 'var(--lp-red)' : 'var(--lp-line)' }}
+              style={{ ...inp, paddingLeft: 42, borderColor: fieldErr.email ? 'var(--lp-red-d)' : 'var(--lp-line-strong)' }}
             />
           </div>
           {fieldErr.email && <div style={fieldErrTxt}>{fieldErr.email}</div>}
@@ -903,7 +903,7 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
       )}
 
       {fpMessage && !fpErr && (
-        <p style={{ marginTop: 14, fontSize: 13, color: 'var(--lp-green)', lineHeight: 1.5 }}>{fpMessage}</p>
+        <p style={{ marginTop: 14, fontSize: 13, color: 'var(--lp-green-d)', lineHeight: 1.5 }}>{fpMessage}</p>
       )}
     </>
   )
@@ -936,24 +936,24 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
 function Divider() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '18px 0' }}>
-      <span style={{ flex: 1, height: 1, background: 'rgba(26,26,46,0.12)' }} />
-      <span style={{ fontSize: 12, color: 'rgba(26,26,46,0.35)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ou</span>
-      <span style={{ flex: 1, height: 1, background: 'rgba(26,26,46,0.12)' }} />
+      <span style={{ flex: 1, height: 1, background: 'rgba(22,41,79,0.12)' }} />
+      <span style={{ fontSize: 12, color: 'rgba(22,41,79,0.58)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ou</span>
+      <span style={{ flex: 1, height: 1, background: 'rgba(22,41,79,0.12)' }} />
     </div>
   )
 }
 
 // ─── ESTILOS ────────────────────────────────────────────────────────────────
 
-const iconSlot = { position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(26,26,46,0.35)', display: 'flex', pointerEvents: 'none' }
+const iconSlot = { position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(22,41,79,0.58)', display: 'flex', pointerEvents: 'none' }
 
 const inp = {
-  width: '100%', background: 'var(--lp-surface)', border: '1.5px solid var(--lp-line)', borderRadius: 10, color: 'var(--lp-ink)',
+  width: '100%', background: 'var(--lp-surface)', border: '1.5px solid var(--lp-line-strong)', borderRadius: 10, color: 'var(--lp-ink)',
   fontFamily: "'Inter',-apple-system,sans-serif", fontSize: 14, padding: '12px 14px', outline: 'none',
   transition: 'border-color .2s, box-shadow .2s', WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box',
 }
 
-const eyeBtn = { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', borderRadius: 6, color: 'rgba(26,26,46,0.35)' }
+const eyeBtn = { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', borderRadius: 6, color: 'rgba(22,41,79,0.58)' }
 
 const title = { fontSize: 26, fontWeight: 900, color: 'var(--lp-ink)', letterSpacing: '-0.5px', lineHeight: 1.2, marginBottom: 6 }
 const sub = { fontSize: 14, color: 'var(--lp-ink-2)', lineHeight: 1.5, marginBottom: 20 }
@@ -962,18 +962,19 @@ const lbl = { display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--l
 const fieldErrTxt = { fontSize: 11.5, color: 'var(--lp-red-d)', marginTop: 5, lineHeight: 1.4 }
 
 const errBox = {
-  background: 'rgba(240,106,106,0.08)', border: '1px solid rgba(240,106,106,0.2)', borderRadius: 8,
+  background: 'rgba(224,72,63,0.08)', border: '1px solid rgba(224,72,63,0.2)', borderRadius: 8,
   padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--lp-red-d)', lineHeight: 1.45, marginBottom: 13,
 }
 
 const btnPrimary = {
   width: '100%', padding: '13px', border: 'none', borderRadius: 10, fontFamily: "'Inter',-apple-system,sans-serif",
   fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  gap: 8, background: 'var(--lp-brand)', color: 'var(--lp-brand-ink)', transition: 'all .2s',
+  /* Entrar/criar conta é avançar no app: laranja, como todo CTA primário. */
+  gap: 8, background: 'var(--lp-orange-d)', color: '#ffffff', transition: 'all .2s',
 }
 
 const btnGoogle = {
-  width: '100%', padding: '13px', borderRadius: 10, border: '1.5px solid var(--lp-line)', background: 'var(--lp-surface)',
+  width: '100%', padding: '13px', borderRadius: 10, border: '1.5px solid var(--lp-line-strong)', background: 'var(--lp-surface)',
   fontFamily: "'Inter',-apple-system,sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--lp-ink)', cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background .2s',
 }
@@ -997,7 +998,7 @@ const AUTH_MODAL_STYLES = `
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background: rgba(26,26,46,0.55);
+    background: rgba(22,41,79,0.55);
     backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
@@ -1015,7 +1016,7 @@ const AUTH_MODAL_STYLES = `
     background: var(--lp-bg);
     border-radius: 20px;
     padding: 36px 32px;
-    box-shadow: 0 30px 80px rgba(26,26,46,0.35);
+    box-shadow: 0 30px 80px rgba(31,79,180,0.16);
     animation: authCardIn .32s cubic-bezier(0.16,1,0.3,1) both;
   }
 
@@ -1047,7 +1048,7 @@ const AUTH_MODAL_STYLES = `
 
   .authModalCard input:focus {
     border-color: var(--lp-brand) !important;
-    box-shadow: 0 0 0 3px rgba(99,130,255,0.2) !important;
+    box-shadow: 0 0 0 3px rgba(42,99,212,0.2) !important;
     outline: none;
   }
 

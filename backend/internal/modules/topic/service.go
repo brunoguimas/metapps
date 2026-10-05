@@ -63,28 +63,51 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 		RoadmapSchema: string(b),
 	}
 
-	var lastError error
-	for attempt := 0; attempt < 3; attempt++ {
+	// lastErr é o erro devolvido ao cliente; lastResponseErr só alimenta o
+	// prompt de feedback. São separados de propósito: um 503 do provedor não
+	// é um defeito da resposta, então não faz sentido pedirmos para o modelo
+	// "corrigir" um erro de rede.
+	var lastErr, lastResponseErr error
+	for attempt := 0; attempt < ai.MaxAttempts; attempt++ {
 		prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
 		if err != nil {
 			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't render prompt", err)
 		}
 
-		if attempt > 0 && lastError != nil {
-			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastError)
+		if attempt > 0 && lastResponseErr != nil {
+			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastResponseErr)
 		}
 
 		roadmapJSON, err := s.ai.Generate(c, prompt)
 		if err != nil {
-			lastError = err
+			lastErr = err
+
+			if !ai.IsUpstreamUnavailable(err) {
+				continue
+			}
+			if attempt == ai.MaxAttempts-1 {
+				break
+			}
+			if waitErr := ai.Backoff(c, attempt); waitErr != nil {
+				return nil, apperrors.NewAppError(
+					apperrors.ErrUpstreamUnavailable,
+					"ai provider is temporarily unavailable, please try again",
+					err,
+				)
+			}
 			continue
 		}
 
 		r, err := parseRoadmapJSON(string(roadmapJSON))
 		if err != nil {
-			lastError = err
+			lastErr, lastResponseErr = err, err
 			continue
 		}
+
+		// A resposta é parseável, então zera o estado de validação: o erro da
+		// tentativa anterior não pode contaminar o laço de tópicos abaixo,
+		// sob pena de esta tentativa cair no `continue` sem nunca validar.
+		lastErr, lastResponseErr = nil, nil
 
 		var roadmap Roadmap
 		topics := make(map[string]*Topic)
@@ -118,7 +141,8 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 			}
 
 			if topics[*node.ParentID] == nil {
-				lastError = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+				lastResponseErr = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+				lastErr = lastResponseErr
 				continue
 			}
 
@@ -144,7 +168,7 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 			roadmap.Topics = append(roadmap.Topics, t)
 		}
 
-		if lastError != nil {
+		if lastResponseErr != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
@@ -152,21 +176,23 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 		for _, edge := range r.Edges {
 			from, ok := topics[edge.From]
 			if !ok {
-				lastError = apperrors.NewAppError(
+				lastResponseErr = apperrors.NewAppError(
 					apperrors.ErrInvalidAIResponse,
 					fmt.Sprintf("dependency source '%s' not found", edge.From),
 					nil,
 				)
+				lastErr = lastResponseErr
 				break
 			}
 
 			to, ok := topics[edge.To]
 			if !ok {
-				lastError = apperrors.NewAppError(
+				lastResponseErr = apperrors.NewAppError(
 					apperrors.ErrInvalidAIResponse,
-					fmt.Sprintf("dependency source '%s' not found", edge.From),
+					fmt.Sprintf("dependency target '%s' not found", edge.To),
 					nil,
 				)
+				lastErr = lastResponseErr
 				break
 			}
 
@@ -177,14 +203,14 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 
 			dependency, err := s.deps.Create(c, d)
 			if err != nil {
-				lastError = err
+				lastErr, lastResponseErr = err, err
 				break
 			}
 
 			roadmap.Dependencies = append(roadmap.Dependencies, dependency)
 		}
 
-		if lastError != nil {
+		if lastResponseErr != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
@@ -194,7 +220,7 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 		return &roadmap, nil
 	}
 
-	return nil, lastError
+	return nil, lastErr
 }
 
 func enhanceRoadmapPromptWithFeedback(originalPrompt string, prevErr error) string {

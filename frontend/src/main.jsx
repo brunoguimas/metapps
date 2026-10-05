@@ -2,11 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { applyStoredTheme } from './theme'
-
-// Precisa rodar antes do render: se o tema só fosse aplicado pelo React,
-// a página apareceria por um instante na paleta errada.
-applyStoredTheme()
 
 if ('serviceWorker' in navigator) {
   if (import.meta.env.DEV) {
