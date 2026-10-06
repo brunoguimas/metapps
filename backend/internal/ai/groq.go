@@ -1,13 +1,17 @@
 package ai
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/jpoz/groq"
 )
 
 type GroqClient struct {
 	client *groq.Client
+	apiKey string
 	model  string
 }
 
@@ -16,16 +20,25 @@ const (
 	UserRole  = "user"
 )
 
-func NewGroqClient() (*GroqClient, *groq.Client) {
+func NewGroqClient() *GroqClient {
 	client := groq.NewClient()
 	return &GroqClient{
 		client: client,
+		apiKey: os.Getenv("GROQ_API_KEY"),
 		model:  GroqModel,
-	}, client
+	}
 }
 
-func (g *GroqClient) Generate(prompt string) (string, error) {
-	response, err := g.client.CreateChatCompletion(groq.CompletionCreateParams{
+func (g *GroqClient) Generate(ctx context.Context, prompt string) (string, error) {
+	if g.apiKey == "" {
+		return "", fmt.Errorf("GROQ_API_KEY is empty")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
+	params := groq.CompletionCreateParams{
 		Model: g.model,
 		Messages: []groq.Message{
 			{
@@ -33,10 +46,15 @@ func (g *GroqClient) Generate(prompt string) (string, error) {
 				Content: prompt,
 			},
 		},
-		ResponseFormat: groq.ResponseFormat{
+	}
+
+	if expectsJSON(prompt) {
+		params.ResponseFormat = groq.ResponseFormat{
 			Type: "json_object",
-		},
-	})
+		}
+	}
+
+	response, err := g.client.CreateChatCompletion(params)
 	if err != nil {
 		return "", err
 	}
@@ -46,4 +64,9 @@ func (g *GroqClient) Generate(prompt string) (string, error) {
 	}
 
 	return response.Choices[0].Message.Content, nil
+}
+
+func expectsJSON(prompt string) bool {
+	prompt = strings.ToLower(prompt)
+	return strings.Contains(prompt, "json")
 }

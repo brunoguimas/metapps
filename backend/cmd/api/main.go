@@ -31,7 +31,6 @@ import (
 	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 	"github.com/brunoguimas/metapps/backend/internal/router"
 	"github.com/gin-gonic/gin"
-	"github.com/jpoz/groq"
 )
 
 // AppModules holds all initialized application modules.
@@ -44,7 +43,6 @@ type AppModules struct {
 	AuthModule           *auth.Module
 	ProfileModule        *profile.Module
 	AIClient             ai.Client
-	GroqClient           *groq.Client
 	HealthModule         *health.Module
 	TopicDependencySvc   topic_dependency.Service
 	TopicModule          *topic.Module
@@ -87,25 +85,26 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	if err != nil {
 		return nil, err
 	}
+	aiClient := ai.NewFallbackClient(geminiClient, ai.NewGroqClient())
 
 	// Health module
-	healthModule := health.NewModule(queries, geminiClient, time.Now())
+	healthModule := health.NewModule(queries, aiClient, time.Now())
 
 	// Topic dependency service
 	topicDependencyRepo := topic_dependency.NewRepository(queries)
 	topicDependencyService := topic_dependency.NewService(topicDependencyRepo)
 
 	// Topic module
-	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, geminiClient, queries, cfg)
+	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, aiClient, queries, cfg)
 
 	// Task module
-	taskModule := task.NewModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
+	taskModule := task.NewModule(queries, topicModule.Service, aiClient, goalModule, cfg)
 
 	// Task attempt module
 	taskAttemptModule := task_attempt.NewModule(queries, taskModule, topicModule.Service, profileModule.Service)
 
 	// Task correction module
-	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)
+	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, aiClient, jwtModule.Service)
 
 	// Flashcard module
 	classroomRepo := classroom.NewRepository(queries)
@@ -147,7 +146,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		OauthModule:          oauthModule,
 		AuthModule:           authModule,
 		ProfileModule:        profileModule,
-		AIClient:             geminiClient,
+		AIClient:             aiClient,
 		HealthModule:         healthModule,
 		TopicDependencySvc:   topicDependencyService,
 		TopicModule:          topicModule,
