@@ -1,0 +1,125 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="MER - Metapps" id="0">
+    <mxGraphModel dx="2456" dy="2369" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;USUÁRIO&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;email (UNIQUE)&lt;br&gt;username&lt;br&gt;password_hash&lt;br&gt;verificated&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="165" width="240" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;PERFIL&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;xp&lt;br&gt;streak&lt;br&gt;last_activity_date&lt;br&gt;avatar_url&lt;br&gt;updated_at&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="205" width="240" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;OAUTH&lt;/b&gt;&lt;hr/&gt;id (PK)&lt;br/&gt;user_id (FK)&lt;br/&gt;provider&lt;br/&gt;provider_user_id&lt;br/&gt;created_at" vertex="1">
+          <mxGeometry height="145" width="240" x="640" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;EMAIL&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;type&lt;br&gt;code_hash&lt;br&gt;attempts&lt;br&gt;max_attempts&lt;br&gt;expires_at&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="205" width="240" x="940" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;OBJETIVO&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;title&lt;br&gt;settings_id (FK)&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="145" width="240" x="40" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;CONFIGURAÇÕES_OBJETIVO&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;motivation&lt;br&gt;success_criteria&lt;br&gt;baseline&lt;br&gt;time_constraints&lt;br&gt;learning_style&lt;br&gt;priority" vertex="1">
+          <mxGeometry height="185" width="240" x="340" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;TÓPICO&lt;/b&gt;&lt;hr&gt;id (PK)&lt;br&gt;goal_id (FK)&lt;br&gt;parent_topic_id (FK, nullable)&lt;br&gt;title&lt;br&gt;description&lt;br&gt;required_mastery&lt;br&gt;weight&lt;br&gt;order_index&lt;br&gt;created_at&lt;br&gt;updated_at" vertex="1">
+          <mxGeometry height="245" width="240" x="640" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;TÓPICO_DEPENDÊNCIA&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;topic_id (FK)&lt;br&gt;depends_on_topic_id (FK)&lt;br&gt;created_at&lt;br&gt;updated_at" vertex="1">
+          <mxGeometry height="145" width="240" x="980" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;TAREFA&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;topic_id (FK)&lt;br&gt;version&lt;br&gt;meta&lt;br&gt;content&lt;br&gt;type&lt;br&gt;done&lt;br&gt;done_at&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="245" width="240" x="40" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;TENTATIVA_TAREFA&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;user_id (FK)&lt;br&gt;task_id (FK)&lt;br&gt;content&lt;br&gt;score&lt;br&gt;status&lt;br&gt;task_evaluation&lt;br&gt;created_at" vertex="1">
+          <mxGeometry height="205" width="240" x="400" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;CORREÇÃO_TAREFAS&lt;/b&gt;&lt;br&gt;&lt;hr&gt;id (PK)&lt;br&gt;attempt_id (FK)&lt;br&gt;feedback&lt;br&gt;score&lt;br&gt;status&lt;br&gt;created_at&lt;br&gt;updated_at" vertex="1">
+          <mxGeometry height="185" width="240" x="800" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="100" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" target="3" value="1 : 0..1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="101" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="4" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="-70" />
+              <mxPoint x="760" y="-70" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="102" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="5" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" />
+              <mxPoint x="1070" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="103" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="6" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="104" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;exitX=0.993;exitY=0.634;exitDx=0;exitDy=0;exitPerimeter=0;" target="7" value="1 : 1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="105" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="8" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="280" />
+              <mxPoint x="610" y="280" />
+              <mxPoint x="610" y="422.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="106" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="8" value="0..1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="107" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="9" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="108" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="10" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="109" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="10" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-20" y="122.5" />
+              <mxPoint x="-20" y="742.5000000000005" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="110" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="11" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="750" />
+              <mxPoint x="370" y="750" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="111" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="11" value="1 : 0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="160" />
+              <mxPoint x="310" y="722.43" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="112" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="12" value="1 : 0..1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="722.43" />
+              <mxPoint x="760" y="722.43" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="113" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERone;startArrow=ERone;" target="8" value="0..* : 1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
