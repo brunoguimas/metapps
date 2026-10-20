@@ -57,6 +57,49 @@ type QuizEvaluation struct {
 	ScoringMethod  string                   `json:"scoring_method"`
 }
 
+// StepResult e a resposta a correcao de um exercicio.
+//
+// O front usa esse retorno para o feedback instantaneo: verde/vermelho,
+// explicacao, XP ganho e combo atual.
+type StepResult struct {
+	TaskID        uuid.UUID `json:"task_id"`
+	StepIndex     int       `json:"step_index"`
+	TotalSteps    int       `json:"total_steps"`
+	Correct       bool      `json:"correct"`
+	CorrectAnswer int       `json:"correct_answer"`
+	Explanation   string    `json:"explanation"`
+	Hint          string    `json:"hint,omitempty"`
+	Skill         string    `json:"skill,omitempty"`
+	XP            int       `json:"xp_awarded"`
+	XPTotal       int       `json:"xp_total"`
+	Combo         int       `json:"combo"`
+	MaxCombo      int       `json:"max_combo"`
+	NextStepIndex int       `json:"next_step_index"`
+	Streak        int       `json:"streak"`
+	DailyXP       int       `json:"daily_xp"`
+	DailyGoal     int       `json:"daily_goal"`
+}
+
+// SessionResult e o resumo de uma sessao concluida.
+type SessionResult struct {
+	TaskID           uuid.UUID `json:"task_id"`
+	TopicID          uuid.UUID `json:"topic_id"`
+	Source           string    `json:"source"`
+	Score            float64   `json:"score"`
+	CorrectAnswers   int       `json:"correct_answers"`
+	TotalQuestions   int       `json:"total_questions"`
+	XP               int       `json:"xp_gained"`
+	MaxCombo         int       `json:"max_combo"`
+	Mastered         bool      `json:"mastered"`
+	RequiredMastery  float64   `json:"required_mastery"`
+	Perfect          bool      `json:"perfect"`
+	Streak           int       `json:"streak"`
+	DailyXP          int       `json:"daily_xp"`
+	DailyGoal        int       `json:"daily_goal"`
+	WrongSteps       []int     `json:"wrong_steps"`
+	AttemptID        uuid.UUID `json:"attempt_id"`
+}
+
 func ParseCreateAttemptInput(raw []byte) (*CreateAttemptInput, error) {
 	var envelope map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &envelope); err != nil {
@@ -173,9 +216,11 @@ func parseMetadata(raw json.RawMessage) (*TaskAttemptMetadata, error) {
 		metadata.TimeSpentMs = &timeSpent
 	}
 	if value, ok := envelope["attempt_source"]; ok {
-		if err := json.Unmarshal(value, &metadata.AttemptSource); err != nil {
+		var attemptSource string
+		if err := json.Unmarshal(value, &attemptSource); err != nil {
 			return nil, fmt.Errorf("metadata.%s must be a string", "attempt_source")
 		}
+		metadata.AttemptSource = attemptSource
 	}
 
 	return metadata, nil

@@ -54,6 +54,7 @@ func Clean(t *testing.T, conn *sql.DB) {
 			oauth_accounts,
 			refresh_tokens,
 			goals,
+			profile,
 			users
 		RESTART IDENTITY CASCADE;
 	`)
@@ -107,6 +108,9 @@ func CreateTask(t *testing.T, queries *db.Queries, userID, topicID uuid.UUID, co
 		TopicID: topicID,
 		Content: content,
 		Type:    taskType,
+		Source:  "lesson",
+		Version: 2,
+		Status:  "pending",
 	})
 	require.NoError(t, err)
 	return task

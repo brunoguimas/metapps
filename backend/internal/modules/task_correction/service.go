@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
-	topic "github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
 )
@@ -23,22 +21,18 @@ type Service interface {
 }
 
 type taskCorrectionService struct {
-	repo         Repository
-	attemptRepo  task_attempt.Repository
-	taskRepo     task.Repository
-	topicRepo    topic.Repository
-	progressRepo topic.ProgressRepository
-	client       ai.Client
+	repo        Repository
+	attemptRepo task_attempt.Repository
+	taskRepo    task.Repository
+	client      ai.Client
 }
 
-func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.Repository, topicRepo topic.Repository, progressRepo topic.ProgressRepository, client ai.Client) Service {
+func NewService(r Repository, attemptRepo task_attempt.Repository, taskRepo task.Repository, client ai.Client) Service {
 	return &taskCorrectionService{
-		repo:         r,
-		attemptRepo:  attemptRepo,
-		taskRepo:     taskRepo,
-		topicRepo:    topicRepo,
-		progressRepo: progressRepo,
-		client:       client,
+		repo:        r,
+		attemptRepo: attemptRepo,
+		taskRepo:    taskRepo,
+		client:      client,
 	}
 }
 
@@ -67,9 +61,13 @@ func (s *taskCorrectionService) CreateCorrection(ctx context.Context, userID, at
 	if err != nil {
 		return nil, err
 	}
-	if score != nil {
-		s.updateProgress(ctx, userID, attemptID, *score)
-	}
+	// O progresso do topico NAO e atualizado aqui.
+	//
+	// A maestria e registrada em um unico lugar (task_attempt.Finish ->
+	// topic.RecordAttempt). Antes, esta funcao recalculava a media das
+	// tentativas por conta propria e rodava duas vezes (CreateCorrection e
+	// GenerateQuizCorrection), sobrescrevendo o valor gravado pelo modulo
+	// de tentativas.
 	return createdCorrection, nil
 }
 
@@ -90,71 +88,13 @@ func (s *taskCorrectionService) UpdateCorrection(ctx context.Context, correction
 	return s.repo.Update(ctx, correction)
 }
 
-// updateProgress updates the topic progress for the user based on the attempt and correction score.
-func (s *taskCorrectionService) updateProgress(ctx context.Context, userID, attemptID uuid.UUID, score float64) {
-	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
-	if err != nil {
-		slog.Error("failed to get attempt for progress update", "attempt_id", attemptID, "error", err)
-		return
-	}
-
-	taskObj, err := s.taskRepo.GetByID(ctx, userID, attempt.TaskID)
-	if err != nil {
-		slog.Error("failed to get task for progress update", "task_id", attempt.TaskID, "error", err)
-		return
-	}
-
-	topicObj, err := s.topicRepo.Get(ctx, taskObj.TopicID)
-	if err != nil {
-		slog.Error("failed to get topic for progress update", "topic_id", taskObj.TopicID, "error", err)
-		return
-	}
-
-	progress, err := s.progressRepo.GetOrCreate(ctx, userID, taskObj.TopicID)
-	if err != nil {
-		slog.Error("failed to get or create topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
-		return
-	}
-
-	newAttempts := progress.AttemptsCount + 1
-	newMastery := (progress.MasteryScore*float64(progress.AttemptsCount) + score) / float64(newAttempts)
-	newConfidence := newMastery
-
-	var newStatus topic.TopicStatus
-	if newMastery >= topicObj.RequiredMastery {
-		newStatus = topic.TopicStatusMastered
-	} else if newMastery > 0 {
-		newStatus = topic.TopicStatusInProgress
-	} else {
-		newStatus = topic.TopicStatusLocked
-	}
-
-	var evolutionStage string
-	switch {
-	case newMastery < 0.2:
-		evolutionStage = "Ovo"
-	case newMastery < 0.4:
-		evolutionStage = "Larva"
-	case newMastery < 0.6:
-		evolutionStage = "Pupa"
-	case newMastery < 0.8:
-		evolutionStage = "Juvenil"
-	default:
-		evolutionStage = "Adulto"
-	}
-
-	progress.MasteryScore = newMastery
-	progress.ConfidenceScore = newConfidence
-	progress.AttemptsCount = int32(newAttempts)
-	progress.Status = newStatus
-	progress.EvolutionStage = evolutionStage
-
-	if err := s.progressRepo.Update(ctx, progress); err != nil {
-		slog.Error("failed to update topic progress", "user_id", userID, "topic_id", taskObj.TopicID, "error", err)
-		return
-	}
-}
-
+// GenerateQuizCorrection gera o comentario final da IA sobre a sessao.
+//
+// O progresso do topico NAO e gravado aqui: a escrita autoritativa
+// acontece em task_attempt.Finish (que ja chama topic.RecordAttempt).
+// Antes esta funcao gravava a mesma tentativa de novo, o que contava o
+// contador de tentativas do topico dobrado e distorcia a media de
+// confianca.
 func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, userID, attemptID uuid.UUID) (*TaskCorrection, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
@@ -174,12 +114,15 @@ func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, user
 		return nil, apperrors.NewAppError(apperrors.ErrTaskAttemptTypeMismatch, "task is not a quiz type", nil)
 	}
 
-	var quizContent task.QuizContent
-	if err := json.Unmarshal(taskObj.Content, &quizContent); err != nil {
+	// O conteudo da task e normalizado para steps: assim a correcao da IA
+	// funciona tanto para tasks novas (v2) quanto para as antigas (v1,
+	// com `questions`).
+	lesson, err := taskObj.Decode()
+	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid task content", err)
 	}
 
-	if len(quizContent.Questions) == 0 {
+	if len(lesson.Steps) == 0 {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidInput, "quiz has no questions", nil)
 	}
 
@@ -202,11 +145,11 @@ func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, user
 		}
 	}
 
-	totalQuestions := len(quizContent.Questions)
+	totalQuestions := len(lesson.Steps)
 	correctCount := 0
 
 	var detailsBuilder strings.Builder
-	for i, q := range quizContent.Questions {
+	for i, q := range lesson.Steps {
 		submittedIdx, hasAnswer := answersByIndex[i]
 		isCorrect := hasAnswer && submittedIdx == q.Answer
 		if isCorrect {
@@ -282,6 +225,5 @@ func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, user
 	if err != nil {
 		return nil, err
 	}
-	s.updateProgress(ctx, userID, attemptID, deterministicScore)
 	return createdCorrection, nil
 }

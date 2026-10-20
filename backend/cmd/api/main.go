@@ -9,6 +9,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/daily_activity"
 	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
@@ -17,10 +18,12 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
 	"github.com/brunoguimas/metapps/backend/internal/modules/progress"
+	"github.com/brunoguimas/metapps/backend/internal/modules/review"
 	"github.com/brunoguimas/metapps/backend/internal/modules/social"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task_step_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
@@ -46,6 +49,9 @@ type AppModules struct {
 	HealthModule         *health.Module
 	TopicDependencySvc   topic_dependency.Service
 	TopicModule          *topic.Module
+	TaskStepAttemptMod   *task_step_attempt.Module
+	ReviewModule         *review.Module
+	DailyActivityModule  *daily_activity.Module
 	TaskModule           *task.Module
 	TaskAttemptModule    *task_attempt.Module
 	TaskCorrectionModule *task_correction.Module
@@ -96,11 +102,16 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Topic module
 	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, aiClient, queries, cfg)
 
+	// Step attempts, fila de revisao e atividade diaria
+	taskStepAttemptModule := task_step_attempt.NewModule(queries)
+	reviewModule := review.NewModule(queries)
+	dailyActivityModule := daily_activity.NewModule(queries, profileModule.Service, reviewModule.Service)
+
 	// Task module
-	taskModule := task.NewModule(queries, topicModule.Service, aiClient, goalModule, cfg)
+	taskModule := task.NewModule(queries, topicModule.Service, aiClient, goalModule, taskStepAttemptModule.Service, reviewModule.Service, cfg)
 
 	// Task attempt module
-	taskAttemptModule := task_attempt.NewModule(queries, taskModule, topicModule.Service, profileModule.Service)
+	taskAttemptModule := task_attempt.NewModule(queries, taskModule, topicModule.Service, profileModule.Service, taskStepAttemptModule.Service, reviewModule.Service, dailyActivityModule.Service)
 
 	// Task correction module
 	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, aiClient, jwtModule.Service)
@@ -149,6 +160,9 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		HealthModule:         healthModule,
 		TopicDependencySvc:   topicDependencyService,
 		TopicModule:          topicModule,
+		TaskStepAttemptMod:   taskStepAttemptModule,
+		ReviewModule:         reviewModule,
+		DailyActivityModule:  dailyActivityModule,
 		TaskModule:           taskModule,
 		TaskAttemptModule:    taskAttemptModule,
 		TaskCorrectionModule: taskCorrectionModule,
@@ -174,6 +188,7 @@ func newRouter(cfg *config.Config, modules *AppModules) *gin.Engine {
 		modules.ProgressModule.Handler,
 		modules.ClassroomModule.Handler,
 		modules.SocialModule.Handler,
+		modules.DailyActivityModule.Handler,
 		modules.JWTModule.Service,
 		cfg,
 	)

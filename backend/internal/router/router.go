@@ -6,6 +6,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/middleware"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/daily_activity"
 	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
@@ -37,6 +38,7 @@ func NewRouter(
 	pr *progress.Handler,
 	cr *classroom.Handler,
 	so *social.Handler,
+	d *daily_activity.Handler,
 	jwtService jwt.Service,
 	cfg *config.Config,
 ) *gin.Engine {
@@ -89,10 +91,18 @@ func NewRouter(
 		tasks := protected.Group("/tasks")
 		{
 			tasks.POST("/generate", t.Generate)
+			tasks.POST("/practice", t.Practice)
+			tasks.POST("/review", t.Review)
 			tasks.GET("", t.List)
 			tasks.GET("/:id", t.Get)
 			tasks.POST("/:id/attempts", ta.Submit)
 			tasks.GET("/:id/attempts", ta.ListByTask)
+			// Fluxo paso a passo: corrige um exercicio por vez e
+			// encerra a sessao. E o caminho usado pelo player.
+			tasks.POST("/:id/answer", ta.Answer)
+			tasks.POST("/:id/finish", ta.Finish)
+			// "Tentar de novo" so com os exercicios errados.
+			tasks.POST("/:id/retry", t.Retry)
 		}
 		corrections := protected.Group("/corrections")
 		{
@@ -117,8 +127,12 @@ func NewRouter(
 			// perfil porque e o resumo do mesmo usuario, e nao tem POST:
 			// XP e creditado pelo servidor quando a tarefa e corrigida.
 			profile.GET("/progress", pr.GetSummary)
+			profile.PUT("/daily-goal", p.UpdateDailyGoal)
 			profile.POST("/avatar", p.UpdateAvatar)
 		}
+
+		// Resumo do dia: meta diaria, streak e o que ha para revisar.
+		protected.GET("/daily", d.Today)
 
 		classrooms := protected.Group("/classrooms")
 		{
@@ -130,7 +144,7 @@ func NewRouter(
 			classrooms.DELETE("/:id", cr.Delete)
 			classrooms.POST("/:id/invite", cr.RegenerateInviteCode)
 			classrooms.GET("/:id/members", cr.ListMembers)
-classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
+			classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
 			classrooms.DELETE("/:id/leave", cr.Leave)
 			classrooms.POST("/:id/assignments", cr.CreateAssignment)
 			classrooms.PUT("/:id/assignments/:aId", cr.UpdateAssignment)

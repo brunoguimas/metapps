@@ -241,14 +241,23 @@ type ReviewItem struct {
 }
 
 type Task struct {
-	ID        uuid.UUID
-	UserID    uuid.NullUUID
-	Content   json.RawMessage
-	Type      string
-	Done      bool
-	DoneAt    sql.NullTime
-	CreatedAt sql.NullTime
-	TopicID   uuid.UUID
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Content    json.RawMessage
+	Type       string
+	Done       bool
+	DoneAt     sql.NullTime
+	CreatedAt  sql.NullTime
+	TopicID    uuid.UUID
+	Version    int32
+	Source     string
+	Status     string
+	StepCursor int32
+	MaxCombo   int32
+	Score      sql.NullString
+	XpGained   int32
+	LastStepAt sql.NullTime
+	UpdatedAt  time.Time
 }
 
 type TaskAttempt struct {

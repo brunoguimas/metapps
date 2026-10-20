@@ -22,7 +22,7 @@ func TestRepositoryCreate_Success(t *testing.T) {
 	repo := NewRepository(queries)
 
 	result, err := repo.Create(context.Background(), &Task{
-		UserID:  uuid.NullUUID{UUID: user.ID, Valid: true},
+		UserID:  user.ID,
 		TopicID: topic.ID,
 		Type:    TaskQuiz,
 		Meta: TaskMeta{

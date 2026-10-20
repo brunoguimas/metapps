@@ -18,17 +18,29 @@ import (
 )
 
 type fakeServiceHandler struct {
-	createFn func(context.Context, uuid.UUID, uuid.UUID) (*Task, error)
+	createFn func(context.Context, uuid.UUID, uuid.UUID, bool) (*Task, error)
 }
 
-func (s *fakeServiceHandler) Create(c context.Context, userID, topicID uuid.UUID) (*Task, error) {
-	return s.createFn(c, userID, topicID)
+func (s *fakeServiceHandler) Create(c context.Context, userID, topicID uuid.UUID, refresh bool) (*Task, error) {
+	return s.createFn(c, userID, topicID, refresh)
 }
 
 func (s *fakeServiceHandler) GetByUserID(context.Context, uuid.UUID) ([]*Task, error) {
 	return nil, nil
 }
 func (s *fakeServiceHandler) GetByID(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
+	return nil, nil
+}
+func (s *fakeServiceHandler) ListByTopic(context.Context, uuid.UUID, uuid.UUID) ([]*Task, error) {
+	return nil, nil
+}
+func (s *fakeServiceHandler) CreatePractice(context.Context, uuid.UUID, *uuid.UUID, int) (*Task, error) {
+	return nil, nil
+}
+func (s *fakeServiceHandler) CreateReview(context.Context, uuid.UUID, int) (*Task, error) {
+	return nil, nil
+}
+func (s *fakeServiceHandler) CreateRetry(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
 	return nil, nil
 }
 
@@ -38,10 +50,10 @@ func TestHandlerGenerate_Success(t *testing.T) {
 	topicID := uuid.New()
 
 	handler := NewHandler(&fakeServiceHandler{
-		createFn: func(_ context.Context, gotUserID, gotTopicID uuid.UUID) (*Task, error) {
+		createFn: func(_ context.Context, gotUserID, gotTopicID uuid.UUID, _ bool) (*Task, error) {
 			assert.Equal(t, userID, gotUserID)
 			assert.Equal(t, topicID, gotTopicID)
-			return &Task{ID: uuid.New(), UserID: uuid.NullUUID{UUID: gotUserID, Valid: true}, TopicID: gotTopicID, Type: TaskQuiz}, nil
+			return &Task{ID: uuid.New(), UserID: gotUserID, TopicID: gotTopicID, Type: TaskQuiz}, nil
 		},
 	}, nil, &config.Config{})
 
@@ -68,7 +80,7 @@ func TestHandlerGenerate_Success(t *testing.T) {
 func TestHandlerGenerate_Fail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	handler := NewHandler(&fakeServiceHandler{
-		createFn: func(context.Context, uuid.UUID, uuid.UUID) (*Task, error) {
+		createFn: func(context.Context, uuid.UUID, uuid.UUID, bool) (*Task, error) {
 			t.Fatal("Create should not be called on invalid payload")
 			return nil, nil
 		},
