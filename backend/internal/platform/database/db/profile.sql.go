@@ -13,10 +13,37 @@ import (
 	"github.com/google/uuid"
 )
 
+const addProfileXP = `-- name: AddProfileXP :one
+UPDATE profile SET xp = GREATEST(0, xp + $2), updated_at = now() WHERE id = $1
+RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp
+`
+
+type AddProfileXPParams struct {
+	ID uuid.UUID
+	Xp int32
+}
+
+func (q *Queries) AddProfileXP(ctx context.Context, arg AddProfileXPParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, addProfileXP, arg.ID, arg.Xp)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Xp,
+		&i.Streak,
+		&i.LastActivityDate,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DailyGoalXp,
+	)
+	return i, err
+}
+
 const createProfile = `-- name: CreateProfile :one
-INSERT INTO profile (id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at
+INSERT INTO profile (id, user_id, xp, streak, last_activity_date, avatar_url, daily_goal_xp, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp
 `
 
 type CreateProfileParams struct {
@@ -26,6 +53,7 @@ type CreateProfileParams struct {
 	Streak           int32
 	LastActivityDate time.Time
 	AvatarUrl        sql.NullString
+	DailyGoalXp      int32
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
@@ -38,6 +66,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		arg.Streak,
 		arg.LastActivityDate,
 		arg.AvatarUrl,
+		arg.DailyGoalXp,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -51,12 +80,13 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DailyGoalXp,
 	)
 	return i, err
 }
 
 const getProfileByUserID = `-- name: GetProfileByUserID :one
-SELECT id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at FROM profile WHERE user_id = $1
+SELECT id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp FROM profile WHERE user_id = $1
 `
 
 func (q *Queries) GetProfileByUserID(ctx context.Context, userID uuid.UUID) (Profile, error) {
@@ -71,13 +101,14 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, userID uuid.UUID) (Pro
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DailyGoalXp,
 	)
 	return i, err
 }
 
 const updateProfile = `-- name: UpdateProfile :one
-UPDATE profile SET xp = $2, streak = $3, last_activity_date = $4, avatar_url = $5, updated_at = $6 WHERE id = $1
-RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at
+UPDATE profile SET xp = $2, streak = $3, last_activity_date = $4, avatar_url = $5, daily_goal_xp = $6, updated_at = $7 WHERE id = $1
+RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp
 `
 
 type UpdateProfileParams struct {
@@ -86,6 +117,7 @@ type UpdateProfileParams struct {
 	Streak           int32
 	LastActivityDate time.Time
 	AvatarUrl        sql.NullString
+	DailyGoalXp      int32
 	UpdatedAt        time.Time
 }
 
@@ -96,6 +128,7 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (P
 		arg.Streak,
 		arg.LastActivityDate,
 		arg.AvatarUrl,
+		arg.DailyGoalXp,
 		arg.UpdatedAt,
 	)
 	var i Profile
@@ -108,6 +141,62 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (P
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DailyGoalXp,
+	)
+	return i, err
+}
+
+const updateProfileDailyGoal = `-- name: UpdateProfileDailyGoal :one
+UPDATE profile SET daily_goal_xp = $2, updated_at = now() WHERE id = $1
+RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp
+`
+
+type UpdateProfileDailyGoalParams struct {
+	ID          uuid.UUID
+	DailyGoalXp int32
+}
+
+func (q *Queries) UpdateProfileDailyGoal(ctx context.Context, arg UpdateProfileDailyGoalParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateProfileDailyGoal, arg.ID, arg.DailyGoalXp)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Xp,
+		&i.Streak,
+		&i.LastActivityDate,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DailyGoalXp,
+	)
+	return i, err
+}
+
+const updateProfileStreak = `-- name: UpdateProfileStreak :one
+UPDATE profile SET streak = $2, last_activity_date = $3, updated_at = now() WHERE id = $1
+RETURNING id, user_id, xp, streak, last_activity_date, avatar_url, created_at, updated_at, daily_goal_xp
+`
+
+type UpdateProfileStreakParams struct {
+	ID               uuid.UUID
+	Streak           int32
+	LastActivityDate time.Time
+}
+
+func (q *Queries) UpdateProfileStreak(ctx context.Context, arg UpdateProfileStreakParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateProfileStreak, arg.ID, arg.Streak, arg.LastActivityDate)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Xp,
+		&i.Streak,
+		&i.LastActivityDate,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DailyGoalXp,
 	)
 	return i, err
 }

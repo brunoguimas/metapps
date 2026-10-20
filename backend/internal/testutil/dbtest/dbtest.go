@@ -42,6 +42,9 @@ func Clean(t *testing.T, conn *sql.DB) {
 	_, err := conn.Exec(`
 		TRUNCATE TABLE
 			flashcards,
+			review_items,
+			daily_activity,
+			task_step_attempts,
 			task_corrections,
 			task_attempts,
 			tasks,

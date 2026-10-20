@@ -67,6 +67,65 @@ func (q *Queries) CreateTopicProgress(ctx context.Context, arg CreateTopicProgre
 	return i, err
 }
 
+const getTopicProgressByUserIDAndGoalID = `-- name: GetTopicProgressByUserIDAndGoalID :many
+SELECT tp.id, tp.user_id, tp.topic_id, tp.mastery_score, tp.confidence_score, tp.attempts_count, tp.status, tp.evolution_stage, tp.created_at, tp.updated_at
+FROM public.topic_progress tp
+JOIN public.topics t ON t.id = tp.topic_id
+WHERE tp.user_id = $1 AND t.goal_id = $2
+`
+
+type GetTopicProgressByUserIDAndGoalIDParams struct {
+	UserID uuid.UUID
+	GoalID uuid.UUID
+}
+
+type GetTopicProgressByUserIDAndGoalIDRow struct {
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	TopicID         uuid.UUID
+	MasteryScore    float64
+	ConfidenceScore float64
+	AttemptsCount   int32
+	Status          TopicStatus
+	EvolutionStage  string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (q *Queries) GetTopicProgressByUserIDAndGoalID(ctx context.Context, arg GetTopicProgressByUserIDAndGoalIDParams) ([]GetTopicProgressByUserIDAndGoalIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTopicProgressByUserIDAndGoalID, arg.UserID, arg.GoalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTopicProgressByUserIDAndGoalIDRow
+	for rows.Next() {
+		var i GetTopicProgressByUserIDAndGoalIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TopicID,
+			&i.MasteryScore,
+			&i.ConfidenceScore,
+			&i.AttemptsCount,
+			&i.Status,
+			&i.EvolutionStage,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTopicProgressByUserIDAndTopicID = `-- name: GetTopicProgressByUserIDAndTopicID :one
 SELECT id, user_id, topic_id, mastery_score, confidence_score, attempts_count, status, evolution_stage, created_at, updated_at
 FROM public.topic_progress
@@ -161,50 +220,4 @@ func (q *Queries) UpdateTopicProgress(ctx context.Context, arg UpdateTopicProgre
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getTopicProgressByUserIDAndGoalID = `-- name: GetTopicProgressByUserIDAndGoalID :many
-SELECT tp.id, tp.user_id, tp.topic_id, tp.mastery_score, tp.confidence_score, tp.attempts_count, tp.status, tp.evolution_stage, tp.created_at, tp.updated_at
-FROM public.topic_progress tp
-JOIN public.topics t ON t.id = tp.topic_id
-WHERE tp.user_id = $1 AND t.goal_id = $2
-`
-
-type GetTopicProgressByUserIDAndGoalIDParams struct {
-	UserID uuid.UUID
-	GoalID uuid.UUID
-}
-
-func (q *Queries) GetTopicProgressByUserIDAndGoalID(ctx context.Context, arg GetTopicProgressByUserIDAndGoalIDParams) ([]TopicProgress, error) {
-	rows, err := q.db.QueryContext(ctx, getTopicProgressByUserIDAndGoalID, arg.UserID, arg.GoalID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []TopicProgress
-	for rows.Next() {
-		var i TopicProgress
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.TopicID,
-			&i.MasteryScore,
-			&i.ConfidenceScore,
-			&i.AttemptsCount,
-			&i.Status,
-			&i.EvolutionStage,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
