@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LessonContent",
+  "description": "Conteúdo v2 de uma sessão: uma sequência de exercícios curtos, respondidos um de cada vez.",
+  "type": "object",
+  "required": ["steps"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Versão do formato. A v1 usava `questions` e é normalizada para `steps` na leitura."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "description": "Exercícios da sessão, em ordem crescente de dificuldade.",
+      "items": {
+        "type": "object",
+        "required": ["statement", "alternatives", "answer", "explanation"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["multiple_choice", "true_false"],
+            "description": "Formato do exercício. Padrão: multiple_choice."
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 180,
+            "description": "O enunciado já é a pergunta. Uma micro-habilidade por exercício."
+          },
+          "skill": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "Nome da micro-habilidade treinada."
+          },
+          "difficulty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "material": {
+            "type": "array",
+            "maxItems": 3,
+            "description": "Contexto opcional (fórmula, trecho de código, dado).",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "data"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["text", "image"]
+                },
+                "data": {
+                  "type": "string",
+                  "maxLength": 600
+                }
+              }
+            }
+          },
+          "alternatives": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "answer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Índice (0-based) da alternativa correta."
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 400,
+            "description": "Explicação de 1 a 2 frases: é ela que transforma o erro em aprendizado."
+          },
+          "hint": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
