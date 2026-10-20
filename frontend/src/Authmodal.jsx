@@ -33,6 +33,7 @@ import {
   forgotPassword,
   resetPassword,
 } from './api'
+import { userMessage, safeGoogleReason } from './lib/errors.js'
 
 // ─── ÍCONES (reaproveitados de Login.jsx / Register.jsx) ───────────────────
 
@@ -135,6 +136,13 @@ function normalizeFieldName(rawName) {
   return FIELD_NAME_MAP[rawName] || null
 }
 
+// Códigos do backend que apontam para um campo específico do formulário.
+const FIELD_BY_CODE = {
+  EMAIL_ALREADY_IN_USE: 'email',
+  USERNAME_ALREADY_IN_USE: 'username',
+  USERNAME_ALREADY_EXISTS: 'username',
+}
+
 function mapDetailsToFields(details) {
   const fields = {}
   if (!details || typeof details !== 'object' || Array.isArray(details)) return fields
@@ -150,7 +158,13 @@ function mapDetailsToFields(details) {
 }
 
 // mapErr cobre tanto os erros de registro (com detalhamento por campo)
-// quanto os de login (mais simples, com status 401 / EMAIL_NOT_VERIFIED).
+// quanto os de login (mais simples, com status 401 / e-mail não
+// verificado).
+//
+// A mensagem em si vem do módulo central de erros (lib/errors.js):
+// ele traduz o código do backend para uma mensagem amigável e troca
+// erro interno por texto genérico. Aqui só cuidamos do detalhe por
+// campo do formulário.
 function mapErr(error) {
   // 1) Formato novo do contrato do backend: error.details = { campo: msg }
   const detailsFields = mapDetailsToFields(error?.details)
@@ -165,79 +179,21 @@ function mapErr(error) {
     }
   }
 
-  // 2) Casos específicos de login
-  if (error?.status === 401) {
-    return { message: 'Email ou senha incorretos.', fields: { general: 'Email ou senha incorretos.' } }
+  // 2) Mensagem amigável (erro de negócio, interno ou genérico).
+  const message = userMessage(
+    error,
+    'Não foi possível concluir agora. Tente novamente.'
+  )
+
+  // 3) Erros conhecidos ganham destaque no campo correspondente.
+  const code = String(error?.code || '').trim().toUpperCase()
+  const field = FIELD_BY_CODE[code]
+
+  if (field) {
+    return { message, fields: { [field]: message } }
   }
 
-  if (error?.code === 'EMAIL_NOT_VERIFIED' || error?.message === 'EMAIL_NOT_VERIFIED') {
-    return {
-      message: 'Seu e-mail ainda não foi verificado. Verifique sua caixa de entrada.',
-      fields: { general: 'E-mail não verificado.' },
-    }
-  }
-
-  // 3) Fallback heurístico por código/texto
-  const raw = String(error?.message || error?.error || error || '')
-  const msg = raw.toLowerCase().trim()
-  const code = String(error?.code || error?.error || error?.message || '').trim().toUpperCase()
-
-  if (
-    code === 'EMAIL_ALREADY_IN_USE' || code === 'EMAIL_ALREADY_EXISTS' ||
-    msg.includes('already in use') || msg.includes('already exists') ||
-    msg.includes('já está em uso') || msg.includes('já cadastrado') || msg.includes('e-mail já')
-  ) {
-    return {
-      message: 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.',
-      fields: { email: 'Este e-mail já está cadastrado.' },
-    }
-  }
-
-  if (
-    code === 'USERNAME_ALREADY_IN_USE' || code === 'USERNAME_ALREADY_EXISTS' ||
-    (msg.includes('username') && (msg.includes('taken') || msg.includes('already') || msg.includes('exists')))
-  ) {
-    return {
-      message: 'Este nome de usuário já está em uso. Escolha outro.',
-      fields: { username: 'Este nome de usuário já está em uso.' },
-    }
-  }
-
-  if (
-    msg.includes('failed to fetch') || msg.includes('network error') ||
-    msg.includes('load failed') || msg.includes('timeout') || msg.includes('unreachable')
-  ) {
-    return { message: 'Sem conexão com o servidor. Verifique sua internet.', fields: { general: 'Sem conexão com o servidor.' } }
-  }
-
-  if (
-    msg.includes('invalid code') || msg.includes('expired') ||
-    msg.includes('código inválido') || msg.includes('código expirado') || msg.includes('verification failed')
-  ) {
-    return { message: 'Código inválido ou expirado. Solicite um novo código.', fields: { general: 'Código inválido ou expirado.' } }
-  }
-
-  if (msg.includes('not found') || msg.includes('não encontrado') || msg.includes('inexistente') || msg.includes('no user')) {
-    return { message: 'Usuário não encontrado. Verifique o e-mail ou crie uma conta.', fields: { general: 'Usuário não encontrado.' } }
-  }
-
-  if (msg.includes('disabled') || msg.includes('blocked') || msg.includes('locked') || msg.includes('suspended') || msg.includes('bloqueada') || msg.includes('desativada')) {
-    return { message: 'Sua conta foi temporariamente bloqueada. Entre em contato com o suporte.', fields: { general: 'Conta bloqueada.' } }
-  }
-
-  if (msg.includes('too many') || msg.includes('rate limit') || msg.includes('muitas tentativas') || msg.includes('429')) {
-    return { message: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.', fields: { general: 'Muitas tentativas.' } }
-  }
-
-  if (msg.includes('bad request') || msg.includes('400') || msg.includes('requisição inválida')) {
-    return { message: 'Dados inválidos. Verifique os campos e tente novamente.', fields: { general: 'Dados inválidos.' } }
-  }
-
-  if (msg.includes('internal server') || msg.includes('500') || msg.includes('erro interno')) {
-    return { message: 'Erro no servidor. Tente novamente mais tarde.', fields: { general: 'Erro no servidor.' } }
-  }
-
-  return { message: 'Algo deu errado. Tente novamente em alguns instantes.', fields: { general: 'Algo deu errado.' } }
+  return { message, fields: { general: message } }
 }
 
 // ─── CAMPO DE SENHA ─────────────────────────────────────────────────────────
@@ -429,10 +385,13 @@ export default function AuthModal({ mode, onClose, onSwitchMode, onLoginSuccess 
   // erro vindo do fluxo de OAuth (login com Google): o GoogleCallback
   // redireciona pra /auth/login?error=google_auth_failed&reason=... e o
   // App.jsx preserva error/reason no redirect pra cá.
+  //
+  // O motivo vem da URL, então ele é validado antes de aparecer: só as
+  // mensagens conhecidas do fluxo OAuth são exibidas.
   const [oauthParams] = useSearchParams()
   const oauthError =
     oauthParams.get('error') === 'google_auth_failed'
-      ? oauthParams.get('reason') || 'Não foi possível entrar com o Google. Tente novamente.'
+      ? safeGoogleReason(oauthParams.get('reason'))
       : ''
 
   // login

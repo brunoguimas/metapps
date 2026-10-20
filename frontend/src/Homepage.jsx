@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   logout as apiLogout,
@@ -8,78 +8,36 @@ import {
   createGoal,
   generateRoadmap,
   generateTask,
-  submitAttempt,
   getProfile,
   getMe,
   getRoadmap,
-  generateCorrection,
   listAttemptsByUser,
-  getProgressSummary,
-  listFriends,
-  searchUsers,
-  addFriend,
-  removeFriend,
   uploadAvatar,
   updateGoal,
   deleteGoal,
   setSessionExpiredHandler,
+  getDaily,
+  createPractice,
+  createReview,
+  listFriends,
+  searchUsers,
+  addFriend,
+  removeFriend,
 } from './api'
-import conquistaIcon from './assets/conquista.svg'
-import trilhaIcon from './assets/pixel.png'
+import LessonPlayer from './features/lesson/LessonPlayer.jsx'
+import TodayCard from './features/home/TodayCard.jsx'
+import { Busy, Spinner } from './ds'
+import { userMessage } from './lib/errors.js'
 import { avatarUrl, initials } from './lib/avatar'
-import {
-  activityByDay,
-  activeDays,
-  buildCalendar,
-  currentStreak,
-  heatLevel,
-  longestStreak,
-  pctOfScore,
-  formatDateTime,
-  formatFullDate,
-  relativeDate,
-  todayKey,
-} from './lib/activity'
-import { ACHIEVEMENTS, evaluateAchievements, rememberUnlocks, resetAchievementDates } from './lib/achievements'
-import {
-  achievementEvents,
-  friendEvents,
-  markAllRead,
-  mergeNotifications,
-  persistNotifications,
-  readNotifications,
-  streakEvents,
-  unreadCount,
-} from './lib/notify'
+import perfilIcon from './assets/perfil.svg'
+import conquistaIcon from './assets/conquista.svg'
+import configIcon from './assets/config.svg'
+import { useTheme } from './theme'
 import './Homepage.css'
-
-// Telas da trilha: nelas o cabeçalho global some (a trilha precisa do
-// espaço vertical) e quem manda é o cabeçalho interno do caminho.
-const TRACK_VIEWS = ['roadmap', 'phase', 'task', 'result']
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 
 const sa = v => (Array.isArray(v) ? v : [])
-
-// O Gemini entra em alta demanda com frequência. Quando isso acontece o
-// backend responde 503 / UPSTREAM_UNAVAILABLE, que significa "tente de
-// novo" — não "algo quebrou".
-//
-// O backend também mascara 5xx internos com a string literal
-// "internal server error" (ver httpx.shouldSanitize). Se ela chegar até
-// aqui, traduzimos em vez de exibir inglês no meio de uma tela toda em
-// português.
-function msgDeErro(e) {
-  if (e?.status === 503 || e?.code === 'UPSTREAM_UNAVAILABLE') {
-    return 'A IA está sobrecarregada agora. Aguarde alguns segundos e tente novamente.'
-  }
-
-  const msg = e?.message
-  if (!msg || /^internal server error$/i.test(msg)) {
-    return 'Algo quebrou ao gerar. Tente novamente em instantes.'
-  }
-  return msg
-}
 
 const XP_STEP = 100
 const xpInLevel = xp => (xp || 0) % XP_STEP
@@ -137,13 +95,6 @@ function buildPhases(topics, dependencies, completedIds) {
   return phases
 }
 
-// materiais de texto de uma questão/lição (array de { type, data })
-function textMaterials(rawMaterial) {
-  return sa(rawMaterial)
-    .map(m => (typeof m === 'string' ? m : m?.data))
-    .filter(Boolean)
-}
-
 // Tópicos dominados, lidos do progresso persistido pelo backend.
 //
 // O roadmap já devolve `progress` (topic_progress). Derivar a lista de
@@ -165,17 +116,38 @@ function byRecency(goals) {
   })
 }
 
+function relativeDate(iso) {
+  const t = Date.parse(iso || '')
+  if (!t) return ''
+  const days = Math.floor((Date.now() - t) / 86400000)
+  if (days <= 0) return 'hoje'
+  if (days === 1) return 'ontem'
+  if (days < 7) return `há ${days} dias`
+  if (days < 30) return `há ${Math.floor(days / 7)} semanas`
+  return `há ${Math.floor(days / 30)} meses`
+}
+
+function pctOfScore(score) {
+  if (typeof score !== 'number' || Number.isNaN(score)) return null
+  return Math.max(0, Math.min(100, Math.round(score * 100)))
+}
+
+function formatDateTime(iso) {
+  const t = Date.parse(iso || '')
+  if (!t) return ''
+  return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
+
 // ─── HOMEPAGE ─────────────────────────────────────────────────────
 
 export default function Homepage() {
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useTheme()
 
   const [email, setEmail] = useState('')
   const [profile, setProfile] = useState(null)
-  const [summary, setSummary] = useState(null)
   const [goals, setGoals] = useState([])
-  const [view, setView] = useState('home') // home | social | roadmap | phase | task | result | achievements | profile | settings
-  const [lastTab, setLastTab] = useState('home')
+  const [view, setView] = useState('home') // home | roadmap | phase | task | result | profile | social | achievements | settings
   const [input, setInput] = useState('')
   const [curGoal, setCurGoal] = useState(null)
   const [topics, setTopics] = useState([])
@@ -183,11 +155,6 @@ export default function Homepage() {
   const [completed, setCompleted] = useState([])
   const [selNode, setSelNode] = useState(null)
   const [task, setTask] = useState(null)
-  const [taskNode, setTaskNode] = useState(null)
-  const [answers, setAnswers] = useState({})
-  const [essay, setEssay] = useState('')
-  const [result, setResult] = useState(null)
-  const [correction, setCorrection] = useState(null)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
   const [initDone, setInitDone] = useState(false)
@@ -196,9 +163,12 @@ export default function Homepage() {
   const [deletingGoal, setDeletingGoal] = useState(null)
   const [attempts, setAttempts] = useState([])
   const [selPhase, setSelPhase] = useState(null) // etapa aberta na view 'phase'
+  const [daily, setDaily] = useState(null) // resumo do dia (meta, streak, revisão)
   const pathRef = useRef(null) // área rolável do caminho (trilha)
 
-  // social
+  // Social: lista de amigos, busca por e-mail/username e o estado da
+  // requisição em andamento. A aba social veio do upstream; o estado mora
+  // aqui para conviver com a lista de objetivos do design local.
   const [friends, setFriends] = useState([])
   const [friendQuery, setFriendQuery] = useState('')
   const [candidates, setCandidates] = useState([])
@@ -206,8 +176,22 @@ export default function Homepage() {
   const [socialErr, setSocialErr] = useState('')
   const [pendingFriend, setPendingFriend] = useState('')
 
-  // sino de notificações
-  const [notifOpen, setNotifOpen] = useState(false)
+  // O que está em andamento agora: objetivo sendo aberto ou atividade
+  // sendo montada. É o que permite mostrar o spinner no item exato
+  // que o usuário clicou (e não um aviso genérico no topo da tela).
+  const [busyGoalId, setBusyGoalId] = useState(null)
+  const [busyLessonId, setBusyLessonId] = useState(null)
+
+  // A trilha está sendo montada pela IA. Separado do `loading` geral
+  // (que também cobre salvar, excluir, upload…) para o aviso de
+  // "montando" só aparecer quando é isso mesmo que está acontecendo.
+  const [trackBusy, setTrackBusy] = useState(false)
+
+  // A view atual, sempre atualizada. Montar uma trilha ou uma
+  // atividade leva minutos: se o usuário navegar para outra tela
+  // enquanto isso, a resposta não deve trocar a tela dele na cara.
+  const viewRef = useRef(view)
+  viewRef.current = view
 
   const username = profile?.username || email?.split('@')[0] || ''
 
@@ -245,15 +229,13 @@ export default function Homepage() {
         const g = await listGoals()
         if (!cancelled) setGoals(byRecency(g))
       } catch { /* ignore */ }
-      // Histórico inteiro (e não só os 6 últimos): o calendário e o streak
-      // precisam saber em quantos dias distintos a pessoa estudou.
       try {
         const a = await listAttemptsByUser()
-        if (!cancelled) setAttempts(sa(a))
+        if (!cancelled) setAttempts(sa(a).slice(0, 6))
       } catch { /* ignore */ }
       try {
-        const s = await getProgressSummary()
-        if (!cancelled) setSummary(s)
+        const d = await getDaily()
+        if (!cancelled) setDaily(d)
       } catch { /* ignore */ }
       try {
         const f = await listFriends()
@@ -267,73 +249,333 @@ export default function Homepage() {
     return () => { cancelled = true }
   }, [navigate])
 
-  // ── streaks, calendário, conquistas e notificações ──
-  //
-  // Tudo isso é DERIVADO dos dados que já temos no cliente. Não existe
-  // endpoint de conquistas nem de notificações no backend, e não deve
-  // existir: são consequência de usar o app. O resumo do backend entra
-  // como fonte dos números agregados (nível/XP/masteria) e o histórico
-  // de tentativas responde "qual dia".
-  const insights = useMemo(() => {
-    const counts = activityByDay(attempts)
-    const streak = currentStreak(counts)
-    const best = longestStreak(counts)
-    const days = activeDays(counts)
-
-    const base = {
-      xp: summary?.xp ?? profile?.xp ?? 0,
-      level: summary?.level ?? profile?.level ?? 1,
-      goals: goals.length,
-      streak,
-      bestStreak: best,
-      activeDays: days,
-      activities: attempts.length,
-      mastered: summary?.topics?.mastered || 0,
-      friends: friends.length,
-      achievements: 0,
-    }
-
-    // "Coleção completa" conta as outras, então resolve antes de avaliar.
-    const others = ACHIEVEMENTS.filter(a => a.id !== 'all_of_them' && a.test(base)).length
-    const achievements = evaluateAchievements({ ...base, achievements: others })
-
-    return {
-      counts,
-      streak,
-      best,
-      days,
-      achievements,
-      unlocked: achievements.filter(a => a.unlocked).length,
-      calendar: buildCalendar(counts, 12),
-      attemptsDone: summary?.tasks?.done ?? completed.length,
-      friends: friends.length,
-      avgScore: summary?.attempts?.average_score ?? null,
-      topicsDone: summary?.topics?.mastered ?? 0,
-      topicsTotal: summary?.topics?.total ?? 0,
-      xp: base.xp,
-      level: summary?.level ?? profile?.level ?? 1,
-      xpMissing: summary?.xp_missing ?? Math.max(0, XP_STEP - xpInLevel(base.xp)),
-      levelPct: summary?.level_pct ?? xpPct(base.xp),
-    }
-  }, [attempts, goals, friends, profile, summary, completed.length])
-
-  // Notificações: o conjunto derivado vira lista persistida (o sino mostra
-  // o que é novo, uma vez só por evento). O merge é puro no render; só a
-  // gravação acontece no efeito.
-  const [notifications, setNotifications] = useState(() => readNotifications())
-  const unread = unreadCount(notifications)
-
+  // ── animação de chegada no caminho: começa no topo (troféu) e desce até a etapa atual ──
   useEffect(() => {
-    rememberUnlocks(insights.achievements)
-    setNotifications(prev => {
-      const merged = mergeNotifications(prev, [
-        ...achievementEvents(insights.achievements),
-        ...streakEvents(insights.best),
-        ...friendEvents(friends),
-      ])
-      return merged === prev ? prev : persistNotifications(merged)
-    })
-  }, [insights.achievements, insights.best, friends])
+    if (view !== 'roadmap') return
+    const el = pathRef.current
+    if (!el) return
+
+    const phases = buildPhases(topics, deps, completed)
+    const curIdx = Math.max(0, phases.findIndex(f => f.current))
+    const N = phases.length
+
+    el.scrollTop = 0 // começa olhando o destino
+    const t = setTimeout(() => {
+      const y = pathY(curIdx, N)
+      el.scrollTo({ top: Math.max(0, y - el.clientHeight * 0.55), behavior: 'smooth' })
+    }, 550)
+    return () => clearTimeout(t)
+  }, [view, topics, completed, deps])
+
+  // ── criar goal + gerar roadmap ──
+  async function handleSend() {
+    if (!input.trim() || loading) return
+    setErr('')
+    setLoading(true)
+    setTrackBusy(true)
+    try {
+      const goal = await createGoal(input.trim(), {})
+
+      // O objetivo entra na lista antes da geração: se a IA falhar, o
+      // objetivo continua salvo e pode ser aberto depois (a abertura
+      // tenta gerar a trilha de novo).
+      setGoals(prev => (prev.some(g => g.id === goal.id) ? prev : [goal, ...prev]))
+
+      const roadmap = await generateRoadmap(goal.id)
+      const rawTopics = sa(roadmap?.topics)
+
+      if (rawTopics.length === 0) {
+        setErr('Não foi possível gerar a trilha (nenhum tópico retornado). Tente novamente.')
+        return
+      }
+
+      setCurGoal(goal)
+      setTopics(rawTopics)
+      setDeps(sa(roadmap?.dependencies))
+      setCompleted(completedFromProgress(roadmap))
+      setSelNode(null)
+      setSelPhase(null)
+      // se o usuário mudou de tela enquanto a trilha era montada, não
+      // puxamos ele de volta para a trilha
+      if (viewRef.current === 'home') setView('roadmap')
+      setInput('')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível criar a trilha. Tente novamente.'))
+    } finally {
+      setLoading(false)
+      setTrackBusy(false)
+    }
+  }
+
+  // ── abrir trilha de goal existente ──
+  async function handleOpenGoal(goal) {
+    if (loading) return
+    setErr('')
+    setLoading(true)
+    setBusyGoalId(goal.id)
+    setTrackBusy(true)
+    try {
+      let roadmap = null
+
+      try {
+        roadmap = await getRoadmap(goal.id)
+      } catch {
+        roadmap = null
+      }
+
+      // O GET responde 200 mesmo quando o objetivo ainda não tem trilha
+      // (por exemplo, quando a geração falhou no momento em que o
+      // objetivo foi criado). Nesse caso pedimos a geração: o backend
+      // devolve a trilha existente se ela já existir, então é seguro
+      // chamar sempre que a leitura vier vazia.
+      if (!sa(roadmap?.topics).length) {
+        roadmap = await generateRoadmap(goal.id)
+      }
+
+      const rawTopics = sa(roadmap?.topics)
+      if (rawTopics.length === 0) {
+        setErr('Não foi possível carregar a trilha (nenhum tópico retornado). Tente novamente.')
+        return
+      }
+      setCurGoal(goal)
+      setTopics(rawTopics)
+      setDeps(sa(roadmap?.dependencies))
+      setCompleted(completedFromProgress(roadmap))
+      setSelNode(null)
+      setSelPhase(null)
+      // a trilha só ocupa a tela se o usuário ainda estiver na aba
+      if (viewRef.current === 'roadmap') setView('roadmap')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível abrir a trilha. Tente novamente.'))
+    } finally {
+      setLoading(false)
+      setBusyGoalId(null)
+      setTrackBusy(false)
+    }
+  }
+
+  // uma lição já liberada dentro de um módulo → gera a tarefa direto (um clique)
+  async function handleStartLesson(n) {
+    if (n.blocked || loading) return
+    setErr('')
+    setLoading(true)
+    setBusyLessonId(n.id)
+    try {
+      const t = await generateTask(n.id)
+      setTask(t)
+      // se o usuário mudou de tela enquanto a IA montava a atividade,
+      // não voltamos para o player na cara dele
+      if (viewRef.current === 'phase') setView('task')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível iniciar a atividade. Tente novamente.'))
+    } finally {
+      setLoading(false)
+      setBusyLessonId(null)
+    }
+  }
+
+  // ── Treino: sessão com os exercícios errados e os vencidos na revisão ──
+  async function handlePractice() {
+    if (loading) return
+    setErr('')
+    setLoading(true)
+    try {
+      const t = await createPractice(null, 10)
+      setTask(t)
+      setView('task')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível montar o treino. Tente novamente.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Revisão: exercícios que já venceram o intervalo de repetição ──
+  async function handleReview() {
+    if (loading) return
+    setErr('')
+    setLoading(true)
+    try {
+      const t = await createReview(10)
+      setTask(t)
+      setView('task')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível montar a revisão. Tente novamente.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── conclusão de uma sessão: a trilha é recarregada do servidor ──
+  //
+  // O progresso do tópico (maestria, status) é gravado pelo backend no
+  // finish da sessão; aqui só recarregamos a trilha para refletir o
+  // estado novo sem depender de cache local.
+  //
+  // Sem esta recarga, a tela continuaria mostrando a trilha como estava
+  // antes da sessão: o progresso zerado e as lições concluídas sem o
+  // check — mesmo com o dado já gravado no banco.
+  async function reloadRoadmap() {
+    if (!curGoal) return
+    try {
+      const roadmap = await getRoadmap(curGoal.id)
+      const rawTopics = sa(roadmap?.topics)
+      if (rawTopics.length === 0) return
+      const rawDeps = sa(roadmap?.dependencies)
+      const done = completedFromProgress(roadmap)
+      setTopics(rawTopics)
+      setDeps(rawDeps)
+      setCompleted(done)
+      // A etapa aberta é um retrato do momento em que ela foi aberta:
+      // recria com os dados novos para que as lições concluídas apareçam
+      // com o check e o contador do módulo esteja atualizado.
+      setSelPhase(prev => {
+        if (!prev) return prev
+        return buildPhases(rawTopics, rawDeps, done).find(p => p.key === prev.key) || prev
+      })
+    } catch { /* ignore */ }
+  }
+
+  // ── a sessão terminou: atualiza a trilha, o perfil e o resumo do dia ──
+  async function handleSessionFinish() {
+    await reloadRoadmap()
+    try {
+      const p = await getProfile()
+      if (p) setProfile(p)
+    } catch { /* ignore */ }
+    try {
+      const d = await getDaily()
+      if (d) setDaily(d)
+    } catch { /* ignore */ }
+    // Volta para o módulo de onde a sessão saiu (aí o usuário vê a lição
+    // concluída) ou, na falta dele, para a trilha.
+    setView(selPhase ? 'phase' : curGoal ? 'roadmap' : 'home')
+  }
+
+  // ── CRUD de goals ──
+  function handleLogout() {
+    apiLogout()
+    navigate('/auth/login')
+  }
+
+  // ── navegação principal (ícones / barra inferior) ──
+  // A aba "Trilha" sempre abre a view de trilha: sem trilha selecionada ela
+  // mostra as trilhas recentes do usuário, então não precisa cair no Início.
+  function openRoadmap() {
+    setErr('')
+    setView('roadmap')
+  }
+
+  function handleNav(key) {
+    setErr('')
+    if (key === 'roadmap') openRoadmap()
+    else setView(key)
+  }
+
+  async function handleUpdateGoal() {
+    if (!editingGoal || !editInput.trim() || loading) return
+    setErr('')
+    setLoading(true)
+    try {
+      await updateGoal(editingGoal.id, editInput.trim(), editingGoal.settings || {})
+      setGoals(prev => prev.map(g => (g.id === editingGoal.id ? { ...g, title: editInput.trim() } : g)))
+      setEditingGoal(null)
+      setEditInput('')
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível atualizar o objetivo. Tente novamente.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDeleteGoal(goal) {
+    if (loading) return
+    setErr('')
+    setLoading(true)
+    try {
+      await deleteGoal(goal.id)
+      setGoals(prev => prev.filter(g => g.id !== goal.id))
+      if (curGoal?.id === goal.id) {
+        setCurGoal(null)
+        setTopics([])
+        setDeps([])
+        setCompleted([])
+        // A view da trilha já trata "sem trilha aberta" mostrando as
+        // recentes, então não precisa saltar para o Início.
+        setView('roadmap')
+      }
+      setDeletingGoal(null)
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível excluir o objetivo. Tente novamente.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── avatar ──
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      setErr('Tipo não permitido. Use PNG, JPG, GIF ou WebP.')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErr('O arquivo deve ter no máximo 10MB.')
+      return
+    }
+    setErr('')
+    setLoading(true)
+    try {
+      const data = await uploadAvatar(file)
+      if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
+    } catch (e) {
+      setErr(userMessage(e, 'Não foi possível enviar a imagem. Tente novamente.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── SOCIAL ──
+  // Depois de adicionar/remover, recarrega a lista em vez de usar o
+  // retorno do POST: a resposta do POST só traz o vínculo NewlyAdded, sem
+  // avatar/nível/streak, e a tela precisa mostrar o perfil público inteiro.
+  async function refreshFriends() {
+    try {
+      setFriends(sa(await listFriends()))
+    } catch { /* ignore */ }
+  }
+
+  async function handleAddFriend(query) {
+    const term = String(query || '').trim()
+    if (!term || pendingFriend) return
+    setSocialErr('')
+    setPendingFriend(term)
+    try {
+      await addFriend(term)
+      await refreshFriends()
+      setCandidates(prev => prev.map(c => (c.is_friend ? { ...c, is_friend: true } : c)))
+    } catch (e) {
+      setSocialErr(userMessage(e, 'Não foi possível adicionar o amigo.'))
+    } finally {
+      setPendingFriend('')
+    }
+  }
+
+  async function handleRemoveFriend(friend) {
+    if (pendingFriend) return
+    setSocialErr('')
+    setPendingFriend(friend.friend_id)
+    try {
+      await removeFriend(friend.friend_id)
+      setFriends(prev => prev.filter(f => f.friend_id !== friend.friend_id))
+    } catch (e) {
+      setSocialErr(userMessage(e, 'Não foi possível remover o amigo.'))
+    } finally {
+      setPendingFriend('')
+    }
+  }
 
   // Busca de amigos com debounce: o backend já limita a consulta, mas
   // digitar não deve virar uma request por tecla.
@@ -359,324 +601,6 @@ export default function Homepage() {
     return () => { cancelled = true; clearTimeout(t) }
   }, [friendQuery])
 
-  // ── animação de chegada no caminho: começa no topo (troféu) e desce até a etapa atual ──
-  useEffect(() => {
-    if (view !== 'roadmap') return
-    const el = pathRef.current
-    if (!el) return
-
-    const phases = buildPhases(topics, deps, completed)
-    const curIdx = Math.max(0, phases.findIndex(f => f.current))
-    const N = phases.length
-
-    el.scrollTop = 0 // começa olhando o destino
-    const t = setTimeout(() => {
-      const y = pathY(curIdx, N)
-      el.scrollTo({ top: Math.max(0, y - el.clientHeight * 0.55), behavior: 'smooth' })
-    }, 550)
-    return () => clearTimeout(t)
-  }, [view, topics, completed, deps])
-
-  // ── criar goal + gerar roadmap ──
-  async function handleSend() {
-    if (!input.trim() || loading) return
-    setErr('')
-    setLoading(true)
-    try {
-      const goal = await createGoal(input.trim(), {})
-      const roadmap = await generateRoadmap(goal.id)
-      const rawTopics = sa(roadmap?.topics)
-
-      setGoals(prev => (prev.some(g => g.id === goal.id) ? prev : [goal, ...prev]))
-
-      if (rawTopics.length === 0) {
-        setErr('Não foi possível gerar a trilha (nenhum tópico retornado). Tente novamente.')
-        return
-      }
-
-      setCurGoal(goal)
-      setTopics(rawTopics)
-      setDeps(sa(roadmap?.dependencies))
-      setCompleted(completedFromProgress(roadmap))
-      setSelNode(null)
-      setSelPhase(null)
-      setView('roadmap')
-      setInput('')
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── abrir trilha de goal existente ──
-  async function handleOpenGoal(goal) {
-    if (loading) return
-    setErr('')
-    setLoading(true)
-    try {
-      let roadmap
-      try {
-        roadmap = await getRoadmap(goal.id)
-      } catch {
-        roadmap = await generateRoadmap(goal.id)
-      }
-      const rawTopics = sa(roadmap?.topics)
-      if (rawTopics.length === 0) {
-        setErr('Não foi possível carregar a trilha (nenhum tópico retornado). Tente novamente.')
-        return
-      }
-      setCurGoal(goal)
-      setTopics(rawTopics)
-      setDeps(sa(roadmap?.dependencies))
-      setCompleted(completedFromProgress(roadmap))
-      setSelNode(null)
-      setSelPhase(null)
-      setView('roadmap')
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // uma lição já liberada dentro de um módulo → gera a tarefa direto (um clique)
-  async function handleStartLesson(n) {
-    if (n.blocked || loading) return
-    setErr('')
-    setLoading(true)
-    try {
-      const t = await generateTask(n.id)
-      setTask(t)
-      setTaskNode(n)
-      setAnswers({})
-      setEssay('')
-      setResult(null)
-      setCorrection(null)
-      setView('task')
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── submeter resposta ──
-  async function handleSubmit() {
-    if (!task || loading) return
-    setErr('')
-    setLoading(true)
-    setCorrection(null)
-    try {
-      const isQuiz = task.type === 'quiz'
-      const content = task.content || {}
-      const questions = sa(content.questions)
-      let response
-
-      if (isQuiz) {
-        response = Object.entries(answers).map(([qi, ans]) => ({ question_index: parseInt(qi, 10), answer: ans }))
-        if (response.length < questions.length) {
-          setErr('Responda todas as perguntas.')
-          setLoading(false)
-          return
-        }
-      } else {
-        response = essay.trim()
-        const words = response.split(/\s+/).filter(Boolean).length
-        if (words < (content.min_words || 0)) {
-          setErr(`Mínimo de ${content.min_words} palavras.`)
-          setLoading(false)
-          return
-        }
-      }
-
-      const data = await submitAttempt(task.id, task.type, response)
-      setResult(data)
-
-      const attempt = data.task_attempt || data
-      const score = typeof attempt.score === 'number' ? attempt.score : 0
-      const requiredMastery = taskNode?.required_mastery ?? 0.7
-      const topicId = task.topic_id || taskNode?.id
-      const mastered = score >= requiredMastery
-
-      if (topicId && mastered) {
-        setCompleted(prev => (prev.includes(topicId) ? prev : [...prev, topicId]))
-      }
-
-      setView('result')
-
-      const attemptId = attempt.id
-      if (attemptId) {
-        try {
-          const corr = await generateCorrection(attemptId, task.type)
-          setCorrection(corr)
-        } catch { /* ignore */ }
-      }
-
-      // O XP é concedido pelo backend no Submit. Aqui só recarregamos o
-      // perfil para refletir o valor novo: calcular e enviar de novo
-      // somava o mesmo XP duas vezes em toda tentativa dominada.
-      if (mastered) {
-        try {
-          const updatedProfile = await getProfile()
-          if (updatedProfile) setProfile(updatedProfile)
-        } catch { /* ignore */ }
-      }
-
-      // O histórico e o resumo são a fonte do calendário, do streak e das
-      // conquistas — sem recarregar, a pessoa estuda e a tela não muda.
-      try {
-        setAttempts(sa(await listAttemptsByUser()))
-      } catch { /* ignore */ }
-      try {
-        setSummary(await getProgressSummary())
-      } catch { /* ignore */ }
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── CRUD de goals ──
-  function handleLogout() {
-    apiLogout()
-    navigate('/auth/login')
-  }
-
-  // ── navegação principal (ícones / barra inferior) ──
-  // A aba "Trilha" sempre abre a view de trilha: sem trilha selecionada ela
-  // mostra as trilhas recentes do usuário, então não precisa cair no Início.
-  function openRoadmap() {
-    setErr('')
-    setView('roadmap')
-  }
-
-  function handleNav(key) {
-    setErr('')
-    setSocialErr('')
-    setNotifOpen(false)
-    setLastTab(key)
-    if (key === 'roadmap') openRoadmap()
-    else setView(key)
-  }
-
-  // ── social ──
-
-  // Depois de adicionar/remover, recarrega a lista em vez de usar o
-  // retorno do POST: a resposta do POST só traz o vínculo NewlyAdded, sem
-  // avatar/nível/streak, e a tela precisa mostrar o perfil público inteiro.
-  async function refreshFriends() {
-    try {
-      setFriends(sa(await listFriends()))
-    } catch { /* ignore */ }
-  }
-
-  async function handleAddFriend(query) {
-    const term = String(query || '').trim()
-    if (!term || pendingFriend) return
-    setSocialErr('')
-    setPendingFriend(term)
-    try {
-      await addFriend(term)
-      await refreshFriends()
-      setCandidates(prev => prev.map(c => (c.is_friend ? { ...c, is_friend: true } : c)))
-    } catch (e) {
-      setSocialErr(e.message)
-    } finally {
-      setPendingFriend('')
-    }
-  }
-
-  async function handleRemoveFriend(friend) {
-    if (pendingFriend) return
-    setSocialErr('')
-    setPendingFriend(friend.friend_id)
-    try {
-      await removeFriend(friend.friend_id)
-      setFriends(prev => prev.filter(f => f.friend_id !== friend.friend_id))
-    } catch (e) {
-      setSocialErr(e.message)
-    } finally {
-      setPendingFriend('')
-    }
-  }
-
-  function handleOpenBell() {
-    // Abrir já marca como lido: a lista é curta e derivada, esconder as
-    // não lidas atrás de um clique só faria o número nunca cair.
-    setNotifications(prev => {
-      const next = markAllRead(prev)
-      return next === prev ? prev : persistNotifications(next)
-    })
-    setNotifOpen(v => !v)
-  }
-
-  async function handleUpdateGoal() {
-    if (!editingGoal || !editInput.trim() || loading) return
-    setErr('')
-    setLoading(true)
-    try {
-      await updateGoal(editingGoal.id, editInput.trim(), editingGoal.settings || {})
-      setGoals(prev => prev.map(g => (g.id === editingGoal.id ? { ...g, title: editInput.trim() } : g)))
-      setEditingGoal(null)
-      setEditInput('')
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleDeleteGoal(goal) {
-    if (loading) return
-    setErr('')
-    setLoading(true)
-    try {
-      await deleteGoal(goal.id)
-      setGoals(prev => prev.filter(g => g.id !== goal.id))
-      if (curGoal?.id === goal.id) {
-        setCurGoal(null)
-        setTopics([])
-        setDeps([])
-        setCompleted([])
-        // A view da trilha já trata "sem trilha aberta" mostrando as
-        // recentes, então não precisa saltar para o Início.
-        setView('roadmap')
-      }
-      setDeletingGoal(null)
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── avatar ──
-  async function handleAvatarUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
-    if (!allowed.includes(file.type)) {
-      setErr('Tipo não permitido. Use PNG, JPG, GIF ou WebP.')
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setErr('O arquivo deve ter no máximo 10MB.')
-      return
-    }
-    setErr('')
-    setLoading(true)
-    try {
-      const data = await uploadAvatar(file)
-      if (data?.avatar_url) setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }))
-    } catch (e) {
-      setErr(msgDeErro(e))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // ── LOADING ──
   if (!initDone) {
     return (
@@ -688,42 +612,122 @@ export default function Homepage() {
   }
 
   // a aba "Trilha" continua ativa nas views que fazem parte do caminho
-  const navActive = ['phase', 'task', 'result'].includes(view) ? 'roadmap' : view
+  const navActive = ['phase', 'task'].includes(view) ? 'roadmap' : view
   const goBack = {
     phase: () => setView('roadmap'),
-    task: () => setView('roadmap'),
-    result: () => setView('roadmap'),
-    social: () => setView('home'),
+    task: () => setView(curGoal ? 'roadmap' : 'home'),
     profile: () => setView('home'),
+    social: () => setView('home'),
     achievements: () => setView('home'),
-    settings: () => setView(lastTab === 'settings' ? 'home' : lastTab),
+    settings: () => setView('home'),
   }[view]
 
-  // O cabeçalho global some na trilha: lá quem manda é o cabeçalho interno
-  // do caminho, e a logo + sino + engrenagem só roubariam altura útil.
-  const showTopbar = !TRACK_VIEWS.includes(view)
+  // O player é uma tela focada: sem rail, sem tabbar e sem o cabeçalho
+  // do app. É o que separa a sessão do resto da navegação e deixa o
+  // exercício ser o único foco na tela.
+  if (view === 'task' && task) {
+    return (
+      <div className="mp mp--player">
+        <LessonPlayer
+          task={task}
+          err={err}
+          onExit={async () => {
+            setErr('')
+            // A sessão pode ter sido encerrada antes (o botão de sair
+            // aparece no resumo): recarrega a trilha para não voltar
+            // com um estado velho.
+            await reloadRoadmap()
+            setView(selPhase ? 'phase' : curGoal ? 'roadmap' : 'home')
+          }}
+          onFinish={handleSessionFinish}
+        />
+      </div>
+    )
+  }
 
   return (
     <AppShell
       active={navActive}
       onNavigate={handleNav}
       onBack={goBack}
-      showTopbar={showTopbar}
       profile={profile}
       username={username}
       email={email}
       onLogout={handleLogout}
-      onOpenSettings={() => { setLastTab(view); setErr(''); setView('settings') }}
-      onOpenBell={handleOpenBell}
-      notifOpen={notifOpen}
-      unread={unread}
-      notifications={notifications}
+      theme={theme}
+      onToggleTheme={toggleTheme}
     >
       {view === 'home' && (
         <HomeView
+          username={username}
+          profile={profile}
+          goals={goals}
           attempts={attempts}
-          insights={insights}
-          onGoRoadmap={() => handleNav('roadmap')}
+          daily={daily}
+          input={input}
+          setInput={setInput}
+          err={err}
+          loading={loading}
+          trackBusy={trackBusy}
+          onSend={handleSend}
+          onPractice={handlePractice}
+          onReview={handleReview}
+        />
+      )}
+
+      {view === 'roadmap' && (
+        curGoal && topics.length > 0 ? (
+          <PathView
+            curGoal={curGoal}
+            topics={topics}
+            deps={deps}
+            completed={completed}
+            goals={goals}
+            loading={loading}
+            trackBusy={trackBusy}
+            busyGoalId={busyGoalId}
+            err={err}
+            pathRef={pathRef}
+            onOpenGoal={handleOpenGoal}
+            onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
+            onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
+            onOpenPhase={(ph) => { setErr(''); setSelPhase(ph); setView('phase') }}
+          />
+        ) : (
+          <RecentTracksView
+            goals={goals}
+            loading={loading}
+            trackBusy={trackBusy}
+            busyGoalId={busyGoalId}
+            err={err}
+            onOpenGoal={handleOpenGoal}
+            onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
+            onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
+          />
+        )
+      )}
+
+      {view === 'phase' && selPhase && (
+        <PhaseView
+          phase={selPhase}
+          completed={completed}
+          selNode={selNode}
+          loading={loading}
+          busyLessonId={busyLessonId}
+          err={err}
+          onBack={() => setView('roadmap')}
+          onLesson={handleStartLesson}
+        />
+      )}
+
+      {view === 'profile' && (
+        <ProfileView
+          profile={profile}
+          username={username}
+          email={email}
+          loading={loading}
+          err={err}
+          onUpload={handleAvatarUpload}
         />
       )}
 
@@ -741,99 +745,8 @@ export default function Homepage() {
         />
       )}
 
-      {view === 'roadmap' && (
-        curGoal && topics.length > 0 ? (
-          <PathView
-            curGoal={curGoal}
-            topics={topics}
-            deps={deps}
-            completed={completed}
-            goals={goals}
-            loading={loading}
-            err={err}
-            pathRef={pathRef}
-            onOpenGoal={handleOpenGoal}
-            onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
-            onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
-            onOpenPhase={(ph) => { setErr(''); setSelPhase(ph); setView('phase') }}
-            onBackToList={() => {
-              setErr('')
-              setCurGoal(null)
-              setTopics([])
-              setDeps([])
-              setCompleted([])
-              setView('roadmap')
-            }}
-          />
-        ) : (
-          <RecentTracksView
-            goals={goals}
-            loading={loading}
-            err={err}
-            input={input}
-            setInput={setInput}
-            onSend={handleSend}
-            onOpenGoal={handleOpenGoal}
-            onEditGoal={g => { setErr(''); setEditingGoal(g); setEditInput(g.title) }}
-            onDeleteGoal={g => { setErr(''); setDeletingGoal(g) }}
-          />
-        )
-      )}
-
-      {view === 'phase' && selPhase && (
-        <PhaseView
-          phase={selPhase}
-          completed={completed}
-          selNode={selNode}
-          loading={loading}
-          err={err}
-          onBack={() => setView('roadmap')}
-          onLesson={handleStartLesson}
-        />
-      )}
-
-      {view === 'task' && task && (
-        <TaskView
-          task={task}
-          answers={answers}
-          setAnswers={setAnswers}
-          essay={essay}
-          setEssay={setEssay}
-          loading={loading}
-          err={err}
-          onSubmit={handleSubmit}
-        />
-      )}
-
-      {view === 'result' && result && (
-        <ResultView
-          result={result}
-          task={task}
-          taskNode={taskNode}
-          correction={correction}
-          onRetry={() => { setView('task'); setAnswers({}); setEssay(''); setResult(null); setErr('') }}
-          onNext={() => { setErr(''); setView('roadmap') }}
-        />
-      )}
-
-      {view === 'profile' && (
-        <ProfileView
-          profile={profile}
-          summary={summary}
-          username={username}
-          email={email}
-          friends={friends}
-          insights={insights}
-          loading={loading}
-          err={err}
-          onUpload={handleAvatarUpload}
-          onGoSocial={() => handleNav('social')}
-          onGoAchievements={() => handleNav('achievements')}
-        />
-      )}
-
       {view === 'achievements' && (
-        <AchievementsView achievements={insights.achievements} unlocked={insights.unlocked} />
+        <AchievementsView profile={profile} goalsCount={goals.length} />
       )}
 
       {view === 'settings' && (
@@ -841,16 +754,12 @@ export default function Homepage() {
           profile={profile}
           username={username}
           email={email}
-          insights={insights}
-          onProfile={() => { setLastTab('settings'); setView('profile') }}
-          onAchievements={() => { setLastTab('settings'); setView('achievements') }}
-          onSocial={() => { setLastTab('settings'); setView('social') }}
+          onProfile={() => setView('profile')}
+          onAchievements={() => setView('achievements')}
           onHistory={() => navigate('/history')}
           onLogout={handleLogout}
-          onClearLocal={() => {
-            resetAchievementDates()
-            setNotifications(persistNotifications(markAllRead([])))
-          }}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
 
@@ -908,113 +817,88 @@ export default function Homepage() {
 
 // ─── VIEWS ────────────────────────────────────────────────────────
 
-function HomeView({ insights, attempts, onGoRoadmap }) {
-  const recent = sa(attempts).slice(0, 5)
-  const activeToday = !!insights.counts[todayKey()]
+function HomeView({ username, profile, goals, attempts, daily, input, setInput, err, loading, trackBusy, onSend, onPractice, onReview }) {
+  const level = profile?.level || 1
+  const xp = profile?.xp || 0
 
   return (
     <div className="mp-canvas">
       <div className="mp-home">
-        {/* 1. sequência + mapa de calor dos últimos 5 dias */}
-        <StreakCard insights={insights} />
+        {/* ── meta de hoje + atalhos de treino/revisão ── */}
+        <TodayCard
+          daily={daily}
+          profile={profile}
+          onPractice={onPractice}
+          onReview={onReview}
+          busy={loading}
+        />
 
-        {/* 2. última atividade (o "Resumo" saiu) */}
-        <section>
-          <div className="mp-h" style={{ marginBottom: 12 }}>
-            <IconHistory /> Última atividade
-            <HistoryLink />
+        {/* ── composer ── */}
+        <section className="mp-hero">
+          <div className="mp-hero__head">
+            <div className="mp-hero__badge"><IconSpark size={24} /></div>
+            <div style={{ minWidth: 0 }}>
+              <h1 className="mp-display">O que você quer aprender hoje?</h1>
+              <p className="mp-muted" style={{ marginTop: 4 }}>
+                {username ? `Bom te ver, ${username}. ` : ''}Descreva um objetivo e a trilha é montada na hora.
+              </p>
+            </div>
           </div>
 
-          {recent.length === 0 ? (
-            <button type="button" onClick={onGoRoadmap} className="mp-empty mp-empty--action">
-              <IconPath />
-              Nenhuma atividade ainda. Abra uma trilha para a sua primeira atividade aparecer aqui.
+          <textarea
+            className="mp-input"
+            value={input}
+            onChange={e => { setInput(e.target.value) }}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onSend() } }}
+            placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
+            rows={3}
+          />
+
+          {err && <Alert>{err}</Alert>}
+
+          <div className="mp-cta">
+            <button type="button" onClick={onSend} disabled={!input.trim() || loading} className="mp-btn">
+              {loading ? <><Spinner /> Montando a trilha…</> : <>Gerar trilha <IconArrowRight /></>}
             </button>
-          ) : (
-            <div className="mp-attempts">
-              {recent.map(a => <AttemptRow key={a.id} attempt={a} />)}
-            </div>
+          </div>
+
+          {trackBusy && (
+            <Busy
+              style={{ marginTop: 14 }}
+              title="Montando as etapas da sua trilha…"
+              hint="A IA está criando os módulos e as dependências. Pode levar até 2 minutos."
+            />
           )}
         </section>
 
-        {/* Os atalhos saíram daqui: Início é sequência + histórico, e o
-           resto (Trilha, Social, Conquistas, Perfil) já vive no rail. */}
+        {/* ── números ── */}
+        <section className="mp-stats">
+          <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
+          <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
+          <StatCard tone="green" ico={<IconTarget />} v={goals.length} l="Objetivos" />
+          <StatCard tone="violet" ico={<Ring value={xpPct(xp)} />} v={`${xpPct(xp)}%`} l={`Faltam ${Math.max(0, XP_STEP - xpInLevel(xp))} XP`} />
+        </section>
 
-        {!activeToday && insights.days > 0 && (
-          <Alert tone="info" style={{ marginTop: 0 }}>
-            Você ainda não estudou hoje. Uma atividade qualquer já mantém sua sequência.
-          </Alert>
-        )}
+        {/* ── histórico ── */}
+        <section>
+          <div className="mp-h" style={{ marginBottom: 12 }}>
+            <IconHistory /> Histórico
+            <HistoryLink />
+          </div>
+
+          {attempts.length === 0 ? (
+            <div className="mp-empty">
+              <IconHistory size={26} />
+              Nenhuma atividade ainda. Faça a primeira atividade de uma trilha para ela aparecer aqui.
+            </div>
+          ) : (
+            <div className="mp-attempts">
+              {attempts.map(a => <AttemptRow key={a.id} attempt={a} />)}
+            </div>
+          )}
+        </section>
       </div>
     </div>
-  )
-}
-
-// ─── CARD DE SEQUÊNCIA ────────────────────────────────────────────
-//
-// Um dia conta como ativo quando existe pelo menos UMA atividade nele.
-// O mapa de calor mostra só os 5 últimos dias (hoje é o último), saindo do
-// mesmo `calendar` que já existia: achata as semanas, descarta os dias
-// futuros e pega os 5 finais.
-function StreakCard({ insights }) {
-  const { streak, best, days, calendar, counts } = insights
-  const recentDays = calendar.flat().filter(d => !d.future).slice(-5)
-  const lastIdx = recentDays.length - 1
-
-  return (
-    <section className="mp-streak">
-      <div className="mp-streak__top">
-        <div className="mp-streak__num">
-          <span className="mp-streak__flame"><IconFlame size={30} /></span>
-          <strong>{streak}</strong>
-          <span className="mp-streak__unit">
-            {streak === 1 ? 'dia seguido' : 'dias seguidos'}
-          </span>
-        </div>
-        <p className="mp-streak__hint">
-          {streak === 0
-            ? (days === 0
-              ? 'Sua sequência começa na primeira atividade de hoje.'
-              : 'Estude hoje para retomar sua sequência.')
-            : (streak === 1
-              ? 'Voltou! Estude mais uma vez hoje para chegar a 2 dias.'
-              : `Mantenha o ritmo: mais ${7 - (streak % 7 || 7)} dias e você bate uma semana.`)}
-        </p>
-      </div>
-
-      <div className="mp-heat">
-        <div className="mp-heat__grid">
-          {recentDays.map((d, i) => (
-            <div key={d.key} className={`mp-heat__d ${i === lastIdx ? 'is-today' : ''}`}>
-              <span
-                className="mp-heat__cell"
-                data-level={heatLevel(d.count)}
-                title={`${d.label} · ${d.count} ${d.count === 1 ? 'atividade' : 'atividades'}`}
-              >
-                {d.count > 0 ? d.count : ''}
-              </span>
-              <span className="mp-heat__lbl">
-                {i === lastIdx ? 'Hoje' : d.date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mp-streak__foot">
-        <div className="mp-streak__stat">
-          <b>{best}</b>
-          <span>Melhor sequência</span>
-        </div>
-        <div className="mp-streak__stat">
-          <b>{days}</b>
-          <span>Dias ativos</span>
-        </div>
-        {!!counts[todayKey()] && (
-          <span className="mp-streak__done"><IconCheck size={14} /> Hoje registrado</span>
-        )}
-      </div>
-    </section>
   )
 }
 
@@ -1052,7 +936,7 @@ function AttemptRow({ attempt }) {
 
 // Trilhas recentes dentro da própria tela da trilha: permite trocar de
 // objetivo sem voltar ao Início. A trilha aberta fica marcada.
-function RecentTracksCard({ goals, currentId, onOpenGoal, onEditGoal, onDeleteGoal }) {
+function RecentTracksCard({ goals, currentId, loading, busyGoalId, onOpenGoal, onEditGoal, onDeleteGoal }) {
   const list = byRecency(goals)
 
   if (list.length <= 1) return null
@@ -1063,18 +947,22 @@ function RecentTracksCard({ goals, currentId, onOpenGoal, onEditGoal, onDeleteGo
       <div className="mp-list">
         {list.map(g => {
           const active = g.id === currentId
+          const busy = busyGoalId === g.id
           return (
             <div key={g.id} className={`mp-listrow mp-listrow--track ${active ? 'is-now' : ''}`}>
               <button
                 type="button"
                 className="mp-listrow__main"
                 onClick={() => { if (!active) onOpenGoal(g) }}
-                disabled={active}
+                disabled={active || loading}
               >
                 <span className="mp-listrow__t">{g.title}</span>
-                <span className="mp-listrow__s">{active ? 'Trilha atual' : relativeDate(g.created_at)}</span>
+                <span className="mp-listrow__s">
+                  {busy ? 'Montando a trilha…' : active ? 'Trilha atual' : relativeDate(g.created_at)}
+                </span>
               </button>
               <span className="mp-listrow__tools">
+                {busy && <Spinner size={14} style={{ marginRight: 4 }} />}
                 <button
                   type="button"
                   className="mp-goal__tool"
@@ -1100,14 +988,21 @@ function RecentTracksCard({ goals, currentId, onOpenGoal, onEditGoal, onDeleteGo
   )
 }
 
-function GoalCard({ goal, onOpen, onEdit, onDelete }) {
+function GoalCard({ goal, busy, loading, onOpen, onEdit, onDelete }) {
   const s = goal.settings && typeof goal.settings === 'object' && !Array.isArray(goal.settings) ? goal.settings : {}
   const raw = goal.progress_pct ?? s.progress_pct
   const pct = typeof raw === 'number' ? Math.max(0, Math.min(100, Math.round(raw))) : null
 
   return (
-    <div className="mp-goal">
-      <button type="button" onClick={onOpen} className="mp-goal__open" aria-label={goal.title}>
+    <div className={`mp-goal ${loading ? 'is-loading' : ''}`}>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mp-goal__open"
+        aria-label={goal.title}
+        aria-busy={loading || undefined}
+        disabled={busy}
+      >
         <span className="mp-goal__t">{goal.title}</span>
         {goal.description && (
           <span className="mp-faint" style={{ display: 'block', marginTop: 4, lineHeight: 1.45 }}>{goal.description}</span>
@@ -1115,7 +1010,11 @@ function GoalCard({ goal, onOpen, onEdit, onDelete }) {
       </button>
 
       <div className="mp-goal__foot">
-        {pct !== null ? (
+        {loading ? (
+          <span className="mp-goal__n" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Spinner size={14} /> Montando a trilha…
+          </span>
+        ) : pct !== null ? (
           <>
             <span className="mp-goal__bar"><span className="mp-goal__fill" style={{ width: `${pct}%` }} /></span>
             <span className="mp-goal__n">{pct}%</span>
@@ -1128,71 +1027,41 @@ function GoalCard({ goal, onOpen, onEdit, onDelete }) {
       </div>
 
       <div className="mp-goal__tools">
-        <button type="button" className="mp-goal__tool" onClick={onEdit} aria-label="Editar objetivo"><IconEdit /></button>
-        <button type="button" className="mp-goal__tool mp-goal__tool--del" onClick={onDelete} aria-label="Excluir objetivo"><IconTrash /></button>
+        <button type="button" className="mp-goal__tool" onClick={onEdit} aria-label="Editar objetivo" disabled={busy}><IconEdit /></button>
+        <button type="button" className="mp-goal__tool mp-goal__tool--del" onClick={onDelete} aria-label="Excluir objetivo" disabled={busy}><IconTrash /></button>
       </div>
     </div>
   )
 }
 
-// A aba Trilha é a casa da criação: o composer saiu do Início e veio
-// para cá, junto da lista, para o Início ficar só com sequência/resumo.
-function RecentTracksView({ goals, loading, err, input, setInput, onSend, onOpenGoal, onEditGoal, onDeleteGoal }) {
+function RecentTracksView({ goals, loading, trackBusy, busyGoalId, err, onOpenGoal, onEditGoal, onDeleteGoal }) {
   const list = byRecency(goals)
 
   return (
     <div className="mp-canvas">
       <div className="mp-home">
-        <section className="mp-trackbar">
-          <div className="mp-trackbar__head">
-            <span className="mp-trackbar__back"><img className="mp-trackbar__ico" src={trilhaIcon} alt="" draggable={false} /></span>
-            <div style={{ minWidth: 0 }}>
-              <div className="mp-trackbar__t">Minhas trilhas</div>
-              <div className="mp-trackbar__s">Descreva o que quer aprender</div>
-            </div>
-          </div>
-
-          <div className="mp-trackbar__form">
-            <textarea
-              className="mp-input"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ex: Funções do segundo grau, Revolução Francesa..."
-              rows={2}
-              style={{ minHeight: 62 }}
-            />
-            <button
-              type="button"
-              onClick={onSend}
-              disabled={!input.trim() || loading}
-              className="mp-btn mp-btn--sm"
-            >
-              {loading ? <><Spinner /> Montando…</> : <>Gerar <IconArrowRight size={15} /></>}
-            </button>
-          </div>
-
-          {loading && (
-            <div className="mp-building">
-              <span className="mp-dots"><i /><i /><i /></span>
-              Montando as etapas da sua trilha…
-            </div>
-          )}
-        </section>
-
         <section>
           <div className="mp-h" style={{ marginBottom: 4 }}>
             <IconTarget /> Trilhas recentes
           </div>
           <p className="mp-muted" style={{ marginBottom: 16 }}>
-            Retome de onde parou ou comece uma trilha nova aí em cima.
+            Retome de onde parou ou comece uma trilha nova pelo Início.
           </p>
 
           {err && <Alert>{err}</Alert>}
 
+          {trackBusy && (
+            <Busy
+              style={{ marginBottom: 16 }}
+              title="Montando as etapas da sua trilha…"
+              hint="A IA está criando os módulos e as dependências. Pode levar até 2 minutos."
+            />
+          )}
+
           {list.length === 0 ? (
             <div className="mp-empty">
               <IconTarget size={26} />
-              {loading ? 'Carregando suas trilhas…' : 'Nenhuma trilha ainda. Descreva o que você quer aprender acima.'}
+              {loading ? 'Carregando suas trilhas…' : 'Nenhuma trilha ainda. Vá para o Início e descreva o que você quer aprender.'}
             </div>
           ) : (
             <div className="mp-goals">
@@ -1200,6 +1069,8 @@ function RecentTracksView({ goals, loading, err, input, setInput, onSend, onOpen
                 <GoalCard
                   key={g.id}
                   goal={g}
+                  busy={loading}
+                  loading={busyGoalId === g.id}
                   onOpen={() => onOpenGoal(g)}
                   onEdit={() => onEditGoal(g)}
                   onDelete={() => onDeleteGoal(g)}
@@ -1213,7 +1084,7 @@ function RecentTracksView({ goals, loading, err, input, setInput, onSend, onOpen
   )
 }
 
-function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathRef, onOpenGoal, onEditGoal, onDeleteGoal, onOpenPhase, onBackToList }) {
+function PathView({ curGoal, topics, deps, completed, goals, loading, trackBusy, busyGoalId, err, pathRef, onOpenGoal, onEditGoal, onDeleteGoal, onOpenPhase }) {
   const phases = buildPhases(topics, deps, completed)
   const totalLeaves = getAvailable(topics, deps, completed).length
   const doneLeaves = sa(topics).filter(t => completed.includes(t.id)).length
@@ -1238,55 +1109,28 @@ function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathR
     <div className="mp-canvas">
       <div className="mp-trilha">
         <div>
-          {/* Cabeçalho da trilha. Nas telas de trilha o cabeçalho global
-              (logo + sino + engrenagem) não aparece, então este é o único
-              lugar de onde se volta — precisa de voltar e de trocar de
-              trilha. */}
-          <div className="mp-trackbar">
-            <div className="mp-trackbar__head">
-              <span className="mp-trackbar__back"><img className="mp-trackbar__ico" src={trilhaIcon} alt="" draggable={false} /></span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="mp-trackbar__t">{curGoal?.title || 'Sua trilha'}</div>
-                <div className="mp-trackbar__s">Progresso da trilha</div>
-              </div>
-              {goals.length > 1 && (
-                <button
-                  type="button"
-                  onClick={onBackToList}
-                  className="mp-iconbtn"
-                  aria-label="Trocar de trilha"
-                  title="Trocar de trilha"
-                >
-                  <IconList />
-                </button>
-              )}
+          <div className="mp-card mp-card--pad mp-progress" style={{ marginBottom: 18 }}>
+            <div className="mp-progress__top">
+              <span>Progresso da trilha</span>
+              <b>{doneLeaves}/{totalLeaves} · {pct}%</b>
             </div>
-
-            <div className="mp-trackbar__form">
-              <div className="mp-trackbar__form" style={{ display: 'block', width: '100%' }}>
-                <div className="mp-progress__top">
-                  <span>Progresso da trilha</span>
-                  <b>{doneLeaves}/{totalLeaves} · {pct}%</b>
-                </div>
-                <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
-              </div>
-            </div>
+            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
+            {err && <Alert>{err}</Alert>}
           </div>
 
-          {err && <div style={{ marginTop: 14 }}><Alert>{err}</Alert></div>}
-
-          {loading && (
-            <div className="mp-card mp-card--pad" style={{ textAlign: 'center', marginBottom: 18 }}>
-              <Spinner size={26} />
-              <div style={{ fontSize: 13, fontWeight: 800, marginTop: 10 }}>Preparando sua etapa…</div>
-            </div>
+          {trackBusy && (
+            <Busy
+              style={{ marginBottom: 18 }}
+              title="Montando as etapas da sua trilha…"
+              hint="A IA está criando os módulos e as dependências. Pode levar até 2 minutos."
+            />
           )}
 
-          {!loading && N === 0 && (
+          {!trackBusy && N === 0 && (
             <div className="mp-empty">Nenhum tópico disponível nesta trilha.</div>
           )}
 
-          {!loading && N > 0 && (
+          {!trackBusy && N > 0 && (
             <div ref={pathRef} className="mp-path-scroll">
               <div className="mp-path" style={{ height }}>
                 <svg className="mp-path__svg" height={height} viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" aria-hidden>
@@ -1369,6 +1213,8 @@ function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathR
           <RecentTracksCard
             goals={goals}
             currentId={curGoal?.id}
+            loading={loading}
+            busyGoalId={busyGoalId}
             onOpenGoal={onOpenGoal}
             onEditGoal={onEditGoal}
             onDeleteGoal={onDeleteGoal}
@@ -1379,7 +1225,7 @@ function PathView({ curGoal, topics, deps, completed, goals, loading, err, pathR
   )
 }
 
-function PhaseView({ phase, completed, selNode, loading, err, onBack, onLesson }) {
+function PhaseView({ phase, completed, selNode, loading, busyLessonId, err, onBack, onLesson }) {
   const ph = phase
   const done = sa(ph.children).filter(n => completed.includes(n.id)).length
   const pct = ph.children.length ? Math.round((done / ph.children.length) * 100) : 0
@@ -1401,11 +1247,27 @@ function PhaseView({ phase, completed, selNode, loading, err, onBack, onLesson }
           {err && <Alert>{err}</Alert>}
         </section>
 
+        {busyLessonId && (
+          <Busy
+            style={{ marginBottom: 16 }}
+            title="Preparando a atividade…"
+            hint="A IA está montando os exercícios. Pode levar até 2 minutos — não feche a página."
+          />
+        )}
+
         <section>
           <div className="mp-h" style={{ marginBottom: 12 }}><IconBolt /> Lições do módulo</div>
           <div className="mp-lessons">
             {ph.children.map(n => (
-              <LessonRow key={n.id} n={n} done={completed.includes(n.id)} current={selNode?.id === n.id} onClick={() => onLesson(n)} />
+              <LessonRow
+                key={n.id}
+                n={n}
+                done={completed.includes(n.id)}
+                current={selNode?.id === n.id}
+                busy={!!busyLessonId}
+                loading={busyLessonId === n.id}
+                onClick={() => onLesson(n)}
+              />
             ))}
           </div>
         </section>
@@ -1420,205 +1282,25 @@ function PhaseView({ phase, completed, selNode, loading, err, onBack, onLesson }
   )
 }
 
-function TaskView({ task, answers, setAnswers, essay, setEssay, loading, err, onSubmit }) {
-  const isQuiz = task.type === 'quiz'
-  const content = task.content || {}
-  const questions = sa(content.questions)
-  const title = content.title || task.meta?.title || 'Tarefa'
-  const answered = isQuiz ? Object.keys(answers).length : 0
-  const words = essay.trim() ? essay.trim().split(/\s+/).filter(Boolean).length : 0
-  const pct = isQuiz
-    ? (questions.length ? (answered / questions.length) * 100 : 0)
-    : Math.min(100, (words / Math.max(1, content.min_words || 1)) * 100)
-
-  return (
-    <div className="mp-canvas">
-      <div className="mp-task">
-        <div>
-          <div className="mp-h" style={{ marginBottom: 12 }}><IconBolt /> {title}</div>
-
-          {content.description && (
-            <div className="mp-card mp-card--pad" style={{ marginBottom: 16 }}>
-              <p className="mp-muted" style={{ margin: 0 }}>{content.description}</p>
-            </div>
-          )}
-
-          {isQuiz && questions.map((q, qi) => (
-            <div key={qi} className="mp-qcard">
-              <div className="mp-qcard__n">
-                <span className="mp-qnum">{qi + 1}</span>
-                {textMaterials(q.material).length > 0 && (
-                  <span className="mp-tag" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>Material</span>
-                )}
-              </div>
-              {textMaterials(q.material).map((t, mi) => <p key={mi} className="mp-material">{t}</p>)}
-              <p className="mp-qtext">{q.statement || q.question}</p>
-              <div className="mp-opts">
-                {sa(q.options || q.alternatives).map((opt, ai) => (
-                  <button
-                    type="button"
-                    key={ai}
-                    onClick={() => setAnswers(p => ({ ...p, [qi]: ai }))}
-                    className={`mp-opt ${answers[qi] === ai ? 'is-on' : ''}`}
-                  >
-                    <span className="mp-opt__k">{String.fromCharCode(65 + ai)}</span>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {!isQuiz && (
-            <div className="mp-qcard">
-              {textMaterials(content.material).map((t, mi) => <p key={mi} className="mp-material">{t}</p>)}
-              <p className="mp-qtext">{content.instructions}</p>
-              <p className="mp-faint" style={{ marginBottom: 10 }}>
-                {content.min_words}–{content.max_words} palavras
-              </p>
-              <textarea
-                className="mp-input"
-                style={{ minHeight: 260 }}
-                value={essay}
-                onChange={e => { setEssay(e.target.value) }}
-                placeholder="Escreva sua resposta aqui…"
-                rows={12}
-              />
-              <p className="mp-faint" style={{ textAlign: 'right', marginTop: 8 }}>
-                {essay.trim() ? essay.trim().split(/\s+/).filter(Boolean).length : 0} palavras
-              </p>
-            </div>
-          )}
-
-          {err && <Alert>{err}</Alert>}
-        </div>
-
-        <aside className="mp-task__side mp-aside">
-          <div className="mp-card mp-card--pad">
-            <div className="mp-h" style={{ marginBottom: 10 }}>Seu progresso</div>
-            <div className="mp-progress__top">
-              <span>{isQuiz ? 'Respondidas' : 'Palavras'}</span>
-              <b>{isQuiz ? `${answered}/${questions.length}` : `${words}/${content.min_words || 0}`}</b>
-            </div>
-            <div className="mp-track">
-              <div className="mp-track__fill" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-
-          <button type="button" onClick={onSubmit} disabled={loading} className="mp-btn">
-            {loading ? <><Spinner /> Enviando…</> : <>Enviar resposta <IconArrowRight /></>}
-          </button>
-        </aside>
-      </div>
-    </div>
-  )
-}
-
-function ResultView({ result, task, taskNode, correction, onRetry, onNext }) {
-  const attempt = result.task_attempt || result
-  const score = typeof attempt.score === 'number' ? attempt.score : 0
-  const pct = Math.round(score * 100)
-  const tone = score >= 0.7 ? 'var(--green-d)' : score >= 0.4 ? 'var(--amber-d)' : 'var(--red-d)'
-  let ev = null
-  try { ev = typeof attempt.task_evaluation === 'string' ? JSON.parse(attempt.task_evaluation) : attempt.task_evaluation } catch { /* ignore */ }
-  const content = task?.content || {}
-  const questions = sa(content.questions)
-  const requiredMastery = taskNode?.required_mastery ?? 0.7
-  const mastered = score >= requiredMastery
-  const items = sa(ev?.items)
-
-  return (
-    <div className="mp-canvas">
-      <div className="mp-result">
-        <div>
-          <div className="mp-card mp-score">
-            <Ring big value={pct} tone={tone} />
-            <div className="mp-score__t">
-              {mastered ? 'Etapa concluída!' : score >= 0.4 ? 'Bom esforço!' : 'Continue tentando!'}
-            </div>
-            <p className="mp-faint" style={{ textAlign: 'center' }}>
-              {mastered ? 'Você dominou este tópico.' : `É preciso ${Math.round(requiredMastery * 100)}% para liberar a próxima etapa.`}
-            </p>
-          </div>
-
-          <div className="mp-aside" style={{ marginTop: 16 }}>
-            <button type="button" onClick={onRetry} className="mp-btn mp-btn--ghost">Tentar novamente</button>
-            <button type="button" onClick={onNext} className="mp-btn">Próxima etapa <IconArrowRight /></button>
-          </div>
-        </div>
-
-        <div className="mp-aside">
-          {correction && (
-            <div className="mp-ai">
-              <div className="mp-ai__h"><IconSpark /> Feedback da IA</div>
-              {typeof correction === 'string' ? (
-                <p className="mp-ai__b" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{correction}</p>
-              ) : (
-                <>
-                  {correction.summary && <p className="mp-ai__b" style={{ margin: 0 }}>{correction.summary}</p>}
-                  {sa(correction.feedback || correction.comments || correction.items).map((f, i) => (
-                    <div key={i} className="mp-ai__item">
-                      {typeof f === 'string' ? f : (
-                        <>
-                          {f.comment && <div>{f.comment}</div>}
-                          {f.correct === false && <div style={{ color: 'var(--red-d)', fontWeight: 800, marginTop: 4 }}>Correta: {f.correct_answer ?? f.expected}</div>}
-                          {f.explanation && <div style={{ fontStyle: 'italic', opacity: 0.8, marginTop: 4 }}>{f.explanation}</div>}
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <div className="mp-fb">
-              <div className="mp-ai__h" style={{ marginBottom: 14 }}><IconCheck /> Revisão das questões</div>
-              {items.map((item, i) => {
-                const q = questions[i] || {}
-                const opts = sa(q.options || q.alternatives)
-                const ok = item.correct || item.is_correct || false
-                const sub = item.submitted_answer ?? item.selected_answer ?? item.answer
-                const cor = item.correct_answer ?? item.expected_answer
-                return (
-                  <div key={i} className={`mp-fb__row ${ok ? 'mp-fb__row--ok' : 'mp-fb__row--bad'}`}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="mp-fb__q">Questão {i + 1}</div>
-                      {opts[sub] !== undefined && <div className="mp-fb__a">Sua resposta: {opts[sub]}</div>}
-                      {!ok && opts[cor] && <div className="mp-fb__a">Correta: {opts[cor]}</div>}
-                      {item.explanation && <div className="mp-fb__e">{item.explanation}</div>}
-                    </div>
-                    {ok ? <IconCheck color="var(--green-d)" /> : <IconX color="var(--red-d)" />}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {!correction && items.length === 0 && (
-            <div className="mp-empty">Sem feedback disponível para esta tentativa.</div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProfileView({ profile, username, email, friends, insights, loading, err, onUpload, onGoSocial, onGoAchievements }) {
-  const avatar = avatarUrl(profile?.avatar_url)
+function ProfileView({ profile, username, email, loading, err, onUpload }) {
+  const level = profile?.level || 1
+  const xp = profile?.xp || 0
+  const pct = xpPct(xp)
+  const streak = profile?.streak ?? 0
+  const streakDays = profile?.streak_days ?? streak
+  const dailyGoal = profile?.daily_goal_xp || 50
 
   return (
     <div className="mp-canvas">
       <div className="mp-profile">
         <section className="mp-card mp-card--pad" style={{ textAlign: 'center' }}>
           <label className="mp-avatar">
-            {avatar ? (
-              <img src={avatar} alt="avatar" />
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="avatar" />
             ) : (
-              <div className="mp-avatar__fall">{initials(username)}</div>
+              <div className="mp-avatar__fall">{username[0]?.toUpperCase() || '?'}</div>
             )}
-            <span className="mp-avatar__lvl">{insights.level}</span>
+            <span className="mp-avatar__lvl">{level}</span>
             <span className="mp-avatar__edit"><IconEdit /></span>
             <input
               type="file"
@@ -1628,73 +1310,66 @@ function ProfileView({ profile, username, email, friends, insights, loading, err
             />
           </label>
 
-          <div className="mp-profile__name">{username}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.4px', marginTop: 16 }}>{username}</div>
           <div className="mp-faint" style={{ marginTop: 2 }}>{email}</div>
 
           {err && <Alert style={{ textAlign: 'left' }}>{err}</Alert>}
 
           <div className="mp-xpbar">
             <div className="mp-xpbar__top">
-              <span>Nível {insights.level}</span>
-              <span style={{ color: 'var(--ink-3)' }}>{insights.xp - insights.xpMissing} / {insights.xp} XP</span>
+              <span>Nível {level}</span>
+              <span style={{ color: 'var(--ink-3)' }}>{xpInLevel(xp)} / {XP_STEP} XP</span>
             </div>
-            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${insights.levelPct}%` }} /></div>
+            <div className="mp-track"><div className="mp-track__fill" style={{ width: `${pct}%` }} /></div>
             <div className="mp-faint" style={{ textAlign: 'right', marginTop: 8 }}>
-              {insights.xpMissing} XP para o nível {insights.level + 1}
+              {Math.max(0, XP_STEP - xpInLevel(xp))} XP para o nível {level + 1}
+            </div>
+          </div>
+
+          <div className="mp-profilestats">
+            <div className="mp-profilestats__item">
+              <span>🔥</span>
+              <b>{streak}</b>
+              <small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small>
+            </div>
+            <div className="mp-profilestats__item">
+              <span>🎯</span>
+              <b>{dailyGoal}</b>
+              <small>XP por dia</small>
+            </div>
+            <div className="mp-profilestats__item">
+              <span>📚</span>
+              <b>{streakDays}</b>
+              <small>dias no total</small>
             </div>
           </div>
 
           {loading && <div className="mp-faint" style={{ marginTop: 14 }}><Spinner /> Enviando…</div>}
         </section>
 
-        {/* números que o usuário pediu: nível, amigos, conquistas, streak */}
-        <section className="mp-stats">
-          <StatCard tone="amber" ico={<IconBolt />} v={insights.level} l="Nível" />
-          <StatCard tone="amber" ico={<IconFlame />} v={insights.streak} l="Dias seguidos" />
-          <StatCard tone="blue" ico={<IconUsers />} v={friends.length} l="Amigos" />
-          <StatCard tone="green" ico={<IconTrophy />} v={insights.unlocked} l="Conquistas" />
-        </section>
-
-        <section className="mp-card mp-card--pad">
-          <div className="mp-h" style={{ marginBottom: 12 }}><IconSpark /> Sua movimentação</div>
-          <div className="mp-mini">
-            <div className="mp-mini__i"><span>Melhor sequência</span><b>{insights.best} dias</b></div>
-            <div className="mp-mini__i"><span>Dias ativos</span><b>{insights.days}</b></div>
-            <div className="mp-mini__i"><span>Atividades feitas</span><b>{insights.attemptsDone}</b></div>
-            <div className="mp-mini__i"><span>Tópicos dominados</span><b>{insights.topicsDone}</b></div>
-          </div>
-        </section>
-
         <div className="mp-aside">
-          <button type="button" onClick={onGoSocial} className="mp-row mp-row--card">
-            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue-d)' }}><IconUsers /></span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Meus amigos</span>
-              <span className="mp-row__s">{friends.length ? `${friends.length} na sua lista` : 'Adicione alguém pelo e-mail ou @usuário'}</span>
-            </span>
-            <IconChevron />
-          </button>
-          <button type="button" onClick={onGoAchievements} className="mp-row mp-row--card">
-            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
-              <img src={conquistaIcon} alt="" draggable={false} />
-            </span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Minhas conquistas</span>
-              <span className="mp-row__s">{insights.unlocked} de {ACHIEVEMENTS.length} desbloqueadas</span>
-            </span>
-            <IconChevron />
-          </button>
+          <div className="mp-stats">
+            <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
+            <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
+            <StatCard tone="green" ico={<IconSpark />} v={Math.max(0, XP_STEP - xpInLevel(xp))} l="XP restante" />
+          </div>
+
+          <div className="mp-card mp-card--pad">
+            <div className="mp-h" style={{ marginBottom: 12 }}><IconBolt /> Como funciona</div>
+            <p className="mp-muted" style={{ margin: 0 }}>
+              Cada lição concluída com o mínimo de acerto rende XP. A cada {XP_STEP} XP você sobe um nível
+              e desbloqueia novas conquistas.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ─── SOCIAL ────────────────────────────────────────────────────────
-
-// Privacidade: a lista de amigos mostra só o perfil público (avatar,
-// nível, sequência, última atividade). Nada de metas, trilhas ou tópicos
-// do outro — o backend também não devolve esses campos.
+// Aba social: lista de amigos e busca por e-mail/@usuário.
+// Vieram do upstream (ada social) e foram mantidas aqui sobre o design
+// local, que reorganizou a página em torno da trilha e da lição.
 function SocialView({ friends, candidates, query, setQuery, searching, err, pending, onAdd, onRemove }) {
   const already = new Set(friends.map(f => f.friend_id))
   const suggestions = (candidates || []).filter(c => !already.has(c.id))
@@ -1812,88 +1487,98 @@ function SocialView({ friends, candidates, query, setQuery, searching, err, pend
 }
 
 // Conquista bloqueada não mostra como conseguir — só o título e o cadeado.
-// A descrição aparece quando desbloqueada, com a data do desbloqueio.
-function AchievementsView({ achievements, unlocked }) {
-  const total = achievements.length
-  const pct = total ? Math.round((unlocked / total) * 100) : 0
-  const on = achievements.filter(a => a.unlocked)
-  const off = achievements.filter(a => !a.unlocked)
+
+function Avatar({ src, name, level, size = 44 }) {
+  const [broken, setBroken] = useState(false)
+  const show = src && !broken
+
+  return (
+    <span className="mp-av" style={{ '--mp-av': `${size}px` }}>
+      {show ? (
+        <img src={src} alt="" onError={() => setBroken(true)} />
+      ) : (
+        <span className="mp-av__fall">{initials(name)}</span>
+      )}
+      {level != null && <span className="mp-av__lvl">{level}</span>}
+    </span>
+  )
+}
+
+function AchievementsView({ profile, goalsCount }) {
+  const level = profile?.level || 1
+  const xp = profile?.xp || 0
+  const pct = xpPct(xp)
+
+  const badges = [
+    { t: 'Primeiro Passo', d: 'Crie seu primeiro objetivo', done: goalsCount >= 1, tone: 'blue', n: `${Math.min(goalsCount, 1)}/1` },
+    { t: 'Explorador', d: 'Crie 3 objetivos diferentes', done: goalsCount >= 3, tone: 'green', n: `${Math.min(goalsCount, 3)}/3` },
+    { t: 'Especialista', d: 'Alcance o nível 2', done: level >= 2, tone: 'amber', n: `Nível ${Math.min(level, 2)}/2` },
+    { t: 'Mestre', d: 'Alcance o nível 5', done: level >= 5, tone: 'violet', n: `Nível ${Math.min(level, 5)}/5` },
+    { t: 'Centenário', d: 'Acumule 100 XP', done: xp >= 100, tone: 'cyan', n: `${Math.min(xp, 100)}/100` },
+    { t: 'Lenda', d: 'Acumule 500 XP', done: xp >= 500, tone: 'green', n: `${Math.min(xp, 500)}/500` },
+  ]
+  const unlocked = badges.filter(b => b.done).length
 
   return (
     <div className="mp-canvas">
       <div className="mp-ach">
-        <section className="mp-heroach">
-          <Ring big value={pct} tone="var(--amber-d)" />
-          <div style={{ minWidth: 0 }}>
-            <div className="mp-heroach__t">Conquistas</div>
-            <div className="mp-heroach__s">{unlocked} de {total} desbloqueadas</div>
-            <span className="mp-chip">
-              <img src={conquistaIcon} alt="" draggable={false} />
-              {unlocked === total ? 'Coleção completa!' : `${total - unlocked} ainda bloqueadas`}
-            </span>
+        <div className="mp-aside">
+          <div className="mp-heroach">
+            <Ring big value={pct} tone="var(--amber)" />
+            <div style={{ minWidth: 0 }}>
+              <div className="mp-heroach__t">Conquistas</div>
+              <div className="mp-heroach__s">{unlocked}/{badges.length} desbloqueadas. Continue estudando para ganhar novas medalhas!</div>
+              <span className="mp-chip">
+                <img src={conquistaIcon} alt="" draggable={false} />
+                {goalsCount} {goalsCount === 1 ? 'objetivo' : 'objetivos'}
+              </span>
+            </div>
+          </div>
+
+          <div className="mp-stats">
+            <StatCard tone="blue" ico={<IconBolt />} v={level} l="Nível" />
+            <StatCard tone="amber" ico={<IconStar />} v={xp} l="XP total" />
+            <StatCard tone="green" ico={<IconTarget />} v={goalsCount} l="Objetivos" />
+          </div>
+        </div>
+
+        <section>
+          <div className="mp-h" style={{ marginBottom: 12 }}><IconStar /> Medalhas</div>
+          <div className="mp-badges">
+            {badges.map(b => (
+              <div key={b.t} className={`mp-badge ${b.done ? 'is-on' : ''}`}>
+                <div className="mp-badge__ico" style={{ background: `var(--${b.tone}-soft)` }}>
+                  <img src={conquistaIcon} alt="" draggable={false} />
+                </div>
+                <div className="mp-badge__t">{b.t}</div>
+                <div className="mp-badge__d">{b.d}</div>
+                <div className="mp-badge__f">
+                  <span className="mp-tag">{b.done ? 'Desbloqueada' : 'Bloqueada'}</span>
+                  <span className="mp-badge__n">{b.n}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
-
-        {on.length > 0 && (
-          <section>
-            <div className="mp-h" style={{ marginBottom: 12 }}><IconTrophy /> Desbloqueadas</div>
-            <div className="mp-badges">
-              {on.map(a => (
-                <div key={a.id} className="mp-badge is-on">
-                  <div className="mp-badge__ico" style={{ background: `var(--${a.tone}-soft)` }}>
-                    <img src={conquistaIcon} alt="" draggable={false} />
-                  </div>
-                  <div className="mp-badge__t">{a.title}</div>
-                  <div className="mp-badge__d">{a.desc}</div>
-                  <div className="mp-badge__f">
-                    <span className="mp-tag">Desbloqueada</span>
-                    {a.unlockedAt && <span className="mp-badge__n">{formatFullDate(a.unlockedAt)}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {off.length > 0 && (
-          <section>
-            <div className="mp-h" style={{ marginBottom: 12 }}><IconLock /> Bloqueadas</div>
-            <div className="mp-badges">
-              {off.map(a => (
-                <div key={a.id} className="mp-badge">
-                  <div className="mp-badge__ico">
-                    <IconLock size={22} />
-                  </div>
-                  <div className="mp-badge__t">{a.title}</div>
-                  <div className="mp-badge__f">
-                    <span className="mp-tag mp-tag--muted">Bloqueada</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   )
 }
 
-function SettingsView({ profile, username, email, insights, onProfile, onAchievements, onSocial, onHistory, onLogout, onClearLocal }) {
-  const avatar = avatarUrl(profile?.avatar_url)
-
+function SettingsView({ profile, username, email, onProfile, onAchievements, onHistory, onLogout, theme, onToggleTheme }) {
   return (
     <div className="mp-canvas">
       <div className="mp-settings">
         <section className="mp-settinggroup">
           <div className="mp-h">Conta</div>
           <button type="button" onClick={onProfile} className="mp-row">
-            {avatar ? (
-              <span className="mp-row__ico" style={{ overflow: 'hidden' }}>
-                <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11 }} />
+            {profile?.avatar_url ? (
+              <span className="mp-row__ico" style={{ background: 'var(--surface-2)', overflow: 'hidden' }}>
+                <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11 }} />
               </span>
             ) : (
-              <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)', fontWeight: 800, fontSize: 15 }}>
-                {initials(username)}
+              <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)', fontWeight: 800, fontSize: 16 }}>
+                {username[0]?.toUpperCase() || '?'}
               </span>
             )}
             <span className="mp-row__b">
@@ -1907,46 +1592,50 @@ function SettingsView({ profile, username, email, insights, onProfile, onAchieve
         <section className="mp-settinggroup">
           <div className="mp-h">Estudo</div>
           <button type="button" onClick={onAchievements} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
+            <span className="mp-row__ico" style={{ background: 'var(--amber-soft)' }}>
               <img src={conquistaIcon} alt="" draggable={false} />
             </span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Minhas conquistas</span>
-              <span className="mp-row__s">{insights.unlocked} de {ACHIEVEMENTS.length}</span>
-            </span>
-            <IconChevron />
-          </button>
-          <button type="button" onClick={onSocial} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue-d)' }}><IconUsers /></span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Meus amigos</span>
-              <span className="mp-row__s">{insights.friends} na sua lista</span>
-            </span>
+            <span className="mp-row__b"><span className="mp-row__t">Minhas conquistas</span></span>
             <IconChevron />
           </button>
           <button type="button" onClick={onHistory} className="mp-row">
             <span className="mp-row__ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}><IconHistory /></span>
-            <span className="mp-row__b">
-              <span className="mp-row__t">Histórico de estudo</span>
-              <span className="mp-row__s">Todas as suas atividades</span>
-            </span>
+            <span className="mp-row__b"><span className="mp-row__t">Histórico de estudo</span></span>
             <IconChevron />
           </button>
         </section>
 
         <section className="mp-settinggroup">
-          <div className="mp-h">Dados</div>
-          <button type="button" onClick={onClearLocal} className="mp-row">
-            <span className="mp-row__ico" style={{ background: 'var(--surface-2)', color: 'var(--ink-3)' }}><IconTrash /></span>
+          <div className="mp-h">Aparência</div>
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="mp-row"
+            role="switch"
+            aria-checked={theme === 'dark'}
+          >
+            <span className="mp-row__ico" style={{ background: 'var(--violet-soft)', color: 'var(--violet-d)' }}>
+              {theme === 'dark' ? <IconMoon /> : <IconSun />}
+            </span>
             <span className="mp-row__b">
-              <span className="mp-row__t">Limpar dados locais</span>
-              <span className="mp-row__s">Datas das conquistas e notificações deste navegador</span>
+              <span className="mp-row__t">Tema escuro</span>
+              <span className="mp-row__s">{theme === 'dark' ? 'Ligado' : 'Desligado'}</span>
+            </span>
+            <span className={`mp-switch ${theme === 'dark' ? 'is-on' : ''}`} aria-hidden>
+              <span className="mp-switch__dot" />
             </span>
           </button>
         </section>
 
         <section className="mp-settinggroup">
-          <div className="mp-h">Sobre</div>
+          <div className="mp-h">Perfil</div>
+          <button type="button" onClick={onProfile} className="mp-row">
+            <span className="mp-row__ico" style={{ background: 'var(--blue-soft)' }}>
+              <img src={perfilIcon} alt="" draggable={false} />
+            </span>
+            <span className="mp-row__b"><span className="mp-row__t">Meu perfil</span></span>
+            <IconChevron />
+          </button>
           <button type="button" onClick={() => window.open('/termos.html', '_blank')} className="mp-row">
             <span className="mp-row__ico" style={{ background: 'var(--green-soft)', color: 'var(--green-d)' }}><IconFlag /></span>
             <span className="mp-row__b">
@@ -1972,22 +1661,44 @@ function SettingsView({ profile, username, email, insights, onProfile, onAchieve
 
 // ─── PEÇAS ────────────────────────────────────────────────────────
 
-function LessonRow({ n, done, current, onClick }) {
+function ThemeToggle({ theme, onToggle }) {
+  const dark = theme === 'dark'
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="mp-iconbtn"
+      aria-label={dark ? 'Ativar tema claro' : 'Ativar tema escuro'}
+      title={dark ? 'Tema claro' : 'Tema escuro'}
+    >
+      {dark ? <IconSun /> : <IconMoon />}
+    </button>
+  )
+}
+
+function LessonRow({ n, done, current, busy, loading, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={n.blocked}
-      className={`mp-lesson ${done ? 'is-done' : n.blocked ? 'is-lock' : current ? 'is-now' : ''}`}
+      disabled={n.blocked || busy}
+      aria-busy={loading || undefined}
+      className={`mp-lesson ${done ? 'is-done' : n.blocked ? 'is-lock' : current ? 'is-now' : ''} ${loading ? 'is-loading' : ''}`}
     >
       <span className="mp-lesson__ico">
         {done ? <IconCheck /> : n.blocked ? <IconLock /> : current ? <IconSpark /> : <IconBolt />}
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="mp-lesson__t" style={{ display: 'block' }}>{n.title}</span>
-        {n.description && <span className="mp-lesson__s" style={{ display: 'block' }}>{n.description}</span>}
+        {loading ? (
+          <span className="mp-lesson__s" style={{ display: 'block', color: 'var(--blue-d)' }}>
+            Preparando a atividade…
+          </span>
+        ) : (
+          n.description && <span className="mp-lesson__s" style={{ display: 'block' }}>{n.description}</span>
+        )}
       </span>
-      <IconChevron />
+      {loading ? <Spinner size={16} /> : <IconChevron />}
     </button>
   )
 }
@@ -2037,109 +1748,57 @@ function Modal({ children, onClose }) {
   )
 }
 
-// tone="info" é o azul de identidade, não o âmbar de progresso: erro é
-// vermelho, e lembrete amigável ("você ainda não estudou hoje") é
-// informação — não é progresso, então não fala a língua do botão
-// principal.
-function Alert({ children, style, tone = 'error' }) {
-  return (
-    <div className={`mp-alert ${tone === 'info' ? 'mp-alert--info' : ''}`} style={style}>
-      <IconAlert /> {children}
-    </div>
-  )
-}
-
-function Spinner({ size = 15 }) {
-  return (
-    <svg className="mp-spinner" width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
-      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  )
+function Alert({ children, style }) {
+  return <div className="mp-alert" style={style}><IconAlert /> {children}</div>
 }
 
 // ─── SHELL + NAVEGAÇÃO ────────────────────────────────────────────
 
-// A ordem é do usuário: Início, Social, Trilha, Conquistas, Perfil. A
-// Trilha fica no centro e é a única que ganha o botão elevado — é a ação
-// principal do app, o resto é navegação.
 const NAV = [
-  { key: 'home', label: 'Início', Icon: IconHome },
-  { key: 'social', label: 'Social', Icon: IconUsers },
-  { key: 'roadmap', label: 'Trilha', Icon: IconPath, primary: true },
-  { key: 'achievements', label: 'Conquistas', Icon: IconTrophy },
-  { key: 'profile', label: 'Perfil', Icon: IconUser },
+  { key: 'home', label: 'Início', Icon: IconHome, src: null },
+  { key: 'roadmap', label: 'Trilha', Icon: IconPath, src: null },
+  { key: 'social', label: 'Social', Icon: IconUsers, src: null },
+  { key: 'achievements', label: 'Conquistas', Icon: null, src: conquistaIcon },
+  { key: 'profile', label: 'Perfil', Icon: null, src: perfilIcon },
+  { key: 'settings', label: 'Config', Icon: null, src: configIcon },
 ]
 
-// Títulos só valem para o rail do desktop; no mobile o cabeçalho é
-// minimalista (logo + 2 ícones) e quem nomeia a tela é a própria view.
 const TITLES = {
-  home: ['Início', 'Sua sequência de estudos'],
-  social: ['Social', 'Acompanhe seus amigos'],
+  home: ['Início', 'Escolha o que aprender agora'],
   roadmap: ['Trilha', 'Siga o caminho até o objetivo'],
   phase: ['Etapa', 'Lições deste módulo'],
   task: ['Tarefa', 'Responda para avançar'],
   result: ['Resultado', 'Veja como você foi'],
-  achievements: ['Conquistas', 'Suas medalhas'],
   profile: ['Perfil', 'Seus dados e progresso'],
+  achievements: ['Conquistas', 'Suas medalhas'],
   settings: ['Configurações', 'Conta e estudo'],
 }
 
-function AppShell({
-  active,
-  onNavigate,
-  onBack,
-  showTopbar,
-  profile,
-  username,
-  email,
-  onLogout,
-  onOpenSettings,
-  onOpenBell,
-  notifOpen,
-  unread,
-  notifications,
-  children,
-}) {
+function AppShell({ active, onNavigate, onBack, profile, username, email, onLogout, theme, onToggleTheme, children }) {
   const [title, sub] = TITLES[active] || TITLES.home
-  const avatar = avatarUrl(profile?.avatar_url)
 
   return (
     <div className="mp">
       <div className="mp-stage">
-        {showTopbar && (
-          <header className="mp-top">
-            <button type="button" onClick={onBack} className="mp-top__logo" aria-label="Início">
-              <span className="mp-mark mp-mark--sm" />
-              <span className="mp-top__brand">Metapps</span>
+        <header className="mp-top">
+          {onBack && (
+            <button type="button" onClick={onBack} className="mp-iconbtn" aria-label="Voltar">
+              <IconArrowLeft />
             </button>
-
-            <div className="mp-top__actions">
-              <button
-                type="button"
-                onClick={onOpenBell}
-                className={`mp-iconbtn ${notifOpen ? 'is-on' : ''}`}
-                aria-label={unread > 0 ? `Notificações (${unread} novas)` : 'Notificações'}
-                aria-expanded={notifOpen}
-              >
-                <IconBell />
-                {unread > 0 && <span className="mp-badge-dot">{unread > 9 ? '9+' : unread}</span>}
-              </button>
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="mp-iconbtn"
-                aria-label="Configurações"
-              >
-                <IconGear />
-              </button>
-            </div>
-
-            {notifOpen && (
-              <NotificationPanel notifications={notifications} onClose={onOpenBell} />
-            )}
-          </header>
-        )}
+          )}
+          <div className="mp-mark"><BrandGlyph /></div>
+          <div className="mp-top__brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
+            <span className="mp-top__title">{title}</span>
+            <span className="mp-top__sub">{sub}</span>
+          </div>
+          <div className="mp-top__actions">
+            <XpPill profile={profile} />
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <button type="button" onClick={onLogout} className="mp-iconbtn mp-iconbtn--danger" aria-label="Sair">
+              <IconLogout />
+            </button>
+          </div>
+        </header>
 
         {children}
       </div>
@@ -2153,20 +1812,13 @@ function AppShell({
           <div className="mp-mark"><BrandGlyph /></div>
           <span>Metapps</span>
         </div>
-
-        <div className="mp-rail__title">
-          <span className="mp-rail__t">{title}</span>
-          <span className="mp-rail__s">{sub}</span>
-        </div>
-
         <div className="mp-rail__nav">
           {NAV.map(it => <NavButton key={it.key} item={it} active={active === it.key} onNavigate={onNavigate} />)}
         </div>
-
         <div className="mp-rail__foot">
           <div className="mp-user">
             <span className="mp-user__a">
-              {avatar ? <img src={avatar} alt="" /> : <span>{initials(username)}</span>}
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{username[0]?.toUpperCase() || '?'}</span>}
             </span>
             <span className="mp-user__b">
               <span className="mp-user__n">{username || 'Usuário'}</span>
@@ -2182,76 +1834,35 @@ function AppShell({
   )
 }
 
-function NotificationPanel({ notifications, onClose }) {
-  return (
-    <>
-      <button type="button" className="mp-sheet__scrim" onClick={onClose} aria-label="Fechar notificações" />
-      <div className="mp-sheet mp-notif" role="dialog" aria-label="Notificações">
-        <div className="mp-sheet__grab" />
-        <div className="mp-sheet__head">
-          <span className="mp-sheet__t">Notificações</span>
-        </div>
-
-        {notifications.length === 0 ? (
-          <div className="mp-empty" style={{ border: 0 }}>
-            <IconBell size={24} />
-            Nada por aqui ainda. Conquistas e marcos de sequência aparecem nesta lista.
-          </div>
-        ) : (
-          <div className="mp-notif__list">
-            {notifications.map(n => (
-              <div key={n.id} className={`mp-notif__i ${n.read ? '' : 'is-new'}`}>
-                <span className={`mp-notif__ico mp-notif__ico--${n.tone || 'blue'}`}>
-                  {n.kind === 'achievement'
-                    ? <img src={conquistaIcon} alt="" draggable={false} />
-                    : n.kind === 'streak' ? <IconFlame /> : <IconUsers />}
-                </span>
-                <span className="mp-notif__b">
-                  <span className="mp-notif__t">{n.title}</span>
-                  <span className="mp-notif__d">{n.body}</span>
-                </span>
-                <span className="mp-notif__when">{relativeDate(n.at)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  )
-}
-
 function NavButton({ item, active, onNavigate }) {
   return (
     <button
       type="button"
-      className={`mp-nav ${active ? 'is-on' : ''} ${item.primary ? 'mp-nav--primary' : ''}`}
+      className={`mp-nav ${active ? 'is-on' : ''}`}
       onClick={() => onNavigate(item.key)}
       aria-label={item.label}
       aria-current={active ? 'page' : undefined}
     >
       <span className="mp-nav__ico">
-        {item.primary
-          ? <img className="mp-nav__img" src={trilhaIcon} alt="" draggable={false} />
-          : <item.Icon />}
+        {item.src ? <img src={item.src} alt="" draggable={false} /> : <item.Icon />}
       </span>
       <span className="mp-nav__label">{item.label}</span>
     </button>
   )
 }
 
-function Avatar({ src, name, level, size = 44 }) {
-  const [broken, setBroken] = useState(false)
-  const show = src && !broken
-
+function XpPill({ profile }) {
+  const level = profile?.level || 1
+  const xp = profile?.xp || 0
+  const pct = xpPct(xp)
   return (
-    <span className="mp-av" style={{ '--mp-av': `${size}px` }}>
-      {show ? (
-        <img src={src} alt="" onError={() => setBroken(true)} />
-      ) : (
-        <span className="mp-av__fall">{initials(name)}</span>
-      )}
-      {level != null && <span className="mp-av__lvl">{level}</span>}
-    </span>
+    <div className="mp-xp" title={`Nível ${level} · ${xp} XP`}>
+      <div className="mp-xp__meta">
+        <div className="mp-xp__lvl">Nível {level}</div>
+        <div className="mp-xp__val">{xp} XP</div>
+      </div>
+      <Ring value={pct} />
+    </div>
   )
 }
 
@@ -2320,39 +1931,6 @@ function IconUsers() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="9" cy="8" r="3.4" /><path d="M3.4 19.5a5.6 5.6 0 0 1 11.2 0" /><path d="M16.2 5a3.4 3.4 0 0 1 0 6.1" /><path d="M17.2 14.4a5.6 5.6 0 0 1 3.4 5.1" /></svg>
 }
 
-function IconUser() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8.4" r="3.6" /><path d="M4.8 19.6a7.2 7.2 0 0 1 14.4 0" /></svg>
-}
-
-function IconTrophy({ size = 20 }) {
-  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" /><path d="M8 5.4H5.4V7a3.4 3.4 0 0 0 3.4 3.4" /><path d="M16 5.4h2.6V7a3.4 3.4 0 0 1-3.4 3.4" /><path d="M12 13v3.6" /><path d="M8.6 20h6.8" /><path d="M10.4 16.6h3.2L15.2 20H8.8l1.6-3.4Z" /></svg>
-}
-
-function IconFlame({ size = 20, style }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" style={style} aria-hidden>
-      <path d="M13.3 2.4c.6 3-1 4.6-2.6 6.1-1.7 1.6-3.5 3.2-3.5 5.8A6.9 6.9 0 0 0 14.1 21c3.5 0 6.1-2.6 6.1-6.1 0-3-1.6-4.7-3.2-6.5-1.5-1.7-3.1-3.2-3.7-6Z" />
-      <path d="M11 12.6c.3 1.5-.5 2.4-1.3 3.1-.7.6-1.2 1.3-1.2 2.3a3.1 3.1 0 0 0 6.2.4c0-1.5-.9-2.5-1.8-3.3-.8-.7-1.5-1.5-1.9-2.5Z" opacity=".5" />
-    </svg>
-  )
-}
-
-function IconBell({ size = 20 }) {
-  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6.4 10a5.6 5.6 0 0 1 11.2 0c0 4 1.5 5.2 1.5 5.2H4.9S6.4 14 6.4 10Z" /><path d="M10.2 18.6a2 2 0 0 0 3.6 0" /></svg>
-}
-
-function IconGear({ size = 20 }) {
-  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="3.1" /><path d="M12 3.6v2.2M12 18.2v2.2M20.4 12h-2.2M5.8 12H3.6M17.9 6.1l-1.5 1.5M7.6 16.4l-1.5 1.5M17.9 17.9l-1.5-1.5M7.6 7.6 6.1 6.1" /></svg>
-}
-
-function IconSearch({ size = 18 }) {
-  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="6" /><path d="M15.4 15.4 20 20" /></svg>
-}
-
-function IconList({ size = 19 }) {
-  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 6.5h16M4 12h16M4 17.5h10" /></svg>
-}
-
 function IconPlus({ size = 18 }) {
   return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5.2v13.6M5.2 12h13.6" /></svg>
 }
@@ -2363,6 +1941,14 @@ function IconLogout() {
 
 function IconHistory() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v5h5" /><path d="M12 7.5V12l3 2" /></svg>
+}
+
+function IconSun() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M5.8 5.8 4.2 4.2M19.8 19.8l-1.6-1.6M18.2 5.8l1.6-1.6M4.2 19.8l1.6-1.6" /></svg>
+}
+
+function IconMoon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z" /></svg>
 }
 
 function IconFlag() {

@@ -9,6 +9,8 @@
 // O refresh_token é mantido pelo backend em cookie HttpOnly.
 //
 
+import { userMessage } from './lib/errors.js'
+
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
@@ -149,7 +151,40 @@ export class ApiError extends Error {
     // Além disso, data continua preservado para compatibilidade.
 
     this.details = details
+
+    // Texto original do servidor. Fica guardado para o log de erro
+    // interno, mas nunca é exibido na interface.
+    this.rawMessage = message
   }
+}
+
+
+// ─── TRADUÇÃO DO ERRO ───────────────────────────────────────────
+//
+// O erro que chega na tela nunca mostra o texto cru do servidor:
+// o que for erro interno vira mensagem genérica e o detalhe real vai
+// para o console (ver lib/errors.js).
+//
+// Depois de traduzido, o erro ganha a marca userFacing: quem chamar
+// userMessage() de novo recebe a mesma mensagem, sem retrabalhar.
+
+function finalizeError(
+  error,
+  fallback
+) {
+
+  const friendly = userMessage(
+    error,
+    fallback
+  )
+
+  error.rawMessage = error.message
+
+  error.message = friendly
+
+  error.userFacing = true
+
+  return error
 }
 
 
@@ -173,9 +208,18 @@ async function parseResponse(res) {
 
     const text = await res.text()
 
-    return text
-      ? { message: text }
-      : {}
+    // Resposta sem JSON: pode ser uma página de erro do proxy/gateway
+    // em HTML. Esse conteúdo não é mensagem de erro — mostrar HTML na
+    // tela não ajuda o usuário, então ele é descartado.
+    if (
+      !text ||
+      text.length > 300 ||
+      /<html|<!doctype|<\?xml/i.test(text)
+    ) {
+      return {}
+    }
+
+    return { message: text }
 
   } catch {
 
@@ -357,12 +401,15 @@ function createApiError(
   }
 
 
-  return new ApiError(
-    message,
-    status,
-    code,
-    normalizedData,
-    details
+  return finalizeError(
+    new ApiError(
+      message,
+      status,
+      code,
+      normalizedData,
+      details
+    ),
+    fallback
   )
 }
 
@@ -382,13 +429,15 @@ async function request(url, options = {}) {
 
   } catch (error) {
 
-    throw new ApiError(
-      error?.message ||
-        'Falha de conexão com o servidor.',
-      0,
-      'NETWORK_ERROR',
-      null,
-      null
+    throw finalizeError(
+      new ApiError(
+        error?.message ||
+          'Falha de conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
     )
   }
 
@@ -401,7 +450,7 @@ async function request(url, options = {}) {
     throw createApiError(
       data,
       res.status,
-      `Erro na requisição (${res.status}).`
+      'Não foi possível concluir a operação.'
     )
   }
 
@@ -480,12 +529,14 @@ export async function login(
 
   if (!data?.access_token) {
 
-    throw new ApiError(
-      'O servidor não retornou um access token.',
-      500,
-      'MISSING_ACCESS_TOKEN',
-      data,
-      data?.details ?? null
+    throw finalizeError(
+      new ApiError(
+        'O servidor não retornou um access token.',
+        500,
+        'MISSING_ACCESS_TOKEN',
+        data,
+        data?.details ?? null
+      )
     )
   }
 
@@ -535,12 +586,14 @@ export async function refreshSession() {
 
       if (!data?.access_token) {
 
-        throw new ApiError(
-          'O servidor não retornou um access token.',
-          401,
-          'MISSING_ACCESS_TOKEN',
-          data,
-          data?.details ?? null
+        throw finalizeError(
+          new ApiError(
+            'O servidor não retornou um access token.',
+            401,
+            'MISSING_ACCESS_TOKEN',
+            data,
+            data?.details ?? null
+          )
         )
       }
 
@@ -624,12 +677,14 @@ export async function authFetch(
 
   } catch {
 
-    throw new ApiError(
-      'Sem conexão com o servidor.',
-      0,
-      'NETWORK_ERROR',
-      null,
-      null
+    throw finalizeError(
+      new ApiError(
+        'Sem conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
     )
   }
 
@@ -707,12 +762,14 @@ export async function authFetch(
 
   } catch {
 
-    throw new ApiError(
-      'Sem conexão com o servidor.',
-      0,
-      'NETWORK_ERROR',
-      null,
-      null
+    throw finalizeError(
+      new ApiError(
+        'Sem conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
     )
   }
 }
@@ -745,7 +802,7 @@ export async function getMe() {
     throw createApiError(
       data,
       res.status,
-      'Erro ao verificar sessão.'
+      'Não foi possível verificar sua sessão.'
     )
   }
 
@@ -914,7 +971,7 @@ export async function createGoal(
     throw createApiError(
       data,
       res.status,
-      'Erro ao criar goal.'
+      'Não foi possível criar seu objetivo.'
     )
   }
 
@@ -940,7 +997,7 @@ export async function listGoals() {
     throw createApiError(
       data,
       res.status,
-      'Erro ao listar goals.'
+      'Não foi possível carregar seus objetivos.'
     )
   }
 
@@ -966,7 +1023,7 @@ export async function getGoal(goalId) {
     throw createApiError(
       data,
       res.status,
-      'Erro ao carregar o objetivo.'
+      'Não foi possível carregar o objetivo.'
     )
   }
 
@@ -1008,7 +1065,7 @@ export async function updateGoal(
     throw createApiError(
       data,
       res.status,
-      'Erro ao atualizar goal.'
+      'Não foi possível atualizar o objetivo.'
     )
   }
 
@@ -1038,7 +1095,7 @@ export async function deleteGoal(
     throw createApiError(
       data,
       res.status,
-      'Erro ao deletar goal.'
+      'Não foi possível excluir o objetivo.'
     )
   }
 
@@ -1078,7 +1135,7 @@ export async function generateRoadmap(
     throw createApiError(
       data,
       res.status,
-      'Erro ao gerar roadmap.'
+      'Não foi possível gerar a trilha. Tente novamente.'
     )
   }
 
@@ -1106,7 +1163,7 @@ export async function getRoadmap(
     throw createApiError(
       data,
       res.status,
-      'Erro ao buscar roadmap.'
+      'Não foi possível carregar a trilha. Tente novamente.'
     )
   }
 
@@ -1146,7 +1203,7 @@ export async function generateTask(
     throw createApiError(
       data,
       res.status,
-      'Erro ao gerar tarefa.'
+      'Não foi possível gerar a atividade. Tente novamente.'
     )
   }
 
@@ -1174,7 +1231,7 @@ export async function listTasks() {
     throw createApiError(
       data,
       res.status,
-      'Erro ao listar tarefas.'
+      'Não foi possível carregar as atividades.'
     )
   }
 
@@ -1200,7 +1257,7 @@ export async function getTask(taskId) {
     throw createApiError(
       data,
       res.status,
-      'Erro ao carregar a tarefa.'
+      'Não foi possível carregar a atividade.'
     )
   }
 
@@ -1248,12 +1305,316 @@ export async function submitAttempt(
     throw createApiError(
       data,
       res.status,
-      'Erro ao submeter resposta.'
+      'Não foi possível enviar sua resposta. Tente novamente.'
     )
   }
 
 
   return data
+}
+
+
+// ─── PLAYER: PASSO A PASSO ────────────────────────────────────
+
+/**
+ * Corrige UM exercício da sessão e devolve o feedback instantâneo
+ * (certo/errado, explicação, XP ganho e combo).
+ *
+ * É idempotente: responder o mesmo passo de novo devolve o mesmo
+ * resultado, sem conceder XP outra vez.
+ */
+export async function answerStep(
+  taskId,
+  stepIndex,
+  answer
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/answer`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          step_index: stepIndex,
+          answer,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível verificar a resposta. Tente novamente.'
+    )
+  }
+
+
+  return data.result
+}
+
+
+/**
+ * Encerra a sessão e devolve o resumo final (score, XP, combo, streak
+ * e se o tópico foi dominado).
+ */
+export async function finishSession(
+  taskId,
+  metadata
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/finish`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          metadata: metadata || {
+            attempt_source: 'web',
+          },
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível finalizar a sessão. Tente novamente.'
+    )
+  }
+
+
+  return data.result
+}
+
+
+// ─── TREINO E REVISÃO ──────────────────────────────────────────
+
+/**
+ * Monta uma sessão de Treino com os exercícios já errados e os que
+ * estão vencidos na revisão. Não chama a IA.
+ */
+export async function createPractice(
+  topicId,
+  count
+) {
+
+  const res =
+    await authFetch(
+      '/protected/tasks/practice',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          topic_id: topicId || null,
+          count: count || 10,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar o treino. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+/**
+ * Monta uma sessão de Revisão com os exercícios que venceram o intervalo
+ * de repetição espaçada.
+ */
+export async function createReview(
+  count
+) {
+  const res =
+    await authFetch(
+      '/protected/tasks/review',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          count: count || 10,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar a revisão. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+/**
+ * Monta uma sessão apenas com os exercícios errados de outra sessão
+ * (o "tentar de novo" do Duolingo).
+ */
+export async function createRetry(
+  taskId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/retry`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({}),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar a nova tentativa. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+// ─── HOJE: META DIÁRIA E STREAK ────────────────────────────────
+
+/**
+ * Resumo do dia: XP de hoje contra a meta, streak, semana e quantos
+ * exercícios estão esperando revisão.
+ */
+export async function getDaily() {
+
+  const res =
+    await authFetch(
+      '/protected/daily'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar o resumo de hoje.'
+    )
+  }
+
+
+  return data.daily
+}
+
+
+export async function updateDailyGoal(
+  dailyGoalXp
+) {
+
+  const res =
+    await authFetch(
+      '/protected/profile/daily-goal',
+      {
+        method: 'PUT',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          daily_goal_xp: dailyGoalXp,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível alterar a meta diária.'
+    )
+  }
+
+
+  return data.profile
 }
 
 
@@ -1276,7 +1637,7 @@ export async function listAttemptsByUser() {
     throw createApiError(
       data,
       res.status,
-      'Erro ao carregar o histórico de tentativas.'
+      'Não foi possível carregar o histórico de tentativas.'
     )
   }
 
@@ -1302,7 +1663,7 @@ export async function listTaskAttempts(taskId) {
     throw createApiError(
       data,
       res.status,
-      'Erro ao carregar as tentativas da tarefa.'
+      'Não foi possível carregar as tentativas da atividade.'
     )
   }
 
@@ -1363,7 +1724,7 @@ export async function getCorrectionByAttemptID(attemptId) {
     throw createApiError(
       data,
       res.status,
-      'Erro ao carregar o feedback.'
+      'Não foi possível carregar o feedback.'
     )
   }
 
@@ -1407,7 +1768,7 @@ export async function createCorrection(
     throw createApiError(
       data,
       res.status,
-      'Erro ao salvar o feedback.'
+      'Não foi possível salvar o feedback.'
     )
   }
 
@@ -1586,7 +1947,7 @@ export async function getProfile() {
     throw createApiError(
       data,
       res.status,
-      'Erro ao buscar perfil.'
+      'Não foi possível carregar seu perfil.'
     )
   }
 
@@ -1597,44 +1958,11 @@ export async function getProfile() {
 
 // ─── PROFILE: XP ──────────────────────────────────────────────
 
-export async function addXP(
-  xp
-) {
-
-  const res =
-    await authFetch(
-      '/protected/profile/xp',
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-
-        body: JSON.stringify({
-          xp,
-        }),
-      }
-    )
-
-
-  const data =
-    await parseResponse(res)
-
-
-  if (!res.ok) {
-
-    throw createApiError(
-      data,
-      res.status,
-      'Erro ao adicionar XP.'
-    )
-  }
-
-
-  return data.profile
-}
+// O XP é concedido exclusivamente pelo servidor, no momento da
+// resposta. Não existe rota para o cliente somar XP: isso permitiria
+// inflar o próprio progresso chamando a API diretamente.
+//
+// A meta diária é alterada em updateDailyGoal().
 
 
 // ─── PROFILE: AVATAR ──────────────────────────────────────────
@@ -1672,7 +2000,7 @@ export async function uploadAvatar(
     throw createApiError(
       data,
       res.status,
-      'Erro ao fazer upload do avatar.'
+      'Não foi possível enviar a imagem. Tente novamente.'
     )
   }
 

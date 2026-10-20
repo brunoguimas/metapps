@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { setAccessToken } from "./api"
+import { googleErrorMessage } from "./lib/errors.js"
 
 // ─── CONFIGURAÇÃO ─────────────────────────────────────────────
 
@@ -61,37 +62,10 @@ function isValidJwtFormat(token) {
 }
 
 // ─── MAPEAMENTO DOS ERROS DO GOOGLE OAUTH ────────────────────
-
-function mapGoogleError(error) {
-    const normalized = String(error || "").toLowerCase().trim()
-
-    if (
-        normalized === "access_denied" ||
-        normalized.includes("access denied") ||
-        normalized.includes("cancel")
-    ) {
-        return "Você cancelou o login com o Google."
-    }
-
-    if (
-        normalized === "invalid_token" ||
-        normalized.includes("invalid id token") ||
-        normalized.includes("missing id token") ||
-        normalized.includes("invalid token")
-    ) {
-        return "Não foi possível validar sua autenticação com o Google."
-    }
-
-    if (
-        normalized === "invalid_request" ||
-        normalized === "unauthorized_client" ||
-        normalized === "invalid_client"
-    ) {
-        return "Não foi possível iniciar o login com o Google."
-    }
-
-    return "Não foi possível entrar com o Google. Tente novamente."
-}
+//
+// O mapeamento mora em lib/errors.js, junto com as demais mensagens
+// de erro do app — assim a tradução do erro do OAuth e a do resto da
+// API ficam no mesmo lugar.
 
 // ─── LIMPA OS DADOS SENSÍVEIS DA URL ─────────────────────────
 
@@ -123,7 +97,7 @@ export default function GoogleCallback() {
 
             navigate(
                 `/auth/login?error=google_auth_failed&reason=${encodeURIComponent(
-                    mapGoogleError(error)
+                    googleErrorMessage(error)
                 )}`,
                 {
                     replace: true

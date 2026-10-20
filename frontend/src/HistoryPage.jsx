@@ -8,6 +8,7 @@ import {
   generateCorrection,
   setSessionExpiredHandler,
 } from './api'
+import { userMessage } from './lib/errors.js'
 
 // ─── HELPERS ─────────────────────────────────────────────────
 
@@ -172,7 +173,7 @@ export default function HistoryPage() {
         setTasks(sa(t))
         setAttempts(sa(a))
       } catch (e) {
-        if (!cancelled) setErr(e.message || 'Erro ao carregar o histórico.')
+        if (!cancelled) setErr(userMessage(e, 'Não foi possível carregar o histórico. Tente novamente.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -212,7 +213,7 @@ export default function HistoryPage() {
       setCorrStatus(s => ({ ...s, [a.id]: 'ready' }))
     } catch (e) {
       setCorrStatus(s => ({ ...s, [a.id]: 'error' }))
-      setErr(e.message || 'Não foi possível gerar o feedback.')
+      setErr(userMessage(e, 'Não foi possível gerar o feedback. Tente novamente.'))
     }
   }
 
@@ -269,7 +270,8 @@ export default function HistoryPage() {
 
   function renderQuizDetail(a, task) {
     const taskContent = tryParse(task?.content) || {}
-    const questions = sa(taskContent.questions)
+    // Formato novo (v2) usa `steps`; o legado usava `questions`.
+    const questions = sa(taskContent.steps).length ? sa(taskContent.steps) : sa(taskContent.questions)
     const items = sa(attemptEval(a)?.items)
 
     if (!items.length) {
