@@ -60,6 +60,12 @@ func (f *fakeProfileService) UpdateProfile(ctx context.Context, p *profile.Profi
 func (f *fakeProfileService) AddXP(ctx context.Context, userID uuid.UUID, xpToAdd int) (*profile.Profile, error) {
 	return nil, nil
 }
+func (f *fakeProfileService) TouchActivity(ctx context.Context, userID uuid.UUID) (*profile.Profile, error) {
+	return nil, nil
+}
+func (f *fakeProfileService) UpdateDailyGoal(ctx context.Context, userID uuid.UUID, dailyGoalXP int) (*profile.Profile, error) {
+	return nil, nil
+}
 func (f *fakeProfileService) UpdateAvatar(ctx context.Context, userID uuid.UUID, avatarURL string) (*profile.Profile, error) {
 	return nil, nil
 }

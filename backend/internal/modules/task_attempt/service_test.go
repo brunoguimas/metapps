@@ -90,6 +90,12 @@ func (f *fakeProfileServiceAttempt) AddXP(c context.Context, userID uuid.UUID, x
 	}
 	return nil, nil
 }
+func (f *fakeProfileServiceAttempt) TouchActivity(context.Context, uuid.UUID) (*profile.Profile, error) {
+	return &profile.Profile{}, nil
+}
+func (f *fakeProfileServiceAttempt) UpdateDailyGoal(context.Context, uuid.UUID, int) (*profile.Profile, error) {
+	return nil, nil
+}
 func (f *fakeProfileServiceAttempt) UpdateAvatar(context.Context, uuid.UUID, string) (*profile.Profile, error) { return nil, nil }
 
 func TestServiceSubmit_Success(t *testing.T) {

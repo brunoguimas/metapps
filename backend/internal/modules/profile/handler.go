@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -26,13 +27,20 @@ func NewHandler(service Service, cfg *config.Config) *Handler {
 }
 
 // profileResponse builds a JSON-compatible representation of a profile.
+//
+// `streak` e a streak exibida (0 quando o usuario passou um dia sem
+// estudar), enquanto `streak_days` e o valor bruto gravado no banco.
 func profileResponse(p *Profile) gin.H {
+	now := time.Now()
 	return gin.H{
 		"id":                 p.ID,
 		"user_id":            p.UserID,
 		"xp":                 p.XP,
-		"streak":             p.Streak,
+		"streak":             p.StreakExibida(now),
+		"streak_days":        p.Streak,
+		"streak_active_today": p.StreakAtivo(now),
 		"level":              p.Level(),
+		"daily_goal_xp":      p.DailyGoalXP,
 		"last_activity_date": p.LastActivityDate,
 		"avatar_url":         p.AvatarURL,
 		"created_at":         p.CreatedAt,
@@ -61,6 +69,33 @@ func (h *Handler) GetProfile(c *gin.Context) {
 			httpx.ErrorFrom(c, err)
 			return
 		}
+	}
+
+	httpx.OK(c, gin.H{
+		"profile": profileResponse(profile),
+	})
+}
+
+// UpdateDailyGoal muda a meta diaria de XP do usuario.
+func (h *Handler) UpdateDailyGoal(c *gin.Context) {
+	userID, err := httpx.GetFromContext(c, "user_id")
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
+	}
+
+	var req struct {
+		DailyGoalXP int `json:"daily_goal_xp" binding:"required,min=10,max=1000"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request", err))
+		return
+	}
+
+	profile, err := h.service.UpdateDailyGoal(c.Request.Context(), userID, req.DailyGoalXP)
+	if err != nil {
+		httpx.ErrorFrom(c, err)
+		return
 	}
 
 	httpx.OK(c, gin.H{
