@@ -80,12 +80,11 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Auth module
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
 
-	// AI clients
-	geminiClient, err := ai.NewGeminiClient(context.Background(), *cfg)
+	// AI clients: o provedor vem de AI_PROVIDER, o outro entra como fallback.
+	aiClient, err := ai.NewClient(context.Background(), *cfg)
 	if err != nil {
 		return nil, err
 	}
-	aiClient := ai.NewFallbackClient(geminiClient, ai.NewGroqClient())
 
 	// Health module
 	healthModule := health.NewModule(queries, aiClient, time.Now())
@@ -117,7 +116,7 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		topic.NewRepository(queries),
 		topic.NewProgressRepository(queries),
 		topicAccessChecker,
-		geminiClient,
+		aiClient,
 		cfg,
 	)
 
@@ -186,6 +185,7 @@ func main() {
 
 	cfg := config.Load()
 	platformlogger.LogSystemInfo("configuration loaded", "port", cfg.Port, "frontend_origin", cfg.FrontendOrigin)
+	platformlogger.LogSystemInfo("ai provider selected", "provider", cfg.AIProvider)
 
 	conn := database.Connect(cfg)
 

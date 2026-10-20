@@ -15,11 +15,11 @@ import (
 )
 
 type fakeAIClient struct {
-	generateFn func(context.Context, string) (string, error)
+	generateFn func(context.Context, ai.Request) (string, error)
 }
 
-func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
-	return c.generateFn(ctx, prompt)
+func (c *fakeAIClient) Generate(ctx context.Context, req ai.Request) (string, error) {
+	return c.generateFn(ctx, req)
 }
 
 type fakeRepo struct {
@@ -331,7 +331,7 @@ func TestGenerate_CreatesCards(t *testing.T) {
 		},
 		&fakeAccessChecker{},
 		&fakeAIClient{
-			generateFn: func(_ context.Context, prompt string) (string, error) {
+			generateFn: func(_ context.Context, req ai.Request) (string, error) {
 				return `{"cards":[{"front":"Q1","back":"A1"},{"front":"Q2","back":"A2"}]}`, nil
 			},
 		},
@@ -374,7 +374,7 @@ func TestGenerate_RetriesOnInvalidAIResponse(t *testing.T) {
 		},
 		&fakeAccessChecker{},
 		&fakeAIClient{
-			generateFn: func(_ context.Context, prompt string) (string, error) {
+			generateFn: func(_ context.Context, req ai.Request) (string, error) {
 				calls++
 				if calls == 1 {
 					return "not json", nil

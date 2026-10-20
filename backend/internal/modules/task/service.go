@@ -174,7 +174,10 @@ func (s *taskService) Create(c context.Context, userID, topicID uuid.UUID) (*Tas
 			prompt = enhanceTaskPromptWithFeedback(prompt, lastError)
 		}
 
-		raw, err := s.ai.Generate(c, prompt)
+		raw, err := s.ai.Generate(c, ai.Request{
+			Prompt: prompt,
+			Format: ai.OutputFormatJSON,
+		})
 		if err != nil {
 			lastError = err
 			continue

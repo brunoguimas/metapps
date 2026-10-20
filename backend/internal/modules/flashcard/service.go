@@ -138,7 +138,7 @@ func (s *flashcardService) Generate(c context.Context, userID, topicID uuid.UUID
 			prompt = enhancePromptWithFeedback(prompt, lastResponseErr)
 		}
 
-		raw, err := s.ai.Generate(c, prompt)
+		raw, err := s.ai.Generate(c, ai.Request{Prompt: prompt, Format: ai.OutputFormatJSON})
 		if err != nil {
 			lastErr = err
 

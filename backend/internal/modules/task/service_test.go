@@ -20,8 +20,8 @@ type fakeAIClient struct {
 	generateFn func(context.Context, string) (string, error)
 }
 
-func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
-	return c.generateFn(ctx, prompt)
+func (c *fakeAIClient) Generate(ctx context.Context, req ai.Request) (string, error) {
+	return c.generateFn(ctx, req.Prompt)
 }
 
 type fakeRepository struct {

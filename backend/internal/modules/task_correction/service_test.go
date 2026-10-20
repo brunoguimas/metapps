@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	topic "github.com/brunoguimas/metapps/backend/internal/modules/topic"
@@ -19,9 +20,9 @@ type fakeAIClient struct {
 	generateFn func(context.Context, string) (string, error)
 }
 
-func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
+func (c *fakeAIClient) Generate(ctx context.Context, req ai.Request) (string, error) {
 	if c.generateFn != nil {
-		return c.generateFn(ctx, prompt)
+		return c.generateFn(ctx, req.Prompt)
 	}
 	return `{"feedback":"Excelente redação!","score":90}`, nil
 }

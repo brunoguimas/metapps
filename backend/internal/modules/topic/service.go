@@ -13,7 +13,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/google/uuid"
-)	
+)
 
 type Service interface {
 	GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error)
@@ -78,7 +78,10 @@ func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *g
 			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastResponseErr)
 		}
 
-		roadmapJSON, err := s.ai.Generate(c, prompt)
+		roadmapJSON, err := s.ai.Generate(c, ai.Request{
+			Prompt: prompt,
+			Format: ai.OutputFormatJSON,
+		})
 		if err != nil {
 			lastErr = err
 

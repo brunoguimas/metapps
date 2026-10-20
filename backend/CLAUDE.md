@@ -63,6 +63,10 @@ The error handling has been simplified to make logs more informative and easier 
 
 - The project uses `.env` for environment variables (see `.env.example` for reference)
 - Database URL is expected in `DATABASE_URL` and `TEST_DATABASE_URL` for testing
+- `AI_PROVIDER` selects the primary AI provider: `gemini` (default) or `groq`.
+  The other provider is registered as automatic fallback, but only if its API key
+  is present (`GEMINI_API_KEY` / `GROQ_API_KEY`). The key of the selected provider
+  is required; an invalid `AI_PROVIDER` value aborts the boot.
 
 ## Notes
 

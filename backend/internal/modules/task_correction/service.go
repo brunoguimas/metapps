@@ -258,7 +258,10 @@ func (s *taskCorrectionService) GenerateQuizCorrection(ctx context.Context, user
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to render quiz correction prompt", err)
 	}
 
-	aiResponse, err := s.client.Generate(ctx, prompt)
+	aiResponse, err := s.client.Generate(ctx, ai.Request{
+		Prompt: prompt,
+		Format: ai.OutputFormatText,
+	})
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "failed to generate AI quiz correction", err)
 	}

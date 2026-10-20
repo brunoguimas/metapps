@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
@@ -26,8 +27,8 @@ type stubResposta struct {
 	err      error
 }
 
-func (s *stubAI) Generate(_ context.Context, prompt string) (string, error) {
-	s.prompts = append(s.prompts, prompt)
+func (s *stubAI) Generate(_ context.Context, req ai.Request) (string, error) {
+	s.prompts = append(s.prompts, req.Prompt)
 	i := s.chamadas
 	s.chamadas++
 
@@ -85,7 +86,7 @@ func novoServico(cl aiClient, repo Repository) Service {
 // aiClient é o mesmo contrato de ai.Client, declarado localmente para os
 // testes não dependerem do pacote concreto.
 type aiClient interface {
-	Generate(ctx context.Context, prompt string) (string, error)
+	Generate(ctx context.Context, req ai.Request) (string, error)
 }
 
 func upstreamErro() error {

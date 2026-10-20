@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	Model = "models/gemini-3.6-flash"
+	// DefaultGeminiModel é usado quando o .env não define GEMINI_MODEL.
+	DefaultGeminiModel = "gemini-3.8-flash"
 )
 
 type GeminiClient struct {
@@ -36,17 +37,35 @@ func NewGeminiClient(ctx context.Context, cfg config.Config) (*GeminiClient, err
 
 	model := cfg.GeminiModel
 	if model == "" {
-		model = config.DefaultGeminiModel
+		model = DefaultGeminiModel
 	}
 
 	return &GeminiClient{
 		client: client,
 		apiKey: cfg.GeminiKey,
-		model:  model,
+		model:  normalizeGeminiModel(model),
 	}, nil
 }
 
-func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, error) {
+// Name identifica o provedor ativo.
+func (g *GeminiClient) Name() string {
+	return config.AIProviderGemini
+}
+
+// normalizeGeminiModel garante o prefixo "models/" que a API do Gemini
+// exige, aceitando tanto "gemini-2.5-flash" quanto "models/gemini-2.5-flash"
+// no .env.
+func normalizeGeminiModel(model string) string {
+	if model == "" {
+		return "models/" + DefaultGeminiModel
+	}
+	if strings.HasPrefix(model, "models/") {
+		return model
+	}
+	return "models/" + model
+}
+
+func (g *GeminiClient) Generate(ctx context.Context, req Request) (string, error) {
 	if g.apiKey == "" {
 		g.mockOnce.Do(func() {
 			fmt.Println("WARNING: GEMINI_KEY is empty, using mock Gemini client for health check")
@@ -57,7 +76,7 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 	resp, err := g.client.Models.GenerateContent(
 		ctx,
 		g.model,
-		genai.Text(prompt),
+		genai.Text(req.Prompt),
 		nil,
 	)
 	if err != nil {
@@ -80,8 +99,12 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 		return "", apperrors.NewAppError(apperrors.ErrInternal, "failed to generate content from gemini", err)
 	}
 
-	text := resp.Text()
-	if text == "" {
+	content := resp.Text()
+	if req.Format == OutputFormatJSON {
+		content = stripCodeFences(content)
+	}
+
+	if strings.TrimSpace(content) == "" {
 		// Resposta sem texto é quase sempre finishReason MAX_TOKENS (o modelo
 		// gastou o orçamento raciocinando) ou SAFETY/RECITATION (bloqueio).
 		// Sem esse detalhe o log só diz "vazio" e não dá pra diagnosticar.
@@ -92,7 +115,7 @@ func (g *GeminiClient) Generate(ctx context.Context, prompt string) (string, err
 		)
 	}
 
-	return text, nil
+	return content, nil
 }
 
 // describeEmptyResponse explains why a successful HTTP call carried no text.

@@ -19,8 +19,13 @@ func NewFallbackClient(primary, fallback Client) *FallbackClient {
 	}
 }
 
-func (c *FallbackClient) Generate(ctx context.Context, prompt string) (string, error) {
-	content, err := c.primary.Generate(ctx, prompt)
+// Name devolve o nome do provedor primário (o que está em uso).
+func (c *FallbackClient) Name() string {
+	return clientName(c.primary)
+}
+
+func (c *FallbackClient) Generate(ctx context.Context, req Request) (string, error) {
+	content, err := c.primary.Generate(ctx, req)
 	if err == nil && strings.TrimSpace(content) != "" {
 		return content, nil
 	}
@@ -30,9 +35,9 @@ func (c *FallbackClient) Generate(ctx context.Context, prompt string) (string, e
 		primaryErr = fmt.Errorf("primary AI returned empty content")
 	}
 
-	slog.Warn("primary AI generation failed, trying fallback", "error", primaryErr)
+	slog.Warn("primary AI generation failed, trying fallback", "error", primaryErr, "primary", clientName(c.primary), "fallback", clientName(c.fallback))
 
-	content, err = c.fallback.Generate(ctx, prompt)
+	content, err = c.fallback.Generate(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("primary AI failed: %w; fallback AI failed: %v", primaryErr, err)
 	}
