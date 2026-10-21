@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/brunoguimas/metapps/backend/internal/httpx"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -25,6 +26,28 @@ func NewHandler(service Service, cfg *config.Config) *Handler {
 	}
 }
 
+// profileResponse builds a JSON-compatible representation of a profile.
+//
+// `streak` e a streak exibida (0 quando o usuario passou um dia sem
+// estudar), enquanto `streak_days` e o valor bruto gravado no banco.
+func profileResponse(p *Profile) gin.H {
+	now := time.Now()
+	return gin.H{
+		"id":                 p.ID,
+		"user_id":            p.UserID,
+		"xp":                 p.XP,
+		"streak":             p.StreakExibida(now),
+		"streak_days":        p.Streak,
+		"streak_active_today": p.StreakAtivo(now),
+		"level":              p.Level(),
+		"daily_goal_xp":      p.DailyGoalXP,
+		"last_activity_date": p.LastActivityDate,
+		"avatar_url":         p.AvatarURL,
+		"created_at":         p.CreatedAt,
+		"updated_at":         p.UpdatedAt,
+	}
+}
+
 func (h *Handler) GetProfile(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
@@ -34,14 +57,27 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 	profile, err := h.service.GetProfileByUserID(c.Request.Context(), userID)
 	if err != nil {
-		httpx.ErrorFrom(c, err)
-		return
+		// Se o perfil ainda não existe (ex.: usuário criado antes da
+		// criação automática), cria na hora para XP/streak funcionarem.
+		if appErr, ok := apperrors.As(err); ok && appErr.Code() == apperrors.ErrProfileNotFound {
+			profile, err = h.service.CreateProfile(c.Request.Context(), userID)
+			if err != nil {
+				httpx.ErrorFrom(c, err)
+				return
+			}
+		} else {
+			httpx.ErrorFrom(c, err)
+			return
+		}
 	}
 
-	httpx.OK(c, gin.H{"profile": profile})
+	httpx.OK(c, gin.H{
+		"profile": profileResponse(profile),
+	})
 }
 
-func (h *Handler) AddXP(c *gin.Context) {
+// UpdateDailyGoal muda a meta diaria de XP do usuario.
+func (h *Handler) UpdateDailyGoal(c *gin.Context) {
 	userID, err := httpx.GetFromContext(c, "user_id")
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -49,20 +85,22 @@ func (h *Handler) AddXP(c *gin.Context) {
 	}
 
 	var req struct {
-		XP int `json:"xp" binding:"required,min=1"`
+		DailyGoalXP int `json:"daily_goal_xp" binding:"required,min=10,max=1000"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.ErrorFrom(c, apperrors.NewAppError(apperrors.ErrInvalidInput, "invalid request", err))
 		return
 	}
 
-	profile, err := h.service.AddXP(c.Request.Context(), userID, req.XP)
+	profile, err := h.service.UpdateDailyGoal(c.Request.Context(), userID, req.DailyGoalXP)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
 	}
 
-	httpx.OK(c, gin.H{"profile": profile})
+	httpx.OK(c, gin.H{
+		"profile": profileResponse(profile),
+	})
 }
 
 func (h *Handler) UpdateAvatar(c *gin.Context) {
@@ -110,7 +148,7 @@ func (h *Handler) UpdateAvatar(c *gin.Context) {
 		return
 	}
 
-	avatarURL := h.cfg.AvatarBaseURL + "/" + filename
+	avatarURL := BuildAvatarURL(h.cfg.AvatarBaseURL, filename)
 	_, err = h.service.UpdateAvatar(c.Request.Context(), userID, avatarURL)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
@@ -131,6 +169,24 @@ func GetFileExtension(filename string) string {
 	default:
 		return ""
 	}
+}
+
+// AvatarPath é o prefixo da rota estática que serve os arquivos de avatar
+// (ver router.NewRouter: r.Static("/avatars", "./avatars")).
+const AvatarPath = "/avatars"
+
+// BuildAvatarURL monta a URL pública do avatar.
+//
+// O prefixo "/avatars" não era opcional: o handler montava
+// baseURL + "/" + nome, o que gerava http://host/uuid.jpg e caía em 404
+// porque os arquivos são servidos em /avatars/uuid.jpg. Daí a foto sumir
+// depois do upload.
+func BuildAvatarURL(baseURL, filename string) string {
+	base := strings.TrimRight(baseURL, "/")
+	if strings.HasSuffix(base, AvatarPath) {
+		return base + "/" + filename
+	}
+	return base + AvatarPath + "/" + filename
 }
 
 func ensureDir(dir string) error {

@@ -49,7 +49,7 @@ func (h *Handler) GenerateRoadmap(c *gin.Context) {
 		return
 	}
 
-	roadmap, err := h.topics.GenerateRoadmap(c.Request.Context(), goal)
+	roadmap, err := h.topics.GenerateRoadmap(c.Request.Context(), userID, goal)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return
@@ -80,7 +80,7 @@ func (h *Handler) GetRoadmap(c *gin.Context) {
 		return
 	}
 
-	roadmap, err := h.topics.GetRoadmap(c.Request.Context(), goalID)
+	roadmap, err := h.topics.GetRoadmap(c.Request.Context(), userID, goalID)
 	if err != nil {
 		httpx.ErrorFrom(c, err)
 		return

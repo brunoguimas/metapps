@@ -11,6 +11,7 @@ import (
 type ProgressRepository interface {
 	GetOrCreate(ctx context.Context, userID, topicID uuid.UUID) (*TopicProgress, error)
 	Update(ctx context.Context, progress *TopicProgress) error
+	ListByUserAndGoal(ctx context.Context, userID, goalID uuid.UUID) ([]*TopicProgress, error)
 }
 
 type topicProgressRepository struct {
@@ -78,6 +79,36 @@ func (r *topicProgressRepository) Update(ctx context.Context, progress *TopicPro
 		ConfidenceScore: progress.ConfidenceScore,
 		AttemptsCount:   progress.AttemptsCount,
 		Status:          db.TopicStatus(progress.Status),
+		// Sem isso a coluna evolution_stage era gravada com string vazia a
+		// cada update, zerando a fase do topico no roadmap.
+		EvolutionStage: progress.EvolutionStage,
 	})
 	return err
+}
+
+func (r *topicProgressRepository) ListByUserAndGoal(ctx context.Context, userID, goalID uuid.UUID) ([]*TopicProgress, error) {
+	rows, err := r.queries.GetTopicProgressByUserIDAndGoalID(ctx, db.GetTopicProgressByUserIDAndGoalIDParams{
+		UserID: userID,
+		GoalID: goalID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	progress := make([]*TopicProgress, 0, len(rows))
+	for _, row := range rows {
+		progress = append(progress, &TopicProgress{
+			ID:              row.ID,
+			UserID:          row.UserID,
+			TopicID:         row.TopicID,
+			MasteryScore:    row.MasteryScore,
+			ConfidenceScore: row.ConfidenceScore,
+			AttemptsCount:   row.AttemptsCount,
+			Status:          TopicStatus(row.Status),
+			EvolutionStage:  row.EvolutionStage,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
+		})
+	}
+	return progress, nil
 }

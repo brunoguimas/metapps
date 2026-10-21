@@ -1,0 +1,214 @@
+import { useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
+import { setAccessToken } from "./api"
+import { googleErrorMessage } from "./lib/errors.js"
+
+// ─── CONFIGURAÇÃO ─────────────────────────────────────────────
+
+// O backend atualmente redireciona para:
+// /auth/google/callback?token=<jwt>
+//
+// IMPORTANTE:
+// Token em query string não é o mecanismo ideal de segurança, pois
+// pode aparecer no histórico, logs, ferramentas de monitoramento etc.
+//
+// Por enquanto, mantemos esse formato por compatibilidade com o backend.
+// Futuramente, esta função pode ser substituída por outro mecanismo,
+// como:
+// - troca de código de uso único por access_token;
+// - cookie HttpOnly + endpoint de troca;
+// - postMessage em um fluxo controlado.
+//
+// O restante do componente não precisa ser alterado.
+function getOAuthToken() {
+    const params = new URLSearchParams(window.location.search)
+
+    return {
+        token: params.get("token"),
+        error: params.get("error")
+    }
+}
+
+// ─── VALIDAÇÃO MÍNIMA DO JWT ─────────────────────────────────
+
+function isValidJwtFormat(token) {
+    if (!token || typeof token !== "string") {
+        return false
+    }
+
+    const parts = token.split(".")
+
+    // JWT possui exatamente:
+    // header.payload.signature
+    if (parts.length !== 3) {
+        return false
+    }
+
+    // Cada parte precisa possuir conteúdo.
+    if (parts.some(part => !part)) {
+        return false
+    }
+
+    // JWT usa Base64URL.
+    // Essa validação não verifica assinatura ou expiração.
+    // Quem realmente valida o token continua sendo o backend.
+    const base64UrlPattern = /^[A-Za-z0-9_-]+$/
+
+    if (!parts.every(part => base64UrlPattern.test(part))) {
+        return false
+    }
+
+    return true
+}
+
+// ─── MAPEAMENTO DOS ERROS DO GOOGLE OAUTH ────────────────────
+//
+// O mapeamento mora em lib/errors.js, junto com as demais mensagens
+// de erro do app — assim a tradução do erro do OAuth e a do resto da
+// API ficam no mesmo lugar.
+
+// ─── LIMPA OS DADOS SENSÍVEIS DA URL ─────────────────────────
+
+function clearCallbackUrl() {
+    window.history.replaceState(
+        {},
+        "",
+        "/auth/google/callback"
+    )
+}
+
+// ─── COMPONENTE ──────────────────────────────────────────────
+
+export default function GoogleCallback() {
+    const navigate = useNavigate()
+    const processed = useRef(false)
+
+    useEffect(() => {
+        if (processed.current) return
+
+        processed.current = true
+
+        const { token, error } = getOAuthToken()
+
+        // ─── ERRO DEVOLVIDO PELO BACKEND / GOOGLE ─────────────
+
+        if (error) {
+            clearCallbackUrl()
+
+            navigate(
+                `/auth/login?error=google_auth_failed&reason=${encodeURIComponent(
+                    googleErrorMessage(error)
+                )}`,
+                {
+                    replace: true
+                }
+            )
+
+            return
+        }
+
+        // ─── TOKEN AUSENTE ───────────────────────────────────
+
+        if (!token) {
+            clearCallbackUrl()
+
+            navigate(
+                "/auth/login?error=google_auth_failed",
+                {
+                    replace: true
+                }
+            )
+
+            return
+        }
+
+        // ─── VALIDAÇÃO MÍNIMA DO TOKEN ───────────────────────
+
+        if (!isValidJwtFormat(token)) {
+            clearCallbackUrl()
+
+            navigate(
+                "/auth/login?error=google_auth_failed",
+                {
+                    replace: true
+                }
+            )
+
+            return
+        }
+
+        // ─── ARMAZENA ACCESS TOKEN ───────────────────────────
+
+        setAccessToken(token)
+
+        // Remove o token da barra de endereço e do histórico
+        // assim que ele for lido.
+        clearCallbackUrl()
+
+        // ─── LOGIN CONCLUÍDO ─────────────────────────────────
+
+        navigate("/home", {
+            replace: true
+        })
+
+    }, [navigate])
+
+    return (
+        <div
+            style={{
+                minHeight: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--lp-bg)",
+                color: "var(--lp-ink-2)",
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                WebkitFontSmoothing: "antialiased"
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 14,
+                    padding: "32px 40px",
+                    borderRadius: 24,
+                    background: "var(--lp-surface)",
+                    boxShadow: "0 2px 6px rgba(16,42,92,0.05), 0 12px 28px rgba(16,42,92,0.08)"
+                }}
+            >
+                <div
+                    style={{
+                        width: 32,
+                        height: 32,
+                        border: "3px solid var(--lp-brand-soft)",
+                        borderTopColor: "var(--lp-brand)",
+                        borderRadius: "50%",
+                        animation: "googleCallbackSpin .7s linear infinite"
+                    }}
+                />
+
+                <p
+                    style={{
+                        margin: 0,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: "var(--lp-ink-2)"
+                    }}
+                >
+                    Entrando...
+                </p>
+            </div>
+
+            <style>{`
+                @keyframes googleCallbackSpin {
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+            `}</style>
+        </div>
+    )
+}

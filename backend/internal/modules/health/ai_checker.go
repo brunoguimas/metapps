@@ -22,17 +22,23 @@ func NewAIChecker(ai ai.Client) AIChecker {
 }
 
 func (a *aiChecker) AIStatus() StatusService {
+	provider := providerName(a.client)
+
 	if a.client == nil {
 		return StatusService{
 			Status:    "down",
 			LatencyMS: 0,
+			Provider:  provider,
 			Error:     "ai client is not configured",
 		}
 	}
 
 	start := time.Now()
 
-	_, err := a.client.Generate(context.Background(), "Qual sua MPB favorita?")
+	_, err := a.client.Generate(context.Background(), ai.Request{
+		Prompt: "Qual sua MPB favorita?",
+		Format: ai.OutputFormatText,
+	})
 
 	latency := time.Since(start).Milliseconds()
 
@@ -40,6 +46,7 @@ func (a *aiChecker) AIStatus() StatusService {
 		return StatusService{
 			Status:    "down",
 			LatencyMS: int64(latency),
+			Provider:  provider,
 			Error:     err.Error(),
 		}
 	}
@@ -47,11 +54,26 @@ func (a *aiChecker) AIStatus() StatusService {
 		return StatusService{
 			Status:    "slow",
 			LatencyMS: int64(latency),
+			Provider:  provider,
 		}
 	}
 
 	return StatusService{
 		Status:    "up",
 		LatencyMS: int64(latency),
+		Provider:  provider,
 	}
+}
+
+// providerName devolve o nome do provedor em uso, quando o cliente o conhece.
+func providerName(client ai.Client) string {
+	if client == nil {
+		return ""
+	}
+
+	if named, ok := client.(ai.NamedClient); ok {
+		return named.Name()
+	}
+
+	return ""
 }

@@ -232,6 +232,23 @@ Todas as respostas de erro seguem o formato padronizado:
 - Para outros erros: exibir mensagem genérica ou específica conforme `error.message`
 - Logar erros inesperados para debug em desenvolvimento
 
+#### Tradução das mensagens (implementado em `frontend/src/lib/errors.js`)
+
+O texto devolvido pelo backend é escrito em inglês e, nos erros internos,
+não tem utilidade para o usuário (`"internal server error"`). Por isso,
+**nenhuma mensagem do servidor é exibida diretamente na interface**: tudo
+passa por `userMessage(error, fallback)`, que decide entre:
+
+| Situação | O que o usuário vê |
+|----------|--------------------|
+| Código conhecido (`EMAIL_ALREADY_IN_USE`, `INVALID_CREDENTIALS`, …) | Mensagem específica em português, traduzida pelo código |
+| Erro interno (5xx / `INTERNAL_ERROR`) | Mensagem genérica ("Algo deu errado do nosso lado…"); o detalhe vai para o `console.error` |
+| Erro de rede (`NETWORK_ERROR`) | "Sem conexão com o servidor. Verifique sua internet e tente novamente." |
+| Código desconhecido | Mensagem genérica de contexto da ação ("Não foi possível carregar o histórico…") |
+
+O erro original continua disponível em `err.rawMessage` (e em `err.data`)
+para depuração, mas é o que vai para o console — nunca para a tela.
+
 ---
 
 ## 4. Endpoints da API
@@ -257,7 +274,29 @@ Todas as respostas de erro seguem o formato padronizado:
 | Método | Endpoint | Descrição | Request Body | Success Response |
 |--------|----------|-----------|--------------|------------------|
 | `GET` | `` | Obter perfil do usuário logado | Nenhum | `200 OK` {profile: {...}} |
+| `PUT` | `/daily-goal` | Alterar a meta diária de XP | `{daily_goal_xp: number}` | `200 OK` {profile: {...}} |
 | `POST` | `/avatar` | Upload de avatar de perfil | `multipart/form-data` (campo "avatar") | `200 OK` {message, avatar_url} |
+
+#### Formato do Perfil
+```json
+{
+  "profile": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "xp": 120,
+    "streak": 4,
+    "streak_days": 4,
+    "streak_active_today": true,
+    "level": 2,
+    "daily_goal_xp": 50,
+    "last_activity_date": "2026-10-19T00:00:00Z",
+    "avatar_url": "http://localhost:8080/avatars/filename.png"
+  }
+}
+```
+
+> `streak` é a streak **exibida** (0 quando o usuário passou um dia sem
+> estudar); `streak_days` é o valor bruto no banco.
 
 #### Formato do Avatar (Response do POST /avatar)
 ```json
@@ -267,7 +306,38 @@ Todas as respostas de erro seguem o formato padronizado:
 }
 ```
 
-### 4.3. Metas/Goals (`/protected/goals`)
+### 4.3. Hoje (`/protected/daily`)
+*Requer autenticação*
+
+| Método | Endpoint | Descrição | Request Body | Success Response |
+|--------|----------|-----------|--------------|------------------|
+| `GET` | `/daily` | Resumo do dia: meta, streak, semana e revisão pendente | Nenhum | `200 OK` {daily: {...}} |
+| `PUT` | `/profile/daily-goal` | Altera a meta diária de XP | `{daily_goal_xp: number}` | `200 OK` {profile: {...}} |
+
+```json
+{
+  "daily": {
+    "date": "2026-10-19",
+    "xp": 38,
+    "goal_xp": 50,
+    "goal_reached": false,
+    "exercises": 4,
+    "lessons": 1,
+    "seconds": 42,
+    "streak": 4,
+    "streak_active_today": true,
+    "level": 1,
+    "total_xp": 120,
+    "review_due": 2,
+    "week": [{ "date": "2026-10-13", "xp": 0, "exercises": 0, "lessons": 0 }]
+  }
+}
+```
+
+> **Sem rota para o cliente somar XP.** O XP é concedido exclusivamente
+> pelo servidor no momento da resposta (`POST /:id/answer`).
+
+### 4.4. Metas/Goals (`/protected/goals`)
 *Requer autenticação*
 
 | Método | Endpoint | Descrição | Request Body | Success Response |
@@ -295,55 +365,128 @@ Todas as respostas de erro seguem o formato padronizado:
 }
 ```
 
-### 4.4. Tarefas (`/protected/tasks`)
+### 4.5. Tarefas / Sessões (`/protected/tasks`)
 *Requer autenticação*
+
+Uma "tarefa" é uma **sessão**: uma sequência de 3 a 5 exercícios curtos,
+respondidos um de cada vez, com feedback instantâneo do servidor.
 
 | Método | Endpoint | Descrição | Request Body | Success Response |
 |--------|----------|-----------|--------------|------------------|
-| `POST` | `/generate` | Gerar nova tarefa para um tópico | `{topic_id: uuid}` | `201 Created` {task: {...}} |
-| `GET` | `` | Listar tarefas do usuário | Query: opcional filters (topic_id, done, etc.) | `200 OK` {tasks: [...]} |
-| `GET` | `/:id` | Obter tarefa específica | Nenhum | `200 OK` {task: {...}} |
+| `POST` | `/generate` | Devolve (ou gera) a sessão de um tópico | `{topic_id: uuid}` | `201 Created` {task: {...}} |
+| `POST` | `/practice` | Monta uma sessão de Treino (sem chamar a IA) | `{topic_id?: uuid, count?: number}` | `201 Created` {task: {...}} |
+| `POST` | `/review` | Monta uma sessão de Revisão (SRS) | `{count?: number}` | `201 Created` {task: {...}} |
+| `POST` | `/:id/retry` | Monta uma sessão só com os exercícios errados | `{}` | `201 Created` {task: {...}} |
+| `POST` | `/:id/answer` | Corrige UM exercício | `{step_index: number, answer: number}` | `200 OK` {result: {...}} |
+| `POST` | `/:id/finish` | Encerra a sessão | `{metadata?: {...}}` | `200 OK` {result: {...}} |
+| `GET` | `` | Listar sessões do usuário | Query: `topic_id` opcional | `200 OK` {tasks: [...]} |
+| `GET` | `/:id` | Obter sessão específica | Nenhum | `200 OK` {task: {...}} |
 
-#### Tipos de Tarefa
-- `quiz`: Questão de múltipla escolha
-- `essay`: Resposta dissertativa
+> `POST /generate` **reaproveita** a sessão em andamento do tópico: clicar
+> em "Começar" não custa uma nova chamada à IA.
 
-#### Estrutura do Conteúdo por Tipo
-**Quiz:**
+#### Tipos de Sessão
+- `source: "lesson"`: sessão da trilha (conteúdo gerado pela IA)
+- `source: "practice"`: sessão de Treino (reaproveita exercícios existentes)
+- `source: "review"`: sessão de Revisão (repetição espaçada)
+
+#### Estrutura do Conteúdo (v2)
 ```json
 {
-  "questions": [
+  "version": 2,
+  "steps": [
     {
-      "statement": "string",
-      "alternatives": ["string", "string", "string", "string"],
-      "answer": number (índice da alternativa correta),
-      "explanation": "string"
+      "kind": "multiple_choice",
+      "statement": "até 180 caracteres",
+      "skill": "micro-habilidade treinada",
+      "difficulty": 1,
+      "material": [{ "type": "text", "data": "contexto opcional" }],
+      "alternatives": ["string", "string", "string"],
+      "answer": 1,
+      "explanation": "até 400 caracteres",
+      "hint": "opcional, até 200 caracteres"
     }
   ]
 }
 ```
 
-**Essay:**
-```json
-{
-  "instructions": "string",
-  "expectations": "string",
-  "content": {
-    // Estrutura livre, mas geralmente contém campos esperados na resposta
-  }
-}
-```
+Limites validados **no servidor** (não só no prompt): 3–5 passos,
+enunciado de 8 a 180 caracteres, 3–4 alternativas distintas, `answer`
+válido e `explanation` de 5 a 400 caracteres.
 
-#### Estrutura da Meta da Tarefa (comum para ambos os tipos)
+> **Compatibilidade:** sessões antigas no formato `questions` são
+> normalizadas para `steps` na leitura.
+
+#### Metadados da Sessão
 ```json
 {
   "title": "string",
   "description": "string",
-  "expectations": "string" // O que se espera que o usuário demonstre
+  "expectations": "string"
 }
 ```
 
-### 4.5. Tentativas de Tarefa (`/protected/task-attempts`)
+#### Resposta de `POST /:id/answer`
+```json
+{
+  "result": {
+    "task_id": "uuid",
+    "step_index": 0,
+    "total_steps": 4,
+    "correct": true,
+    "correct_answer": 1,
+    "explanation": "string",
+    "hint": "string",
+    "skill": "string",
+    "xp_awarded": 12,
+    "xp_total": 12,
+    "combo": 1,
+    "max_combo": 3,
+    "next_step_index": 1,
+    "streak": 4,
+    "daily_xp": 32,
+    "daily_goal": 50
+  }
+}
+```
+
+É **idempotente**: responder o mesmo passo de novo devolve o mesmo
+resultado, sem conceder XP duas vezes.
+
+#### Resposta de `POST /:id/finish`
+```json
+{
+  "result": {
+    "task_id": "uuid",
+    "topic_id": "uuid",
+    "source": "lesson",
+    "score": 0.75,
+    "correct_answers": 3,
+    "total_questions": 4,
+    "xp_gained": 33,
+    "max_combo": 2,
+    "mastered": false,
+    "required_mastery": 0.8,
+    "perfect": false,
+    "streak": 4,
+    "daily_xp": 38,
+    "daily_goal": 50,
+    "wrong_steps": [1],
+    "attempt_id": "uuid"
+  }
+}
+```
+
+#### Regras de XP (calculadas no servidor)
+| Evento | XP |
+|--------|-----|
+| Exercício acertado | `10 + min(combo × 2, 10)` |
+| Exercício errado | `−5` (XP total nunca fica negativo) |
+| Sessão 100% | `+5` |
+| Tópico dominado | `+round(peso do tópico × 10)` |
+
+
+### 4.6. Tentativas de Tarefa (`/protected/task-attempts`)
 *Requer autenticação*
 
 | Método | Endpoint | Descrição | Request Body | Success Response |
@@ -385,7 +528,7 @@ Todas as respostas de erro seguem o formato padronizado:
 }
 ```
 
-### 4.6. Correções (`/protected/corrections`)
+### 4.7. Correções (`/protected/corrections`)
 *Requer autenticação*
 
 | Método | Endpoint | Descrição | Request Body | Success Response |
@@ -408,7 +551,7 @@ Todas as respostas de erro seguem o formato padronizado:
 }
 ```
 
-### 4.7. Roadmap/Jornada de Estudos (`/protected/roadmap`)
+### 4.8. Roadmap/Jornada de Estudos (`/protected/roadmap`)
 *Requer autenticação*
 
 | Método | Endpoint | Descrição | Request Body | Success Response |

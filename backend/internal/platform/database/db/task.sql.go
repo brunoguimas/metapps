@@ -7,14 +7,16 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 
 	"github.com/google/uuid"
 )
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO public.tasks (user_id, topic_id, content, type)
-VALUES ($1, $2, $3, $4) RETURNING id, user_id, content, type, done, done_at, created_at, topic_id
+INSERT INTO public.tasks (user_id, topic_id, content, type, source, version, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at
 `
 
 type CreateTaskParams struct {
@@ -22,6 +24,9 @@ type CreateTaskParams struct {
 	TopicID uuid.UUID
 	Content json.RawMessage
 	Type    string
+	Source  string
+	Version int32
+	Status  string
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
@@ -30,6 +35,9 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.TopicID,
 		arg.Content,
 		arg.Type,
+		arg.Source,
+		arg.Version,
+		arg.Status,
 	)
 	var i Task
 	err := row.Scan(
@@ -41,12 +49,21 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.DoneAt,
 		&i.CreatedAt,
 		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getTaskByID = `-- name: GetTaskByID :one
-SELECT id, user_id, content, type, done, done_at, created_at, topic_id FROM public.tasks 
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at FROM public.tasks
 WHERE id = $1
     AND user_id = $2
 `
@@ -68,13 +85,63 @@ func (q *Queries) GetTaskByID(ctx context.Context, arg GetTaskByIDParams) (Task,
 		&i.DoneAt,
 		&i.CreatedAt,
 		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getTaskByUserAndTopicAndStatus = `-- name: GetTaskByUserAndTopicAndStatus :one
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at FROM public.tasks
+WHERE user_id = $1
+  AND topic_id = $2
+  AND status = $3
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetTaskByUserAndTopicAndStatusParams struct {
+	UserID  uuid.UUID
+	TopicID uuid.UUID
+	Status  string
+}
+
+func (q *Queries) GetTaskByUserAndTopicAndStatus(ctx context.Context, arg GetTaskByUserAndTopicAndStatusParams) (Task, error) {
+	row := q.db.QueryRowContext(ctx, getTaskByUserAndTopicAndStatus, arg.UserID, arg.TopicID, arg.Status)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Content,
+		&i.Type,
+		&i.Done,
+		&i.DoneAt,
+		&i.CreatedAt,
+		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getTasksByUserID = `-- name: GetTasksByUserID :many
-SELECT id, user_id, content, type, done, done_at, created_at, topic_id FROM public.tasks
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at FROM public.tasks
 WHERE user_id = $1
+ORDER BY created_at DESC
 `
 
 func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.NullUUID) ([]Task, error) {
@@ -95,6 +162,170 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.NullUUID) ([
 			&i.DoneAt,
 			&i.CreatedAt,
 			&i.TopicID,
+			&i.Version,
+			&i.Source,
+			&i.Status,
+			&i.StepCursor,
+			&i.MaxCombo,
+			&i.Score,
+			&i.XpGained,
+			&i.LastStepAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTaskStatementsByTopic = `-- name: ListTaskStatementsByTopic :many
+SELECT (s.item ->> 'statement')::text AS statement
+FROM public.tasks t
+CROSS JOIN LATERAL jsonb_array_elements(
+    CASE
+        WHEN jsonb_typeof(t.content -> 'content' -> 'steps') = 'array'
+            THEN t.content -> 'content' -> 'steps'
+        WHEN jsonb_typeof(t.content -> 'steps') = 'array'
+            THEN t.content -> 'steps'
+        WHEN jsonb_typeof(t.content -> 'questions') = 'array'
+            THEN t.content -> 'questions'
+        ELSE '[]'::jsonb
+    END
+) AS s(item)
+WHERE t.user_id = $1
+  AND t.topic_id = $2
+  AND s.item ->> 'statement' IS NOT NULL
+LIMIT 60
+`
+
+type ListTaskStatementsByTopicParams struct {
+	UserID  uuid.UUID
+	TopicID uuid.UUID
+}
+
+// Enunciados ja usados nas tasks do topico, para a IA nao repetir conteudo.
+func (q *Queries) ListTaskStatementsByTopic(ctx context.Context, arg ListTaskStatementsByTopicParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listTaskStatementsByTopic, arg.UserID, arg.TopicID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var statement string
+		if err := rows.Scan(&statement); err != nil {
+			return nil, err
+		}
+		items = append(items, statement)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTasksByUserAndSource = `-- name: ListTasksByUserAndSource :many
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at FROM public.tasks
+WHERE user_id = $1
+  AND source = $2
+ORDER BY created_at DESC
+`
+
+type ListTasksByUserAndSourceParams struct {
+	UserID uuid.UUID
+	Source string
+}
+
+func (q *Queries) ListTasksByUserAndSource(ctx context.Context, arg ListTasksByUserAndSourceParams) ([]Task, error) {
+	rows, err := q.db.QueryContext(ctx, listTasksByUserAndSource, arg.UserID, arg.Source)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Content,
+			&i.Type,
+			&i.Done,
+			&i.DoneAt,
+			&i.CreatedAt,
+			&i.TopicID,
+			&i.Version,
+			&i.Source,
+			&i.Status,
+			&i.StepCursor,
+			&i.MaxCombo,
+			&i.Score,
+			&i.XpGained,
+			&i.LastStepAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTasksByUserAndTopic = `-- name: ListTasksByUserAndTopic :many
+SELECT id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at FROM public.tasks
+WHERE user_id = $1
+  AND topic_id = $2
+ORDER BY created_at DESC
+`
+
+type ListTasksByUserAndTopicParams struct {
+	UserID  uuid.UUID
+	TopicID uuid.UUID
+}
+
+func (q *Queries) ListTasksByUserAndTopic(ctx context.Context, arg ListTasksByUserAndTopicParams) ([]Task, error) {
+	rows, err := q.db.QueryContext(ctx, listTasksByUserAndTopic, arg.UserID, arg.TopicID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Content,
+			&i.Type,
+			&i.Done,
+			&i.DoneAt,
+			&i.CreatedAt,
+			&i.TopicID,
+			&i.Version,
+			&i.Source,
+			&i.Status,
+			&i.StepCursor,
+			&i.MaxCombo,
+			&i.Score,
+			&i.XpGained,
+			&i.LastStepAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -112,10 +343,12 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.NullUUID) ([
 const markTaskDone = `-- name: MarkTaskDone :one
 UPDATE public.tasks
 SET done = true,
-    done_at = now()
+    done_at = now(),
+    status = 'completed',
+    updated_at = now()
 WHERE id = $1
     AND user_id = $2
-RETURNING id, user_id, content, type, done, done_at, created_at, topic_id
+RETURNING id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at
 `
 
 type MarkTaskDoneParams struct {
@@ -135,6 +368,117 @@ func (q *Queries) MarkTaskDone(ctx context.Context, arg MarkTaskDoneParams) (Tas
 		&i.DoneAt,
 		&i.CreatedAt,
 		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateTaskDone = `-- name: UpdateTaskDone :one
+UPDATE public.tasks
+SET done = $2,
+    done_at = CASE WHEN $2 THEN now() ELSE done_at END,
+    status = $3,
+    score = $4,
+    xp_gained = $5,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at
+`
+
+type UpdateTaskDoneParams struct {
+	ID       uuid.UUID
+	Done     bool
+	Status   string
+	Score    sql.NullString
+	XpGained int32
+}
+
+func (q *Queries) UpdateTaskDone(ctx context.Context, arg UpdateTaskDoneParams) (Task, error) {
+	row := q.db.QueryRowContext(ctx, updateTaskDone,
+		arg.ID,
+		arg.Done,
+		arg.Status,
+		arg.Score,
+		arg.XpGained,
+	)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Content,
+		&i.Type,
+		&i.Done,
+		&i.DoneAt,
+		&i.CreatedAt,
+		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateTaskSession = `-- name: UpdateTaskSession :one
+UPDATE public.tasks
+SET status = $2,
+    step_cursor = $3,
+    max_combo = $4,
+    score = $5,
+    last_step_at = now(),
+    updated_at = now()
+WHERE id = $1
+RETURNING id, user_id, content, type, done, done_at, created_at, topic_id, version, source, status, step_cursor, max_combo, score, xp_gained, last_step_at, updated_at
+`
+
+type UpdateTaskSessionParams struct {
+	ID         uuid.UUID
+	Status     string
+	StepCursor int32
+	MaxCombo   int32
+	Score      sql.NullString
+}
+
+func (q *Queries) UpdateTaskSession(ctx context.Context, arg UpdateTaskSessionParams) (Task, error) {
+	row := q.db.QueryRowContext(ctx, updateTaskSession,
+		arg.ID,
+		arg.Status,
+		arg.StepCursor,
+		arg.MaxCombo,
+		arg.Score,
+	)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Content,
+		&i.Type,
+		&i.Done,
+		&i.DoneAt,
+		&i.CreatedAt,
+		&i.TopicID,
+		&i.Version,
+		&i.Source,
+		&i.Status,
+		&i.StepCursor,
+		&i.MaxCombo,
+		&i.Score,
+		&i.XpGained,
+		&i.LastStepAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

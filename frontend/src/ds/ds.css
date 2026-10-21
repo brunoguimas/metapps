@@ -1,0 +1,256 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Metapps — design system compartilhado (landpage + área logada)
+
+   Tudo consome os tokens --lp-* do index.css: um único tema (claro/
+   escuro via [data-theme]) pinta todos os componentes, sem bloco de
+   cores duplicado. A personalidade é a da landpage (bordas finas,
+   sombras difusas); a base 3D sutil (.ds-btn--press) fica reservada
+   aos CTAs principais e à trilha, como identidade gamificada.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── botão ─────────────────────────────────────────────────────────── */
+
+.ds-btn {
+  --ds-c: var(--lp-brand);
+  --ds-cd: var(--lp-brand-d);
+  --ds-ink: var(--lp-brand-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 22px;
+  border: none;
+  border-radius: var(--lp-r-sm);
+  background: var(--ds-c);
+  color: var(--ds-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.1s var(--ease),
+    box-shadow 0.1s var(--ease),
+    filter 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.ds-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.ds-btn:active:not(:disabled) { transform: scale(0.98); }
+.ds-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* base 3D sutil — a "pegada" de jogo, só nos CTAs principais */
+.ds-btn--press { box-shadow: 0 4px 0 var(--ds-cd); }
+.ds-btn--press:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--ds-cd); }
+
+.ds-btn--danger { --ds-c: var(--lp-red); --ds-cd: var(--lp-red-d); }
+
+/* contraste: botão claro sobre faixas escuras (navbar/CTA da landing) */
+.ds-btn--contrast {
+  --ds-c: var(--lp-bg);
+  --ds-cd: var(--lp-line);
+  --ds-ink: var(--lp-ink);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.14);
+}
+
+/* ghost: superfície + borda (ações secundárias, "Continuar com Google") */
+.ds-btn--ghost {
+  --ds-c: var(--lp-surface);
+  --ds-cd: var(--lp-line);
+  --ds-ink: var(--lp-ink);
+  border: 1.5px solid var(--lp-line);
+  font-weight: 700;
+}
+.ds-btn--ghost:hover:not(:disabled) {
+  background: var(--lp-brand-soft);
+  border-color: var(--lp-brand-soft);
+  color: var(--lp-brand);
+  filter: none;
+}
+
+/* quiet: transparente + borda (voltar, ações terciárias) */
+.ds-btn--quiet {
+  --ds-c: transparent;
+  --ds-ink: var(--lp-ink-2);
+  background: transparent;
+  border: 1.5px solid var(--lp-line);
+  box-shadow: none;
+  font-weight: 700;
+}
+.ds-btn--quiet:hover:not(:disabled) {
+  color: var(--lp-ink);
+  background: var(--lp-hover);
+  filter: none;
+}
+
+/* ghost-dark: vidro fosco sobre o navy do hero (landing) */
+.ds-btn--ghost-dark {
+  --ds-c: rgba(245, 244, 255, 0.04);
+  --ds-ink: var(--lp-ink-on-deep);
+  border: 1px solid rgba(245, 244, 255, 0.16);
+}
+.ds-btn--ghost-dark:hover:not(:disabled) {
+  background: rgba(245, 244, 255, 0.09);
+  filter: none;
+}
+
+.ds-btn--sm { padding: 9px 15px; font-size: 12.5px; border-radius: 10px; }
+.ds-btn--lg { padding: 16px 26px; font-size: 14.5px; }
+.ds-btn--block { width: 100%; }
+
+.ds-btn__spin {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  animation: dsSpin 0.7s linear infinite;
+}
+
+@keyframes dsSpin { to { transform: rotate(360deg); } }
+
+/* ── card ──────────────────────────────────────────────────────────── */
+
+.ds-card {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-line-soft);
+  border-radius: var(--lp-r-lg);
+  box-shadow: var(--lp-shadow-sm);
+}
+.ds-card--pad { padding: 20px; }
+.ds-card--flat { box-shadow: none; }
+
+.ds-card--interactive {
+  cursor: pointer;
+  transition:
+    transform 0.12s var(--ease),
+    box-shadow 0.12s var(--ease),
+    border-color 0.15s ease;
+}
+.ds-card--interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--lp-brand);
+  box-shadow: var(--lp-shadow);
+}
+.ds-card--interactive:active { transform: translateY(0); }
+
+/* ── chip / tag ────────────────────────────────────────────────────── */
+
+.ds-chip {
+  --ds-tone-d: var(--lp-brand-d);
+  --ds-tone-soft: var(--lp-brand-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--ds-tone-soft);
+  color: var(--ds-tone-d);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ds-chip--green  { --ds-tone-d: var(--lp-green-d);  --ds-tone-soft: var(--lp-green-soft); }
+.ds-chip--yellow { --ds-tone-d: var(--lp-orange-d); --ds-tone-soft: var(--lp-orange-soft); }
+.ds-chip--red    { --ds-tone-d: var(--lp-red-d);    --ds-tone-soft: var(--lp-red-soft); }
+.ds-chip--violet { --ds-tone-d: var(--lp-violet-d); --ds-tone-soft: var(--lp-violet-soft); }
+.ds-chip--cyan   { --ds-tone-d: var(--lp-cyan-d);   --ds-tone-soft: var(--lp-cyan-soft); }
+.ds-chip--neutral { --ds-tone-d: var(--lp-ink-3);   --ds-tone-soft: var(--lp-surface-2); }
+
+/* ── barra de progresso ────────────────────────────────────────────── */
+
+.ds-progress {
+  height: 7px;
+  border-radius: 99px;
+  background: var(--lp-line-soft);
+  overflow: hidden;
+}
+.ds-progress--thick { height: 14px; }
+
+.ds-progress__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--ds-tone, var(--lp-brand));
+  transition: width 0.6s var(--ease);
+}
+.ds-progress__fill--gradient {
+  background: linear-gradient(90deg, var(--lp-green), var(--lp-brand), var(--lp-violet));
+}
+
+/* ── cabeçalho de seção (eyebrow) ──────────────────────────────────── */
+
+.ds-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-ink-3);
+}
+.ds-h--accent { color: var(--lp-brand); }
+.ds-h svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ds-h__action { margin-left: auto; display: inline-flex; align-items: center; }
+
+/* ── alerta de erro ────────────────────────────────────────────────── */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--lp-red) 30%, var(--lp-line-soft));
+  border-radius: var(--lp-r-sm);
+  background: var(--lp-red-soft);
+  color: var(--lp-red-d);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.ds-alert svg { flex-shrink: 0; margin-top: 1px; width: 16px; height: 16px; }
+
+/* ── spinner genérico ──────────────────────────────────────────────── */
+
+.ds-spinner { animation: dsSpin 0.8s linear infinite; flex-shrink: 0; }
+
+/* ── bloco de espera (processo longo em andamento) ────────────────── */
+
+.ds-busy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--lp-brand);
+  border-radius: var(--lp-r-md);
+  background: var(--lp-brand-soft);
+  color: var(--lp-ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.ds-busy__dots { display: flex; gap: 5px; flex-shrink: 0; }
+.ds-busy__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lp-brand);
+  animation: dsPulse 1s ease-in-out infinite;
+}
+.ds-busy__dots i:nth-child(2) { animation-delay: 0.18s; }
+.ds-busy__dots i:nth-child(3) { animation-delay: 0.36s; }
+.ds-busy__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ds-busy__title { font-weight: 800; }
+.ds-busy__hint { color: var(--lp-ink-2); font-size: 12px; font-weight: 600; }
+
+@keyframes dsPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-btn, .ds-card, .ds-progress__fill { transition-duration: 0.01ms !important; }
+  .ds-spinner, .ds-btn__spin { animation-duration: 0.01ms !important; }
+  .ds-busy__dots i { animation-duration: 0.01ms !important; }
+}

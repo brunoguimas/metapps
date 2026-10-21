@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Metapps — Termos e Privacidade</title>
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; color-scheme: light; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #eff4fc;                  /* --lp-bg */
+    color: #16294f;                       /* --lp-ink */
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(251,252,254,0.90);   /* --lp-surface translúcido */
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(42,99,212,0.16);
+  }
+  .nav {
+    max-width: 1040px; margin: 0 auto; padding: 0 28px;
+    height: 62px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    display: flex; align-items: center; cursor: pointer;
+    text-decoration: none;
+    font-size: 17px; font-weight: 800; letter-spacing: -0.4px;
+    color: #16294f;
+  }
+  .nav-links { display: flex; align-items: center; gap: 20px; }
+  .nav-links button {
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
+    cursor: pointer; transition: color .15s;
+    background: none; border: none; font-family: inherit; padding: 0;
+  }
+  .nav-links button:hover { color: #16294f; }
+  .nav-back {
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
+    cursor: pointer; transition: color .15s;
+    background: none; border: 1px solid rgba(22,41,79,0.16);
+    padding: 6px 14px; border-radius: 6px; font-family: inherit;
+    margin-left: 12px;
+  }
+  .nav-back:hover { color: #16294f; border-color: rgba(22,41,79,0.34); }
+
+  /* ── Hero ── */
+  .hero { padding: 44px 0 36px; border-bottom: 1px solid rgba(42,99,212,0.14); }
+  .container { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
+  .hero h1 {
+    font-size: clamp(24px, 4vw, 36px); font-weight: 800;
+    letter-spacing: -0.6px; color: #16294f; line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .hero p { font-size: 14px; color: rgba(22,41,79,0.72); max-width: 580px; line-height: 1.65; }
+  .meta { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; border-radius: 99px;
+    padding: 3px 11px; font-size: 11.5px; font-weight: 600;
+  }
+  .badge-neutral {
+    background: rgba(22,41,79,0.05); border: 1px solid rgba(22,41,79,0.12);
+    color: rgba(22,41,79,0.68);
+  }
+  .badge-blue {
+    background: rgba(42,99,212,0.10); border: 1px solid rgba(42,99,212,0.30);
+    color: #1f4fb4;
+  }
+
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 200px 1fr; gap: 28px; padding: 32px 0 60px; align-items: start; }
+  .sidebar { position: sticky; top: 82px; }
+  .toc-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: rgba(22,41,79,0.60); margin-bottom: 10px;
+  }
+  .toc-btn {
+    display: block; width: 100%; padding: 8px 12px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
+    text-align: left; background: none; border: none; cursor: pointer;
+    transition: background .14s, color .14s; margin-bottom: 2px;
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+  .toc-btn:hover { background: rgba(22,41,79,0.04); color: #16294f; }
+  .toc-btn.active {
+    background: rgba(42,99,212,0.14); color: #1f4fb4; font-weight: 600;
+    border-left: 2px solid #1f4fb4; padding-left: 10px;
+  }
+  .toc-sep { height: 1px; background: rgba(42,99,212,0.14); margin: 10px 0; }
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 500; color: rgba(22,41,79,0.68);
+    padding: 8px 12px; border-radius: 6px; cursor: pointer;
+    transition: background .14s, color .14s;
+    background: none; border: none;
+    font-family: 'Inter', -apple-system, sans-serif;
+    width: 100%; text-align: left;
+  }
+  .back-btn:hover { background: rgba(22,41,79,0.04); color: #16294f; }
+
+  /* ── Content card ── */
+  .content-card {
+    background: #fbfcfe;                  /* --lp-surface: cartão sobre o fundo */
+    border: 1px solid rgba(42,99,212,0.14);
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(16,42,92,0.05), 0 12px 28px rgba(16,42,92,0.08);
+  }
+  .tab { display: none; padding: 40px 44px; animation: fi .2s ease; }
+  .tab.active { display: block; }
+  @keyframes fi { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Sections ── */
+  .sec { margin-bottom: 32px; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec h2 {
+    font-size: 16px; font-weight: 700; color: #16294f;
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(42,99,212,0.10);
+  }
+  .sec p { font-size: 14px; color: rgba(22,41,79,0.72); line-height: 1.7; margin-bottom: 10px; }
+  .sec p:last-child { margin-bottom: 0; }
+  .sec strong { color: #16294f; font-weight: 600; }
+  .sec ul { margin: 8px 0 12px 18px; }
+  .sec li { font-size: 14px; color: rgba(22,41,79,0.72); line-height: 1.65; margin-bottom: 5px; }
+
+  /* ── Note box ── */
+  .note {
+    background: rgba(42,99,212,0.10);
+    border: 1px solid rgba(42,99,212,0.24);
+    border-left: 3px solid #1f4fb4;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px; margin: 14px 0;
+  }
+  .note p { margin: 0; font-size: 13px; color: rgba(22,41,79,0.72); font-weight: 500; }
+
+  /* ── Contact box ── */
+  .contact-box {
+    background: rgba(42,99,212,0.10);
+    border: 1px solid rgba(42,99,212,0.24);
+    border-radius: 8px; padding: 16px 20px; margin-top: 18px;
+  }
+  .contact-box p { font-size: 14px; color: rgba(22,41,79,0.72); margin-bottom: 6px; }
+  .contact-box a { color: #1f4fb4; font-weight: 600; text-decoration: none; }
+  .contact-box a:hover { text-decoration: underline; }
+
+  hr { border: none; height: 1px; background: rgba(42,99,212,0.14); margin: 28px 0; }
+  .foot-note { font-size: 12px; color: rgba(22,41,79,0.58); text-align: center; }
+
+  /* ── Footer ── */
+  .page-footer { border-top: 1px solid rgba(42,99,212,0.14); padding: 24px 0; background: #eff4fc; }
+  .footer-inner { text-align: center; font-size: 13px; color: rgba(22,41,79,0.58); }
+  .footer-inner button {
+    color: rgba(22,41,79,0.68); background: none; border: none;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; padding: 0; transition: color .14s;
+  }
+  .footer-inner button:hover { color: #1f4fb4; }
+  .footer-inner a { color: rgba(22,41,79,0.68); text-decoration: none; font-weight: 500; }
+  .footer-inner a:hover { color: #1f4fb4; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .nav { padding: 0 20px; height: 56px; }
+    .container { padding: 0 20px; }
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .toc-btns { display: flex; gap: 6px; }
+    .toc-btn { white-space: nowrap; font-size: 12px; padding: 6px 10px; }
+    .toc-btn.active { border-left: none; border-bottom: 2px solid #1f4fb4; padding-left: 10px; padding-bottom: 4px; }
+    .tab { padding: 28px 24px; }
+    .hero { padding: 32px 0 28px; }
+    .nav-links button:not(.nav-back) { display: none; }
+    .nav-back { margin-left: 0; }
+  }
+  @media (max-width: 480px) {
+    .tab { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <nav class="nav container">
+    <a class="nav-logo" onclick="goBack()" title="Voltar ao Metapps">
+      <!-- O logo em imagem não existe em /public; a marca é o nome, como no app. -->
+      <span>Metapps</span>
+    </a>
+    <div class="nav-links">
+      <button onclick="switchTab('termos')">Termos</button>
+      <button onclick="switchTab('privacidade')">Privacidade</button>
+      <button class="nav-back" onclick="goBack()">← Voltar</button>
+    </div>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <h1>Termos de Serviço &amp; Privacidade</h1>
+    <p>Transparência e compromisso com seus dados. Entenda como o Metapps protege suas informações e as regras de uso da plataforma.</p>
+    <div class="meta">
+      <span class="badge badge-neutral">Atualizado em 27/03/2026</span>
+      <span class="badge badge-blue">Projeto TCC</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="toc-label">Documentos</div>
+      <div class="toc-btns">
+        <button class="toc-btn active" id="tocT" onclick="switchTab('termos')">Termos de Serviço</button>
+        <button class="toc-btn" id="tocP" onclick="switchTab('privacidade')">Política de Privacidade</button>
+      </div>
+      <div class="toc-sep"></div>
+      <button class="back-btn" onclick="goBack()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Voltar para o app
+      </button>
+    </aside>
+
+    <div class="content-card">
+
+      <!-- TERMOS -->
+      <div id="termos" class="tab active">
+        <div class="sec">
+          <h2>1. Sobre o serviço</h2>
+          <p>O Metapps é uma aplicação desenvolvida com fins educacionais como parte de um Trabalho de Conclusão de Curso (TCC). A plataforma permite cadastro de usuários, autenticação e criação de atividades personalizadas com inteligência artificial, demonstrando conceitos de desenvolvimento full-stack, segurança e gestão de metas.</p>
+        </div>
+        <div class="sec">
+          <h2>2. Aceitação dos termos</h2>
+          <p>Ao utilizar a plataforma, o usuário declara que leu, compreendeu e concorda com estes termos. O uso contínuo após alterações implica aceitação automática das novas condições.</p>
+        </div>
+        <div class="sec">
+          <h2>3. Cadastro do usuário</h2>
+          <p>Para utilizar determinadas funcionalidades, o usuário deverá fornecer nome de usuário, e-mail válido e senha. O usuário é responsável por manter a confidencialidade da conta e não compartilhar credenciais com terceiros.</p>
+        </div>
+        <div class="sec">
+          <h2>4. Uso aceitável</h2>
+          <p>O usuário concorda em não utilizar o sistema para atividades ilegais, tentar explorar falhas de segurança, enviar spam ou violar direitos de propriedade intelectual.</p>
+          <div class="note"><p><strong>Atenção:</strong> Qualquer comportamento abusivo poderá resultar na suspensão imediata da conta, sem aviso prévio.</p></div>
+        </div>
+        <div class="sec">
+          <h2>5. Verificação de e-mail</h2>
+          <p>O sistema exige verificação de e-mail para ativação completa da conta. Links de verificação expiram após 24 horas por motivos de segurança.</p>
+        </div>
+        <div class="sec">
+          <h2>6. Disponibilidade do serviço</h2>
+          <p>Por se tratar de um projeto acadêmico, o serviço pode sofrer interrupções, ser modificado ou descontinuado a qualquer momento.</p>
+        </div>
+        <div class="sec">
+          <h2>7. Limitação de responsabilidade</h2>
+          <p>O sistema é fornecido "como está", sem garantias de disponibilidade contínua ou segurança absoluta. Em nenhuma hipótese o Metapps ou seus desenvolvedores serão responsáveis por danos indiretos ou perda de dados.</p>
+        </div>
+        <div class="sec">
+          <h2>8. Propriedade intelectual</h2>
+          <p>Todo o código fonte, design, identidade visual e conteúdos originais pertencem ao autor do projeto. É proibida a reprodução ou comercialização não autorizada de qualquer elemento da plataforma.</p>
+        </div>
+        <div class="sec">
+          <h2>9. Encerramento de conta</h2>
+          <p>O acesso pode ser suspenso em caso de violação destes Termos, uso indevido ou solicitação expressa do titular. Após encerramento, os dados serão removidos conforme a Política de Privacidade.</p>
+        </div>
+        <div class="sec">
+          <h2>10. Alterações dos termos</h2>
+          <p>Estes Termos podem ser atualizados a qualquer momento. A versão mais recente estará sempre disponível nesta página.</p>
+        </div>
+        <div class="sec">
+          <h2>11. Contato</h2>
+          <div class="contact-box">
+            <p>Para dúvidas sobre os Termos de Serviço, entre em contato:</p>
+            <p style="margin-top:8px;font-weight:600">
+              <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
+            </p>
+            <p style="font-size:13px;color:rgba(22,41,79,0.60);margin-top:4px">
+              Telefone: <strong style="color:#16294f;">19 98119 1739</strong>
+            </p>
+          </div>
+        </div>
+        <hr>
+        <p class="foot-note">© 2026 Metapps — Projeto acadêmico (TCC). Todos os direitos reservados.</p>
+      </div>
+
+      <!-- PRIVACIDADE -->
+      <div id="privacidade" class="tab">
+        <div class="sec">
+          <h2>1. Dados coletados</h2>
+          <p>Coletamos: <strong>nome de usuário</strong> (identificação), <strong>e-mail</strong> (login e comunicações), <strong>senha</strong> (armazenada com hash + salt), e <strong>tokens de autenticação</strong> (sessões seguras). Não coletamos dados sensíveis como informações financeiras ou localização precisa.</p>
+        </div>
+        <div class="sec">
+          <h2>2. Uso dos dados</h2>
+          <p>As informações coletadas são utilizadas exclusivamente para gerenciar contas, autenticar usuários, garantir a integridade do sistema e enviar e-mails transacionais.</p>
+          <div class="note"><p>Os dados nunca são utilizados para marketing agressivo, venda a terceiros ou publicidade comportamental fora da plataforma.</p></div>
+        </div>
+        <div class="sec">
+          <h2>3. Compartilhamento de dados</h2>
+          <p>O Metapps <strong>não vende, aluga ou compartilha</strong> dados pessoais com terceiros para fins comerciais. Podemos compartilhar apenas quando exigido por lei ou necessário para funcionamento técnico da plataforma.</p>
+        </div>
+        <div class="sec">
+          <h2>4. Armazenamento e segurança</h2>
+          <p>Adotamos criptografia de senhas com bcrypt, tokens seguros JWT, validações de backend e conexões HTTPS. Nenhum sistema é 100% invulnerável — recomendamos senhas fortes e únicas.</p>
+        </div>
+        <div class="sec">
+          <h2>5. Cookies e sessões</h2>
+          <p>A aplicação utiliza cookies e tokens de sessão para manter o usuário autenticado. É possível desabilitá-los no navegador, mas isso pode prejudicar a experiência.</p>
+        </div>
+        <div class="sec">
+          <h2>6. Direitos do usuário (LGPD)</h2>
+          <p>Nos termos da Lei Geral de Proteção de Dados (Lei n. 13.709/2018), o usuário possui direitos de confirmação, acesso, correção, exclusão, portabilidade e revogação de consentimento de seus dados pessoais.</p>
+        </div>
+        <div class="sec">
+          <h2>7. Retenção de dados</h2>
+          <p>Os dados são armazenados enquanto a conta estiver ativa. Após solicitação de exclusão, serão removidos em até 30 dias, restando apenas registros anonimizados para fins de análise acadêmica.</p>
+        </div>
+        <div class="sec">
+          <h2>8. Alterações na política</h2>
+          <p>Esta Política pode ser revisada periodicamente. Em caso de alterações substanciais, os usuários serão notificados por e-mail ou aviso na plataforma.</p>
+        </div>
+        <div class="sec">
+          <h2>9. Contato — Encarregado de Dados</h2>
+          <div class="contact-box">
+            <p>Para dúvidas sobre privacidade ou solicitações de dados pessoais:</p>
+            <p style="margin-top:8px;font-weight:600">
+              <a href="mailto:fel.luisgc@gmail.com">fel.luisgc@gmail.com</a>
+            </p>
+            <p style="font-size:13px;color:rgba(22,41,79,0.60);margin-top:4px">
+              Telefone: <strong style="color:#16294f;">19 98119 1739</strong>
+            </p>
+          </div>
+        </div>
+        <hr>
+        <p class="foot-note">Compromisso com a transparência — seus dados, sua confiança.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="container footer-inner">
+    <p>© 2026 Metapps — Projeto acadêmico (TCC).</p>
+    <p style="margin-top:8px">
+      <button onclick="switchTab('termos')">Termos de Serviço</button>
+      &nbsp;·&nbsp;
+      <button onclick="switchTab('privacidade')">Política de Privacidade</button>
+      &nbsp;·&nbsp;
+      <a onclick="goBack()" style="cursor:pointer">Voltar ao app</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+  /* ── One-tab enforcement ── */
+  const CHANNEL = 'metapps_termos_tab'
+  const MY_ID   = Date.now() + '_' + Math.random()
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    const bc = new BroadcastChannel(CHANNEL)
+    bc.onmessage = e => {
+      if (e.data.type === 'open' && e.data.id !== MY_ID) {
+        bc.postMessage({ type: 'close', target: e.data.id })
+      }
+      if (e.data.type === 'close' && e.data.target === MY_ID) {
+        window.close()
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#16294f;background:#eff4fc;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(22,41,79,0.68)">Esta página já está aberta em outra aba.</p></div></div>'
+      }
+    }
+    bc.postMessage({ type: 'open', id: MY_ID })
+    window.addEventListener('beforeunload', () => bc.postMessage({ type: 'closed', id: MY_ID }))
+  } else {
+    const KEY = 'metapps_termos_open'
+    const existing = localStorage.getItem(KEY)
+    if (existing && existing !== MY_ID) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#16294f;background:#eff4fc;text-align:center;padding:40px"><div><h2 style="margin-bottom:12px;font-weight:700">Feche esta aba</h2><p style="color:rgba(22,41,79,0.68)">Esta página já está aberta em outra aba.</p></div></div>'
+    } else {
+      localStorage.setItem(KEY, MY_ID)
+      window.addEventListener('beforeunload', () => {
+        if (localStorage.getItem(KEY) === MY_ID) localStorage.removeItem(KEY)
+      })
+    }
+  }
+
+  function switchTab(id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.toc-btn').forEach(b => b.classList.remove('active'))
+    document.getElementById(id).classList.add('active')
+    document.getElementById(id === 'termos' ? 'tocT' : 'tocP').classList.add('active')
+    history.replaceState(null, '', '#' + id)
+    document.querySelector('.content-card').scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function goBack() {
+    if (window.history.length > 1) window.history.back()
+    else window.close()
+  }
+
+  if (location.hash === '#privacidade') switchTab('privacidade')
+</script>
+</body>
+</html>

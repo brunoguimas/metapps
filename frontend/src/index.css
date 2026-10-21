@@ -1,68 +1,139 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #root { height: 100%; }
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--lp-bg);
+  color: var(--lp-ink);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* ══════════════════════════════════════════════════════════════════════
+   METAPPS — SISTEMA DE TEMA ÚNICO (CLARO)
+
+   O app tem UM ÚNICO tema. Não existe alternância, não existe
+   prefers-color-scheme, não existe atributo data-theme no <html>: o bloco
+   abaixo é a única fonte de verdade e vale para qualquer dispositivo.
+
+   `color-scheme: light` é declarado de propósito — é o que impede o
+   navegador de repintar scrollbars, campos de formulário e o fundo da
+   página no escuro quando o SO está em modo escuro.
+
+   ── Paleta 60 / 30 / 10 ───────────────────────────────────────────────
+     60%  azul      superfícies off-white azuladas, ações primárias,
+                    ícones, navegação, barras de progresso.
+     30%  laranja   energia e hierarquia: sequência, marcos, Destaques,
+                    estados "agora", etiquetas de mapa.
+     10%  verde     sucesso: concluído, gabarito certo, positivo.
+     vermelho fica reservado a erro/destrutivo; ciano e violeta só
+     aparecem como tons categóricos de badges (conquistas,Convites).
+
+   Fundos nunca são #FFFFFF puro: as superfícies grandes ficam em
+   branco-azulado (#EFF4FC / #FBFCFE), o que reduz o cansaço de leitura
+   em sessão longa sem perder o contraste.
+
+   Landpage, AuthModal, HistoryPage e GoogleCallback usam styles inline,
+   então a paleta precisa existir como variável: style inline tem
+   precedência sobre folha de estilo, e não dá para sobrepor hex com CSS.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── superfícies ───────────────────────────────────────────────── */
+  --lp-bg:        #f4f4f1;   /* fundo da página — off-white neutro */
+  --lp-bg-alt:    #ebebe6;
+  --lp-surface:   #fcfcfb;   /* cartões, painéis, campos */
+  --lp-surface-2: #f3f3ef;   /* inset dentro de um cartão */
+  --lp-surface-3: #e7e7e1;   /* trilhos, faixas, estados neutros */
+
+  /* Faixa profunda da landing (hero/rodapé): azul-noite forte. É o azul
+     no máximo da sua intensidade — identidade, não "calmaria". */
+  --lp-deep:      #16255a;
+  --lp-deep-2:    #0e1a44;
+
+  /* ── tinta ─────────────────────────────────────────────────────── */
+  --lp-ink:          #14243f;  /* títulos e corpo — navy, não preto */
+  --lp-ink-2:        #455066;  /* texto secundário */
+  --lp-ink-3:        #5a6274;  /* legendas, timestamps */
+  --lp-ink-on-deep:  #e6edfb;  /* texto sobre as faixas profundas */
+
+  /* ── linhas ────────────────────────────────────────────────────── */
+  --lp-line:      #dededa;
+  --lp-line-soft: #ebebe6;
+  /* Limite de campos e controles: 3:1 contra a superfície (WCAG 1.4.11). */
+  --lp-line-strong: #6e7686;
+
+  /* ── laranja · progresso (cor de ação) ────────────────────────── */
+  --lp-orange:      #e2701a;  /* preenchimentos, gráficos, ilustração */
+  --lp-orange-d:    #a5470a;  /* texto e ícone sobre fundo claro */
+  --lp-orange-soft: #fdefe2;
+
+  /* ── verde · sucesso ───────────────────────────────────────────── */
+  --lp-green:      #159158;
+  --lp-green-d:    #0a6b3e;
+  --lp-green-soft: #e5f5ec;
+
+  /* ── azul · identidade (acento forte, uso raro) ─────────────────── */
+  --lp-brand:      #1b47c4;
+  --lp-brand-d:    #11307f;   /* hover e texto sobre fundo claro */
+  --lp-brand-ink:  #ffffff;
+  --lp-brand-soft: #e9edfa;
+
+  /* ── apoio ────────────────────────────────────────────────────── */
+  --lp-red:      #d33f36;
+  --lp-red-d:    #ab251d;
+  --lp-red-soft: #fcebe9;
+
+  /* Tons categéricos — só para distinguir badges entre si. */
+  --lp-cyan:        #0e8fa8;
+  --lp-cyan-d:      #0a6b7f;
+  --lp-cyan-soft:   #e2f4f8;
+  --lp-violet:      #6151ce;
+  --lp-violet-d:    #4b3da6;
+  --lp-violet-soft: #eeebfb;
+
+  /* ── estados e profundidade ────────────────────────────────────── */
+  --lp-hover:        rgba(22, 41, 79, 0.05);
+  --lp-hover-strong: rgba(22, 41, 79, 0.09);
+  --lp-ring:         rgba(225, 112, 26, 0.26);
+  --lp-shadow-sm:  0 1px 2px rgba(16, 42, 92, 0.05), 0 2px 8px rgba(16, 42, 92, 0.05);
+  --lp-shadow:     0 2px 6px rgba(16, 42, 92, 0.05), 0 12px 28px rgba(16, 42, 92, 0.08);
+  --lp-shadow-lg:  0 8px 24px rgba(16, 42, 92, 0.10), 0 24px 56px rgba(16, 42, 92, 0.14);
+
+  /* ── raios ──────────────────────────────────────────────────────── */
+  --lp-r-sm:      10px;
+  --lp-r-md:      14px;
+  --lp-r-lg:      18px;
 }
 
-button {
+:root {
+  --r: 8px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrollbar discreto e coerente com o tema claro. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #c7d3e6;
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+::-webkit-scrollbar-thumb:hover { background: #adbcd6; background-clip: content-box; }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+::selection { background: var(--lp-brand-soft); color: var(--lp-ink); }
+
+@media (max-width: 768px) { body { overflow: auto; } }
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes blobA   { from { transform: translate(0,0) scale(1); } to { transform: translate(52px,44px) scale(1.09); } }
+@keyframes blobB   { from { transform: translate(0,0); } to { transform: translate(-42px,-32px) scale(1); } }
+@keyframes blobC   { from { transform: translate(0,0) scale(1); } to { transform: translate(-50px,46px) scale(1.08); } }
+@keyframes blobD   { from { transform: translate(0,0) scale(1); } to { transform: translate(46px,-34px) scale(1); } }
+@keyframes lgIn    { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+@keyframes ftIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fIn     { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fOut    { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
+@keyframes popIn   { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }

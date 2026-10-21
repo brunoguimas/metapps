@@ -1,97 +1,51 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import Landpage       from './Landpage'
+import Homepage       from './Homepage'
+import HistoryPage    from './HistoryPage'
+import GoogleCallback from './GoogleCallback'
 
-function App() {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+// ─────────────────────────────────────────────────────────────────────────
+// Login, Register e ForgotPassword não são mais páginas próprias: agora
+// vivem como AuthModal dentro da própria Landpage (modos 'login',
+// 'register' e 'forgot'). As rotas antigas continuam existindo só pra
+// não quebrar links salvos/compartilhados — elas redirecionam pra "/"
+// já passando ?auth=login, ?auth=register ou ?auth=forgot, e a Landpage
+// lê esse parâmetro no carregamento pra abrir o modal certo.
+//
+// Parâmetros de erro (error/reason), usados pelo fluxo de OAuth quando o
+// Google login falha, são preservados no redirect pra que o AuthModal
+// consiga exibir o motivo ao usuário.
+// ─────────────────────────────────────────────────────────────────────────
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+function AuthRedirect({ mode }) {
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const target = new URLSearchParams()
+  target.set('auth', mode)
 
-    try {
-      const response = await fetch("http://localhost:6767/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-        }),
-      });
+  const error = params.get('error')
+  const reason = params.get('reason')
+  if (error) target.set('error', error)
+  if (reason) target.set('reason', reason)
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage("Usuário registrado com sucesso!");
-        setUsername("");
-        setEmail("");
-        setPassword("");
-      } else {
-        setMessage(data.message || "Erro ao registrar.");
-      }
-    } catch (error) {
-      setMessage("Erro ao conectar com o servidor.");
-      console.error(error);
-    }
-  }
-
-  return (
-    <div style={styles.container}>
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <h2>Registrar</h2>
-
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
-        <button type="submit">Cadastrar</button>
-
-        {message && <p>{message}</p>}
-      </form>
-    </div>
-  );
+  return <Navigate to={`/?${target.toString()}`} replace />
 }
 
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-    background: "#f4f4f4",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    padding: "2rem",
-    background: "white",
-    borderRadius: "8px",
-    width: "300px",
-  },
-};
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/"                       element={<Landpage />} />
+        <Route path="/auth/login"             element={<AuthRedirect mode="login" />} />
+        <Route path="/auth/register"          element={<AuthRedirect mode="register" />} />
+        <Route path="/forgot-password"        element={<AuthRedirect mode="forgot" />} />
+        <Route path="/auth/google/callback"   element={<GoogleCallback />} />
+        <Route path="/home"                   element={<Homepage />} />
+        <Route path="/history"                element={<HistoryPage />} />
+        <Route path="*"                       element={<Landpage />} />
+      </Routes>
+    </BrowserRouter>
 
-export default App;
+    // bandido n quer 67 resenha, bandido quer chocolex 😋
+  )
+}   

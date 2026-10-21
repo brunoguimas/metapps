@@ -6,12 +6,15 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/middleware"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/daily_activity"
 	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
 	"github.com/brunoguimas/metapps/backend/internal/modules/jwt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
+	"github.com/brunoguimas/metapps/backend/internal/modules/progress"
+	"github.com/brunoguimas/metapps/backend/internal/modules/social"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
@@ -32,12 +35,16 @@ func NewRouter(
 	tcHandler *task_correction.Handler,
 	fc *flashcard.Handler,
 	p *profile.Handler,
+	pr *progress.Handler,
 	cr *classroom.Handler,
+	so *social.Handler,
+	d *daily_activity.Handler,
 	jwtService jwt.Service,
 	cfg *config.Config,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Static("/avatars", "./avatars")
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -84,10 +91,18 @@ func NewRouter(
 		tasks := protected.Group("/tasks")
 		{
 			tasks.POST("/generate", t.Generate)
+			tasks.POST("/practice", t.Practice)
+			tasks.POST("/review", t.Review)
 			tasks.GET("", t.List)
 			tasks.GET("/:id", t.Get)
 			tasks.POST("/:id/attempts", ta.Submit)
 			tasks.GET("/:id/attempts", ta.ListByTask)
+			// Fluxo paso a passo: corrige um exercicio por vez e
+			// encerra a sessao. E o caminho usado pelo player.
+			tasks.POST("/:id/answer", ta.Answer)
+			tasks.POST("/:id/finish", ta.Finish)
+			// "Tentar de novo" so com os exercicios errados.
+			tasks.POST("/:id/retry", t.Retry)
 		}
 		corrections := protected.Group("/corrections")
 		{
@@ -108,9 +123,16 @@ func NewRouter(
 		profile := protected.Group("/profile")
 		{
 			profile.GET("", p.GetProfile)
-			profile.POST("/xp", p.AddXP)
+			// Leitura agregada de progresso. Fica dentro do grupo de
+			// perfil porque e o resumo do mesmo usuario, e nao tem POST:
+			// XP e creditado pelo servidor quando a tarefa e corrigida.
+			profile.GET("/progress", pr.GetSummary)
+			profile.PUT("/daily-goal", p.UpdateDailyGoal)
 			profile.POST("/avatar", p.UpdateAvatar)
 		}
+
+		// Resumo do dia: meta diaria, streak e o que ha para revisar.
+		protected.GET("/daily", d.Today)
 
 		classrooms := protected.Group("/classrooms")
 		{
@@ -125,9 +147,19 @@ func NewRouter(
 			classrooms.DELETE("/:id/members/:userId", cr.RemoveMember)
 			classrooms.DELETE("/:id/leave", cr.Leave)
 			classrooms.POST("/:id/assignments", cr.CreateAssignment)
-			classrooms.GET("/:id/assignments", cr.ListAssignments)
 			classrooms.PUT("/:id/assignments/:aId", cr.UpdateAssignment)
 			classrooms.DELETE("/:id/assignments/:aId", cr.DeleteAssignment)
+		}
+
+		// Social: lista de amigos, busca por e-mail/username e o resumo
+		// com a contagem. Nada aqui expõe goals/roadmaps de terceiros.
+		socialGroup := protected.Group("/social")
+		{
+			socialGroup.GET("/friends", so.List)
+			socialGroup.POST("/friends", so.Add)
+			socialGroup.DELETE("/friends/:friendID", so.Remove)
+			socialGroup.GET("/summary", so.Summary)
+			socialGroup.GET("/search", so.Search)
 		}
 
 		protected.GET("/task-attempts", ta.ListByUser)

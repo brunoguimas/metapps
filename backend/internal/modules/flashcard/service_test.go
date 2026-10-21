@@ -15,11 +15,11 @@ import (
 )
 
 type fakeAIClient struct {
-	generateFn func(context.Context, string) (string, error)
+	generateFn func(context.Context, ai.Request) (string, error)
 }
 
-func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
-	return c.generateFn(ctx, prompt)
+func (c *fakeAIClient) Generate(ctx context.Context, req ai.Request) (string, error) {
+	return c.generateFn(ctx, req)
 }
 
 type fakeRepo struct {
@@ -74,14 +74,17 @@ type fakeTopicService struct {
 	getFn func(context.Context, uuid.UUID) (*topic.Topic, error)
 }
 
-func (s *fakeTopicService) GenerateRoadmap(context.Context, *goal.Goal) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GenerateRoadmap(context.Context, uuid.UUID, *goal.Goal) (*topic.Roadmap, error) {
 	return nil, nil
 }
-func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID, uuid.UUID) (*topic.Roadmap, error) {
 	return nil, nil
 }
 func (s *fakeTopicService) Get(ctx context.Context, id uuid.UUID) (*topic.Topic, error) {
 	return s.getFn(ctx, id)
+}
+func (s *fakeTopicService) RecordAttempt(context.Context, uuid.UUID, uuid.UUID, float64) (*topic.TopicProgress, error) {
+	return nil, nil
 }
 
 type fakeTopicRepo struct {
@@ -105,6 +108,9 @@ func (r *fakeProgressRepo) GetOrCreate(ctx context.Context, u, t uuid.UUID) (*to
 }
 func (r *fakeProgressRepo) Update(ctx context.Context, p *topic.TopicProgress) error {
 	return r.updateFn(ctx, p)
+}
+func (r *fakeProgressRepo) ListByUserAndGoal(context.Context, uuid.UUID, uuid.UUID) ([]*topic.TopicProgress, error) {
+	return nil, nil
 }
 
 type fakeGoalService struct {
@@ -325,7 +331,7 @@ func TestGenerate_CreatesCards(t *testing.T) {
 		},
 		&fakeAccessChecker{},
 		&fakeAIClient{
-			generateFn: func(_ context.Context, prompt string) (string, error) {
+			generateFn: func(_ context.Context, req ai.Request) (string, error) {
 				return `{"cards":[{"front":"Q1","back":"A1"},{"front":"Q2","back":"A2"}]}`, nil
 			},
 		},
@@ -368,7 +374,7 @@ func TestGenerate_RetriesOnInvalidAIResponse(t *testing.T) {
 		},
 		&fakeAccessChecker{},
 		&fakeAIClient{
-			generateFn: func(_ context.Context, prompt string) (string, error) {
+			generateFn: func(_ context.Context, req ai.Request) (string, error) {
 				calls++
 				if calls == 1 {
 					return "not json", nil

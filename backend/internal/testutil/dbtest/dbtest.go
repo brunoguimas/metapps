@@ -42,6 +42,9 @@ func Clean(t *testing.T, conn *sql.DB) {
 	_, err := conn.Exec(`
 		TRUNCATE TABLE
 			flashcards,
+			review_items,
+			daily_activity,
+			task_step_attempts,
 			task_corrections,
 			task_attempts,
 			tasks,
@@ -51,6 +54,7 @@ func Clean(t *testing.T, conn *sql.DB) {
 			oauth_accounts,
 			refresh_tokens,
 			goals,
+			profile,
 			users
 		RESTART IDENTITY CASCADE;
 	`)
@@ -66,6 +70,7 @@ func CreateUser(t *testing.T, queries *db.Queries, username, email string) db.Us
 			String: "test-hash",
 			Valid:  true,
 		},
+		Verified: true,
 	})
 	require.NoError(t, err)
 	return u
@@ -103,6 +108,9 @@ func CreateTask(t *testing.T, queries *db.Queries, userID, topicID uuid.UUID, co
 		TopicID: topicID,
 		Content: content,
 		Type:    taskType,
+		Source:  "lesson",
+		Version: 2,
+		Status:  "pending",
 	})
 	require.NoError(t, err)
 	return task

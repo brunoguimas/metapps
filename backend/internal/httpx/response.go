@@ -28,12 +28,25 @@ func Message(c *gin.Context, status int, msg string) {
 	c.JSON(status, gin.H{"message": msg})
 }
 
+// shouldSanitize reports whether the internal message must be hidden from the
+// client. 503 is deliberately excluded: it means a dependency (the AI provider)
+// is temporarily down, and the client needs that message to know retrying may
+// work. SCHEMA_OUT_OF_SYNC is also excluded: it means a migration wasn't
+// applied, which is an operator problem with a known fix (`make migrate_up`),
+// and hiding it only turns a one-line diagnosis into an afternoon of guessing.
+func shouldSanitize(status int, code apperrors.Code) bool {
+	if code == apperrors.ErrSchemaOutOfSync {
+		return false
+	}
+	return status >= http.StatusInternalServerError && status != http.StatusServiceUnavailable
+}
+
 func Error(c *gin.Context, status int, msg string) {
 	logError(c, nil, msg, status)
 
 	// Don't expose internal messages in HTTP request responses for 5xx errors
 	responseMsg := msg
-	if status >= http.StatusInternalServerError {
+	if shouldSanitize(status, apperrors.Code("")) {
 		responseMsg = "internal server error"
 	}
 
@@ -49,7 +62,7 @@ func ErrorFrom(c *gin.Context, err error) {
 		logError(c, err, appErr.Error(), appErr.Status())
 
 		// Sanitize HTTP response for internal server errors (5xx)
-		if appErr.Status() >= http.StatusInternalServerError {
+		if shouldSanitize(appErr.Status(), appErr.Code()) {
 			c.JSON(appErr.Status(), gin.H{
 				"error": "internal server error",
 				"code":  appErr.Code(),

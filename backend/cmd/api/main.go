@@ -9,6 +9,7 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/auth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/classroom"
+	"github.com/brunoguimas/metapps/backend/internal/modules/daily_activity"
 	"github.com/brunoguimas/metapps/backend/internal/modules/flashcard"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
 	"github.com/brunoguimas/metapps/backend/internal/modules/health"
@@ -16,9 +17,13 @@ import (
 	"github.com/brunoguimas/metapps/backend/internal/modules/mail"
 	"github.com/brunoguimas/metapps/backend/internal/modules/oauth"
 	"github.com/brunoguimas/metapps/backend/internal/modules/profile"
+	"github.com/brunoguimas/metapps/backend/internal/modules/progress"
+	"github.com/brunoguimas/metapps/backend/internal/modules/review"
+	"github.com/brunoguimas/metapps/backend/internal/modules/social"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/task_correction"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task_step_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/modules/user"
@@ -29,7 +34,6 @@ import (
 	platformlogger "github.com/brunoguimas/metapps/backend/internal/platform/logger"
 	"github.com/brunoguimas/metapps/backend/internal/router"
 	"github.com/gin-gonic/gin"
-	"github.com/jpoz/groq"
 )
 
 // AppModules holds all initialized application modules.
@@ -42,15 +46,19 @@ type AppModules struct {
 	AuthModule           *auth.Module
 	ProfileModule        *profile.Module
 	AIClient             ai.Client
-	GroqClient           *groq.Client
 	HealthModule         *health.Module
 	TopicDependencySvc   topic_dependency.Service
 	TopicModule          *topic.Module
+	TaskStepAttemptMod   *task_step_attempt.Module
+	ReviewModule         *review.Module
+	DailyActivityModule  *daily_activity.Module
 	TaskModule           *task.Module
 	TaskAttemptModule    *task_attempt.Module
 	TaskCorrectionModule *task_correction.Module
 	FlashcardModule      *flashcard.Module
 	ClassroomModule      *classroom.Module
+	SocialModule         *social.Module
+	ProgressModule       *progress.Module
 }
 
 func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error) {
@@ -69,39 +77,44 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 	// Goal module
 	goalModule := goal.NewModule(queries)
 
-	// OAuth module
-	oauthModule := oauth.NewModule(queries, userModule.Repository, userModule.Service, jwtModule.Service, cfg)
-
 	// Profile module
 	profileModule := profile.NewModule(queries, cfg)
+
+	// OAuth module
+	oauthModule := oauth.NewModule(queries, userModule.Repository, userModule.Service, profileModule.Service, jwtModule.Service, cfg)
 
 	// Auth module
 	authModule := auth.NewModule(userModule.Repository, userModule.Service, jwtModule.Service, mailModule.Service, profileModule.Service, cfg)
 
-	// AI clients
-	geminiClient, err := ai.NewGeminiClient(context.Background(), *cfg)
+	// AI clients: o provedor vem de AI_PROVIDER, o outro entra como fallback.
+	aiClient, err := ai.NewClient(context.Background(), *cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// Health module
-	healthModule := health.NewModule(queries, geminiClient, time.Now())
+	healthModule := health.NewModule(queries, aiClient, time.Now())
 
 	// Topic dependency service
 	topicDependencyRepo := topic_dependency.NewRepository(queries)
 	topicDependencyService := topic_dependency.NewService(topicDependencyRepo)
 
 	// Topic module
-	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, geminiClient, queries, cfg)
+	topicModule := topic.NewModule(topicDependencyService, goalModule.Service, aiClient, queries, cfg)
+
+	// Step attempts, fila de revisao e atividade diaria
+	taskStepAttemptModule := task_step_attempt.NewModule(queries)
+	reviewModule := review.NewModule(queries)
+	dailyActivityModule := daily_activity.NewModule(queries, profileModule.Service, reviewModule.Service)
 
 	// Task module
-	taskModule := task.NewModule(queries, topicModule.Service, geminiClient, goalModule, cfg)
+	taskModule := task.NewModule(queries, topicModule.Service, aiClient, goalModule, taskStepAttemptModule.Service, reviewModule.Service, cfg)
 
 	// Task attempt module
-	taskAttemptModule := task_attempt.NewModule(queries, taskModule)
+	taskAttemptModule := task_attempt.NewModule(queries, taskModule, topicModule.Service, profileModule.Service, taskStepAttemptModule.Service, reviewModule.Service, dailyActivityModule.Service)
 
 	// Task correction module
-	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, geminiClient, jwtModule.Service)
+	taskCorrectionModule := task_correction.NewModule(queries, taskAttemptModule.Repository, taskModule.Repository, aiClient, jwtModule.Service)
 
 	// Flashcard module
 	classroomRepo := classroom.NewRepository(queries)
@@ -114,12 +127,26 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		topic.NewRepository(queries),
 		topic.NewProgressRepository(queries),
 		topicAccessChecker,
-		geminiClient,
+		aiClient,
 		cfg,
 	)
 
 	// Classroom module
 	classroomModule := classroom.NewModule(queries)
+
+	// Social module: amigos por e-mail/username
+	socialModule := social.NewModule(queries)
+
+	// Progress module: leitura agregada sobre os modulos acima
+	progressModule := progress.NewModule(
+		profileModule.Service,
+		goalModule.Service,
+		taskModule.Service,
+		taskAttemptModule.Service,
+		topic.NewRepository(queries),
+		topic.NewProgressRepository(queries),
+		flashcardModule.Service,
+	)
 
 	return &AppModules{
 		MailModule:           mailModule,
@@ -129,15 +156,20 @@ func newAppModules(cfg *config.Config, queries *db.Queries) (*AppModules, error)
 		OauthModule:          oauthModule,
 		AuthModule:           authModule,
 		ProfileModule:        profileModule,
-		AIClient:             geminiClient,
+		AIClient:             aiClient,
 		HealthModule:         healthModule,
 		TopicDependencySvc:   topicDependencyService,
 		TopicModule:          topicModule,
+		TaskStepAttemptMod:   taskStepAttemptModule,
+		ReviewModule:         reviewModule,
+		DailyActivityModule:  dailyActivityModule,
 		TaskModule:           taskModule,
 		TaskAttemptModule:    taskAttemptModule,
 		TaskCorrectionModule: taskCorrectionModule,
 		FlashcardModule:      flashcardModule,
 		ClassroomModule:      classroomModule,
+		SocialModule:         socialModule,
+		ProgressModule:       progressModule,
 	}, nil
 }
 
@@ -153,7 +185,10 @@ func newRouter(cfg *config.Config, modules *AppModules) *gin.Engine {
 		modules.TaskCorrectionModule.Handler,
 		modules.FlashcardModule.Handler,
 		modules.ProfileModule.Handler,
+		modules.ProgressModule.Handler,
 		modules.ClassroomModule.Handler,
+		modules.SocialModule.Handler,
+		modules.DailyActivityModule.Handler,
 		modules.JWTModule.Service,
 		cfg,
 	)
@@ -165,8 +200,19 @@ func main() {
 
 	cfg := config.Load()
 	platformlogger.LogSystemInfo("configuration loaded", "port", cfg.Port, "frontend_origin", cfg.FrontendOrigin)
+	platformlogger.LogSystemInfo("ai provider selected", "provider", cfg.AIProvider)
 
 	conn := database.Connect(cfg)
+
+	// Aplica as migrations pendentes antes de montar qualquer módulo.
+	// Sem isso, uma migration nova (ex.: a de `friendships`) só entra no
+	// banco quando alguém roda `make migrate_up` na mão — e o sintoma é um
+	// 500 genérico no endpoint que dependeu da tabela nova.
+	if err := database.RunMigrations(conn); err != nil {
+		platformlogger.LogSystemError("couldn't apply migrations", err)
+		os.Exit(1)
+	}
+
 	queries := db.New(conn)
 	platformlogger.LogSystemInfo("database connection initialized")
 

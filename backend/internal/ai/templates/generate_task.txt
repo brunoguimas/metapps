@@ -79,4 +79,29 @@ Confirme que TODOS os itens são satisfeitos antes de retornar:
 - [ ] Foco nas habilidades com pior desempenho
 - [ ] Coerência entre objetivo, dificuldades, desempenho e conteúdo
 
+---
+
+## CHECKLIST DE VALIDAÇÃO FINAL
+
+Confirme SIM para TODOS antes de retornar:
+[ ] Response é APENAS JSON válido, nenhum texto adicional
+[ ] Tipo é exatamente "quiz" ou "essay" (lowercase)
+[ ] meta.title tem ≥3 chars, não vazio
+[ ] meta.description tem ≥10 chars, não vazio
+[ ] meta.expectations é específico e acionável
+[ ] Se quiz: exatamente conforme {{.QuizSchema}} (1+ questões, 4 alternativas cada, answer 0-3 int, explanation)
+[ ] Se essay: exatamente conforme {{.EssaySchema}} (50-500 palavras, instructions adequados)
+[ ] Nenhum campo extra além do especificado no schema
+[ ] Foca nas habilidades com pior desempenho do contexto
+[ ] Conteúdo específico, não genérico ou vago
+[ ] Expectations refletem exatamente o que será treinado
+[ ] Adequado ao estilo de aprendizagem: {{.GoalLearningStyle}}
+[ ] Relevante para o tópico: {{.TopicTitle}}
+[ ] Nível de desafio apropiado baseado em {{.Difficulties}} e {{.PerformanceSummary}}
+[ ] Expectations são claras e mensuráveis
+[ ] NÃO é repetição exata de tarefa anterior
+[ ] NÃO é conteúdo genérico como "Explique sobre [tópico]"
+[ ] Usa contexto realista quando possível (exemplos práticos)
+[ ] Coerência total: objetivo → dificuldades → desempenho → tipo → conteúdo
+
 Se QUALQUER item for NÃO, corrija ANTES de retornar.

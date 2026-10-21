@@ -7,6 +7,8 @@ import (
 
 	"github.com/brunoguimas/metapps/backend/internal/ai"
 	"github.com/brunoguimas/metapps/backend/internal/modules/goal"
+	"github.com/brunoguimas/metapps/backend/internal/modules/review"
+	"github.com/brunoguimas/metapps/backend/internal/modules/task_step_attempt"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic"
 	"github.com/brunoguimas/metapps/backend/internal/modules/topic_dependency"
 	"github.com/brunoguimas/metapps/backend/internal/platform/config"
@@ -20,8 +22,8 @@ type fakeAIClient struct {
 	generateFn func(context.Context, string) (string, error)
 }
 
-func (c *fakeAIClient) Generate(ctx context.Context, prompt string) (string, error) {
-	return c.generateFn(ctx, prompt)
+func (c *fakeAIClient) Generate(ctx context.Context, req ai.Request) (string, error) {
+	return c.generateFn(ctx, req.Prompt)
 }
 
 type fakeRepository struct {
@@ -49,21 +51,78 @@ func (r *fakeRepository) MarkDone(c context.Context, userID, id uuid.UUID) (*Tas
 	}
 	return nil, nil
 }
+func (r *fakeRepository) GetByUserAndTopicAndStatus(context.Context, uuid.UUID, uuid.UUID, Status) (*Task, error) {
+	return nil, nil
+}
+func (r *fakeRepository) ListByUserAndTopic(context.Context, uuid.UUID, uuid.UUID) ([]*Task, error) {
+	return nil, nil
+}
+func (r *fakeRepository) ListByUserAndSource(context.Context, uuid.UUID, Source) ([]*Task, error) {
+	return nil, nil
+}
+func (r *fakeRepository) ListStatementsByTopic(context.Context, uuid.UUID, uuid.UUID) ([]string, error) {
+	return nil, nil
+}
+func (r *fakeRepository) UpdateSession(c context.Context, t *Task) (*Task, error) {
+	return t, nil
+}
+func (r *fakeRepository) UpdateDone(c context.Context, t *Task) (*Task, error) {
+	return t, nil
+}
+
+// fakeStepService e um stub do registro de respostas por passo.
+type fakeStepService struct{}
+
+func (s *fakeStepService) Record(c context.Context, userID, taskID uuid.UUID, stepIndex int, answer []byte, correct bool, xp int) (*task_step_attempt.TaskStepAttempt, error) {
+	return &task_step_attempt.TaskStepAttempt{UserID: userID, TaskID: taskID, StepIndex: stepIndex, Correct: correct, XP: xp}, nil
+}
+func (s *fakeStepService) GetByTaskAndStep(context.Context, uuid.UUID, int) (*task_step_attempt.TaskStepAttempt, error) {
+	return nil, nil
+}
+func (s *fakeStepService) ListByTask(context.Context, uuid.UUID) ([]*task_step_attempt.TaskStepAttempt, error) {
+	return nil, nil
+}
+func (s *fakeStepService) ListByUser(context.Context, uuid.UUID, int) ([]*task_step_attempt.TaskStepAttempt, error) {
+	return nil, nil
+}
+func (s *fakeStepService) ListIncorrectByUser(context.Context, uuid.UUID, int) ([]*task_step_attempt.TaskStepAttempt, error) {
+	return nil, nil
+}
+
+// fakeReviewService e um stub da fila de revisao espacada.
+type fakeReviewService struct{}
+
+func (s *fakeReviewService) Schedule(c context.Context, userID, taskID uuid.UUID, stepIndex int, questionHash string, correct bool) (*review.ReviewItem, error) {
+	return &review.ReviewItem{UserID: userID, TaskID: taskID, StepIndex: stepIndex, QuestionHash: questionHash}, nil
+}
+func (s *fakeReviewService) Due(context.Context, uuid.UUID, int) ([]*review.ReviewItem, error) {
+	return nil, nil
+}
+func (s *fakeReviewService) CountDue(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (s *fakeReviewService) All(context.Context, uuid.UUID, int) ([]*review.ReviewItem, error) {
+	return nil, nil
+}
 
 type fakeTopicService struct {
 	getFn func(context.Context, uuid.UUID) (*topic.Topic, error)
 }
 
-func (s *fakeTopicService) GenerateRoadmap(context.Context, *goal.Goal) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GenerateRoadmap(context.Context, uuid.UUID, *goal.Goal) (*topic.Roadmap, error) {
 	return nil, nil
 }
 
-func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID) (*topic.Roadmap, error) {
+func (s *fakeTopicService) GetRoadmap(context.Context, uuid.UUID, uuid.UUID) (*topic.Roadmap, error) {
 	return nil, nil
 }
 
 func (s *fakeTopicService) Get(c context.Context, topicID uuid.UUID) (*topic.Topic, error) {
 	return s.getFn(c, topicID)
+}
+
+func (s *fakeTopicService) RecordAttempt(context.Context, uuid.UUID, uuid.UUID, float64) (*topic.TopicProgress, error) {
+	return nil, nil
 }
 
 type fakeTopicRepository struct {
@@ -99,6 +158,9 @@ func (r *fakeTopicProgressRepository) GetOrCreate(c context.Context, userID, top
 }
 func (r *fakeTopicProgressRepository) Update(c context.Context, progress *topic.TopicProgress) error {
 	return r.updateFn(c, progress)
+}
+func (r *fakeTopicProgressRepository) ListByUserAndGoal(context.Context, uuid.UUID, uuid.UUID) ([]*topic.TopicProgress, error) {
+	return nil, nil
 }
 
 type fakeDependencyRepository struct {
@@ -222,7 +284,7 @@ func TestServiceCreate_Success(t *testing.T) {
 				assert.Contains(t, prompt, "Baixa maestria no tópico")
 				assert.Contains(t, prompt, "Desempenho recente:")
 				assert.Contains(t, prompt, "Tentativas: 0, Mestria: 0%, Confiança: 0%")
-				return `{"type":"quiz","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"questions":[{"statement":"Pergunta","material":[],"alternatives":["a","b","c","d"],"answer":0,"explanation":"Explicacao"}]}}`, nil
+				return `{"type":"quiz","meta":{"title":"Redacao","description":"Tema","expectations":"Coerencia"},"content":{"version":2,"steps":[{"statement":"Pergunta um","alternatives":["a","b","c"],"answer":0,"explanation":"Explicacao"},{"statement":"Pergunta dois","alternatives":["a","b","c"],"answer":1,"explanation":"Explicacao"},{"statement":"Pergunta tres","alternatives":["a","b","c"],"answer":2,"explanation":"Explicacao"}]}}`, nil
 			},
 		},
 		fakeTaskRepo,
@@ -231,10 +293,12 @@ func TestServiceCreate_Success(t *testing.T) {
 		fakeTopicProgressRepo,
 		tdService,
 		fakeGoalService,
+		&fakeStepService{},
+		&fakeReviewService{},
 		&config.Config{},
 	)
 
-	result, err := service.Create(context.Background(), userID, topicID)
+	result, err := service.Create(context.Background(), userID, topicID, false)
 
 	require.NoError(t, err)
 	require.NotNil(t, createdTask)
@@ -303,10 +367,12 @@ func TestServiceCreate_Fail(t *testing.T) {
 		fakeTopicProgressRepo,
 		tdService,
 		fakeGoalService,
+		&fakeStepService{},
+		&fakeReviewService{},
 		&config.Config{},
 	)
 
-	result, err := service.Create(context.Background(), userID, uuid.New())
+	result, err := service.Create(context.Background(), userID, uuid.New(), false)
 
 	require.Error(t, err)
 	require.Nil(t, result)

@@ -30,6 +30,12 @@ func (s *fakeServiceHandler) ListByUser(context.Context, uuid.UUID) ([]*TaskAtte
 func (s *fakeServiceHandler) ListByUserAndTask(context.Context, uuid.UUID, uuid.UUID) ([]*TaskAttempt, error) {
 	return nil, nil
 }
+func (s *fakeServiceHandler) AnswerStep(c context.Context, userID, taskID uuid.UUID, stepIndex int, answer json.RawMessage) (*StepResult, error) {
+	return &StepResult{TaskID: taskID, StepIndex: stepIndex, TotalSteps: 3}, nil
+}
+func (s *fakeServiceHandler) Finish(c context.Context, userID, taskID uuid.UUID, metadata *TaskAttemptMetadata) (*SessionResult, error) {
+	return &SessionResult{TaskID: taskID, Score: 1, CorrectAnswers: 3, TotalQuestions: 3}, nil
+}
 
 func TestHandlerSubmit_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)

@@ -16,9 +16,10 @@ import (
 )
 
 type Service interface {
-	GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error)
-	GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error)
+	GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error)
+	GetRoadmap(c context.Context, userID, goalID uuid.UUID) (*Roadmap, error)
 	Get(c context.Context, topicID uuid.UUID) (*Topic, error)
+	RecordAttempt(c context.Context, userID, topicID uuid.UUID, score float64) (*TopicProgress, error)
 }
 
 type topicService struct {
@@ -39,7 +40,17 @@ func NewService(r Repository, d topic_dependency.Service, a ai.Client, c *config
 	}
 }
 
-func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadmap, error) {
+func (s *topicService) GenerateRoadmap(c context.Context, userID uuid.UUID, g *goal.Goal) (*Roadmap, error) {
+	// Se o goal já tem um roadmap, não duplica: devolve o existente.
+	// Isso preserva os IDs dos tópicos (e o progresso/tarefas vinculados a eles).
+	existing, err := s.repo.GetByGoalID(c, g.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing) > 0 {
+		return s.GetRoadmap(c, userID, g.ID)
+	}
+
 	b, err := ai.FS.ReadFile("schemas/roadmap.schema.json")
 	if err != nil {
 		return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't read roadmap schema", err)
@@ -52,28 +63,54 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 		RoadmapSchema: string(b),
 	}
 
-	var lastError error
-	for attempt := 0; attempt < 3; attempt++ {
+	// lastErr é o erro devolvido ao cliente; lastResponseErr só alimenta o
+	// prompt de feedback. São separados de propósito: um 503 do provedor não
+	// é um defeito da resposta, então não faz sentido pedirmos para o modelo
+	// "corrigir" um erro de rede.
+	var lastErr, lastResponseErr error
+	for attempt := 0; attempt < ai.MaxAttempts; attempt++ {
 		prompt, err := ai.RenderPrompt("generate_roadmap.txt", data)
 		if err != nil {
 			return nil, apperrors.NewAppError(apperrors.ErrInternal, "couldn't render prompt", err)
 		}
 
-		if attempt > 0 && lastError != nil {
-			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastError)
+		if attempt > 0 && lastResponseErr != nil {
+			prompt = enhanceRoadmapPromptWithFeedback(prompt, lastResponseErr)
 		}
 
-		roadmapJSON, err := s.ai.Generate(c, prompt)
+		roadmapJSON, err := s.ai.Generate(c, ai.Request{
+			Prompt: prompt,
+			Format: ai.OutputFormatJSON,
+		})
 		if err != nil {
-			lastError = err
+			lastErr = err
+
+			if !ai.IsUpstreamUnavailable(err) {
+				continue
+			}
+			if attempt == ai.MaxAttempts-1 {
+				break
+			}
+			if waitErr := ai.Backoff(c, attempt); waitErr != nil {
+				return nil, apperrors.NewAppError(
+					apperrors.ErrUpstreamUnavailable,
+					"ai provider is temporarily unavailable, please try again",
+					err,
+				)
+			}
 			continue
 		}
 
 		r, err := parseRoadmapJSON(string(roadmapJSON))
 		if err != nil {
-			lastError = err
+			lastErr, lastResponseErr = err, err
 			continue
 		}
+
+		// A resposta é parseável, então zera o estado de validação: o erro da
+		// tentativa anterior não pode contaminar o laço de tópicos abaixo,
+		// sob pena de esta tentativa cair no `continue` sem nunca validar.
+		lastErr, lastResponseErr = nil, nil
 
 		var roadmap Roadmap
 		topics := make(map[string]*Topic)
@@ -107,7 +144,8 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 			}
 
 			if topics[*node.ParentID] == nil {
-				lastError = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+				lastResponseErr = apperrors.NewAppError(apperrors.ErrInvalidAIResponse, "subtopic refers to a root topic which doesn't exists", nil)
+				lastErr = lastResponseErr
 				continue
 			}
 
@@ -133,7 +171,7 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 			roadmap.Topics = append(roadmap.Topics, t)
 		}
 
-		if lastError != nil {
+		if lastResponseErr != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
@@ -141,21 +179,23 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 		for _, edge := range r.Edges {
 			from, ok := topics[edge.From]
 			if !ok {
-				lastError = apperrors.NewAppError(
+				lastResponseErr = apperrors.NewAppError(
 					apperrors.ErrInvalidAIResponse,
 					fmt.Sprintf("dependency source '%s' not found", edge.From),
 					nil,
 				)
+				lastErr = lastResponseErr
 				break
 			}
 
 			to, ok := topics[edge.To]
 			if !ok {
-				lastError = apperrors.NewAppError(
+				lastResponseErr = apperrors.NewAppError(
 					apperrors.ErrInvalidAIResponse,
-					fmt.Sprintf("dependency source '%s' not found", edge.From),
+					fmt.Sprintf("dependency target '%s' not found", edge.To),
 					nil,
 				)
+				lastErr = lastResponseErr
 				break
 			}
 
@@ -166,22 +206,24 @@ func (s *topicService) GenerateRoadmap(c context.Context, g *goal.Goal) (*Roadma
 
 			dependency, err := s.deps.Create(c, d)
 			if err != nil {
-				lastError = err
+				lastErr, lastResponseErr = err, err
 				break
 			}
 
 			roadmap.Dependencies = append(roadmap.Dependencies, dependency)
 		}
 
-		if lastError != nil {
+		if lastResponseErr != nil {
 			_ = s.repo.DeleteByGoalID(c, g.ID)
 			continue
 		}
 
+		roadmap.Progress = []*TopicProgress{}
+
 		return &roadmap, nil
 	}
 
-	return nil, lastError
+	return nil, lastErr
 }
 
 func enhanceRoadmapPromptWithFeedback(originalPrompt string, prevErr error) string {
@@ -205,6 +247,30 @@ func (s *topicService) Get(c context.Context, topicID uuid.UUID) (*Topic, error)
 	return t, nil
 }
 
+func (s topicService) GetRoadmap(c context.Context, userID, goalID uuid.UUID) (*Roadmap, error) {
+	topics, err := s.repo.GetByGoalID(c, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	topicIDs := make([]uuid.UUID, 0, len(topics))
+	for _, topic := range topics {
+		topicIDs = append(topicIDs, topic.ID)
+	}
+
+	dependencies, err := s.deps.GetByTopicIDs(c, topicIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	progress, err := s.progressRepo.ListByUserAndGoal(c, userID, goalID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Roadmap{Topics: topics, Dependencies: dependencies, Progress: progress}, nil
+}
+
 func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 	cleaned := strings.TrimSpace(roadmapStr)
 	cleaned = strings.TrimPrefix(cleaned, "```json")
@@ -218,54 +284,5 @@ func parseRoadmapJSON(roadmapStr string) (*dto.AIRoadmapResponse, error) {
 		return nil, apperrors.NewAppError(apperrors.ErrInvalidAIResponse, fmt.Sprintf("invalid json: %s", err.Error()), err)
 	}
 
-	validNodes := make([]dto.TopicNode, 0, len(roadmap.Nodes))
-	for i := range roadmap.Nodes {
-		node := &roadmap.Nodes[i]
-		node.Title = strings.TrimSpace(node.Title)
-		node.NameID = strings.TrimSpace(node.NameID)
-		node.Description = strings.TrimSpace(node.Description)
-
-		if node.Title == "" {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("topic node at index %d has an empty title", i),
-				nil,
-			)
-		}
-		if node.NameID == "" {
-			return nil, apperrors.NewAppError(
-				apperrors.ErrInvalidAIResponse,
-				fmt.Sprintf("topic node at index %d has an empty id", i),
-				nil,
-			)
-		}
-		validNodes = append(validNodes, *node)
-	}
-	roadmap.Nodes = validNodes
-
 	return &roadmap, nil
-}
-
-func (s *topicService) GetRoadmap(c context.Context, goalID uuid.UUID) (*Roadmap, error) {
-	topics, err := s.repo.GetByGoalID(c, goalID)
-	if err != nil {
-		return nil, err
-	}
-
-	var topicIDs []uuid.UUID
-	for _, topic := range topics {
-		topicIDs = append(topicIDs, topic.ID)
-	}
-
-	dependencies, err := s.deps.GetByTopicIDs(c, topicIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	roadmap := &Roadmap{
-		Topics:       topics,
-		Dependencies: dependencies,
-	}
-
-	return roadmap, nil
 }

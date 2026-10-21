@@ -1,0 +1,2009 @@
+// ─── API CLIENT ────────────────────────────────────────────────
+//
+// A troca do backend para Gemini acontece dentro do provider de IA.
+// Os endpoints e formatos consumidos pelo frontend continuam os mesmos.
+//
+// Access token fica apenas em memória.
+// Nunca armazenamos o access token em localStorage/sessionStorage.
+//
+// O refresh_token é mantido pelo backend em cookie HttpOnly.
+//
+
+import { userMessage } from './lib/errors.js'
+
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:8080'
+
+const JWT_TOKEN_COOKIE_PATH =
+  import.meta.env.VITE_JWT_TOKEN_COOKIE_PATH || '/auth/refresh'
+
+
+// ─── ACCESS TOKEN ──────────────────────────────────────────────
+
+let accessToken = null
+
+export function getAccessToken() {
+  return accessToken
+}
+
+export function clearAccessToken() {
+  accessToken = null
+}
+
+export function setAccessToken(token) {
+  accessToken = token || null
+}
+
+
+// ─── SESSÃO EXPIRADA ──────────────────────────────────────────
+//
+// O aplicativo pode registrar um callback global:
+//
+// setSessionExpiredHandler(() => {
+//   navigate('/auth/login')
+// })
+//
+// Dessa forma, qualquer chamada de authFetch que perder a sessão
+// consegue disparar o mesmo comportamento sem duplicar lógica
+// em cada componente.
+//
+// Mantemos o callback aqui, no cliente da API, para evitar que
+// api.js dependa diretamente do React Router.
+//
+
+let onSessionExpired = null
+
+export function setSessionExpiredHandler(callback) {
+  onSessionExpired =
+    typeof callback === 'function'
+      ? callback
+      : null
+}
+
+function notifySessionExpired() {
+  if (typeof onSessionExpired !== 'function') return
+
+  try {
+    onSessionExpired()
+  } catch (error) {
+    // O callback de sessão não deve quebrar o fluxo da API.
+    console.error(
+      'Erro no callback de sessão expirada:',
+      error
+    )
+  }
+}
+
+
+// ─── REFRESH EM ANDAMENTO ─────────────────────────────────────
+//
+// Evita múltiplas chamadas simultâneas para /auth/refresh.
+//
+// Exemplo:
+//
+// 5 requisições retornam 401 ao mesmo tempo.
+//
+// Sem esta proteção:
+//   -> 5 chamadas para /auth/refresh
+//
+// Com esta proteção:
+//   -> 1 chamada para /auth/refresh
+//   -> as demais aguardam a mesma Promise.
+//
+
+let refreshPromise = null
+
+
+// ─── ERRO DE API ──────────────────────────────────────────────
+//
+// Formato novo do contrato:
+//
+// {
+//   "error": {
+//     "code": "EMAIL_ALREADY_IN_USE",
+//     "message": "email already in use",
+//     "details": null
+//   }
+// }
+//
+// Também aceitamos formatos antigos:
+//
+// {
+//   "error": "EMAIL_ALREADY_IN_USE"
+// }
+//
+// ou:
+//
+// {
+//   "message": "alguma mensagem",
+//   "code": "ALGUM_ERRO"
+// }
+//
+
+export class ApiError extends Error {
+
+  constructor(
+    message,
+    status = 0,
+    code = null,
+    data = null,
+    details = null
+  ) {
+
+    super(message)
+
+    this.name = 'ApiError'
+
+    this.status = status
+
+    this.code = code
+
+    this.data = data
+
+    // Details fica disponível diretamente no erro.
+    //
+    // Assim um formulário pode fazer:
+    //
+    // if (err.details?.email) {
+    //   ...
+    // }
+    //
+    // Além disso, data continua preservado para compatibilidade.
+
+    this.details = details
+
+    // Texto original do servidor. Fica guardado para o log de erro
+    // interno, mas nunca é exibido na interface.
+    this.rawMessage = message
+  }
+}
+
+
+// ─── TRADUÇÃO DO ERRO ───────────────────────────────────────────
+//
+// O erro que chega na tela nunca mostra o texto cru do servidor:
+// o que for erro interno vira mensagem genérica e o detalhe real vai
+// para o console (ver lib/errors.js).
+//
+// Depois de traduzido, o erro ganha a marca userFacing: quem chamar
+// userMessage() de novo recebe a mesma mensagem, sem retrabalhar.
+
+function finalizeError(
+  error,
+  fallback
+) {
+
+  const friendly = userMessage(
+    error,
+    fallback
+  )
+
+  error.rawMessage = error.message
+
+  error.message = friendly
+
+  error.userFacing = true
+
+  return error
+}
+
+
+// ─── UTILITÁRIOS ──────────────────────────────────────────────
+
+async function parseResponse(res) {
+
+  const contentType =
+    res.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+
+    try {
+      return await res.json()
+    } catch {
+      return {}
+    }
+  }
+
+  try {
+
+    const text = await res.text()
+
+    // Resposta sem JSON: pode ser uma página de erro do proxy/gateway
+    // em HTML. Esse conteúdo não é mensagem de erro — mostrar HTML na
+    // tela não ajuda o usuário, então ele é descartado.
+    if (
+      !text ||
+      text.length > 300 ||
+      /<html|<!doctype|<\?xml/i.test(text)
+    ) {
+      return {}
+    }
+
+    return { message: text }
+
+  } catch {
+
+    return {}
+  }
+}
+
+
+// ─── EXTRAÇÃO DE ERROS ────────────────────────────────────────
+
+function getErrorCode(data) {
+
+  // Formato novo do contrato:
+  //
+  // error: {
+  //   code: "EMAIL_ALREADY_IN_USE"
+  // }
+
+  if (
+    data?.error &&
+    typeof data.error === 'object' &&
+    typeof data.error.code === 'string' &&
+    data.error.code.trim()
+  ) {
+    return data.error.code.trim()
+  }
+
+
+  // Formatos alternativos/legados.
+
+  if (
+    typeof data?.error_code === 'string' &&
+    data.error_code.trim()
+  ) {
+    return data.error_code.trim()
+  }
+
+
+  if (
+    typeof data?.code === 'string' &&
+    data.code.trim()
+  ) {
+    return data.code.trim()
+  }
+
+
+  // Formato antigo:
+  //
+  // error: "EMAIL_ALREADY_IN_USE"
+
+  if (
+    typeof data?.error === 'string' &&
+    /^[A-Z0-9_]+$/.test(data.error)
+  ) {
+    return data.error
+  }
+
+
+  return null
+}
+
+
+function getErrorMessage(data, fallback) {
+
+  // Formato novo:
+  //
+  // error: {
+  //   message: "email already in use"
+  // }
+
+  if (
+    data?.error &&
+    typeof data.error === 'object' &&
+    typeof data.error.message === 'string' &&
+    data.error.message.trim()
+  ) {
+    return data.error.message.trim()
+  }
+
+
+  // Formato antigo/alternativo.
+
+  if (
+    typeof data?.message === 'string' &&
+    data.message.trim()
+  ) {
+    return data.message.trim()
+  }
+
+
+  // Formato antigo:
+  //
+  // error: "email already in use"
+
+  if (
+    typeof data?.error === 'string' &&
+    !/^[A-Z0-9_]+$/.test(data.error) &&
+    data.error.trim()
+  ) {
+    return data.error.trim()
+  }
+
+
+  return fallback
+}
+
+
+function getErrorDetails(data) {
+
+  // Formato novo do contrato:
+  //
+  // error: {
+  //   details: {
+  //     email: "..."
+  //   }
+  // }
+
+  if (
+    data?.error &&
+    typeof data.error === 'object' &&
+    data.error.details !== undefined
+  ) {
+    return data.error.details
+  }
+
+
+  // Compatibilidade com possíveis formatos alternativos.
+
+  if (data?.details !== undefined) {
+    return data.details
+  }
+
+
+  return null
+}
+
+
+// ─── CRIAÇÃO CENTRALIZADA DE ApiError ─────────────────────────
+
+function createApiError(
+  data,
+  status,
+  fallback
+) {
+
+  const code = getErrorCode(data)
+
+  const message = getErrorMessage(
+    data,
+    fallback
+  )
+
+  const details = getErrorDetails(data)
+
+
+  // Mantém os dados originais.
+  //
+  // Além disso, se details existir somente dentro de
+  // data.error.details, adicionamos uma cópia em data.details.
+  //
+  // Isso permite:
+  //
+  // err.data?.details
+  //
+  // sem destruir o formato original recebido do backend.
+
+  let normalizedData = data
+
+  if (
+    details !== null &&
+    data &&
+    typeof data === 'object' &&
+    data.details === undefined
+  ) {
+    normalizedData = {
+      ...data,
+      details,
+    }
+  }
+
+
+  return finalizeError(
+    new ApiError(
+      message,
+      status,
+      code,
+      normalizedData,
+      details
+    ),
+    fallback
+  )
+}
+
+
+// ─── REQUEST ──────────────────────────────────────────────────
+
+async function request(url, options = {}) {
+
+  let res
+
+  try {
+
+    res = await fetch(
+      url,
+      options
+    )
+
+  } catch (error) {
+
+    throw finalizeError(
+      new ApiError(
+        error?.message ||
+          'Falha de conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
+    )
+  }
+
+
+  const data = await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível concluir a operação.'
+    )
+  }
+
+
+  return data
+}
+
+
+// ─── AUTH: REGISTER ───────────────────────────────────────────
+
+export async function register(
+  username,
+  email,
+  password
+) {
+
+  const data = await request(
+    `${API_URL}/auth/register`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      credentials: 'include',
+
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+      }),
+    }
+  )
+
+
+  // Alguns backends podem devolver access_token junto
+  // com o cadastro.
+  //
+  // Nesse caso, armazenamos somente em memória.
+
+  if (data?.access_token) {
+    setAccessToken(data.access_token)
+  }
+
+
+  return data
+}
+
+
+// ─── AUTH: LOGIN ──────────────────────────────────────────────
+
+export async function login(
+  email,
+  password
+) {
+
+  const data = await request(
+    `${API_URL}/auth/login`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      credentials: 'include',
+
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    }
+  )
+
+
+  if (!data?.access_token) {
+
+    throw finalizeError(
+      new ApiError(
+        'O servidor não retornou um access token.',
+        500,
+        'MISSING_ACCESS_TOKEN',
+        data,
+        data?.details ?? null
+      )
+    )
+  }
+
+
+  setAccessToken(
+    data.access_token
+  )
+
+
+  return data
+}
+
+
+// ─── AUTH: GOOGLE ─────────────────────────────────────────────
+
+export function loginWithGoogle() {
+
+  window.location.href =
+    `${API_URL}/auth/google/login`
+}
+
+
+// ─── AUTH: REFRESH ────────────────────────────────────────────
+
+export async function refreshSession() {
+
+  // Se já existe um refresh em andamento,
+  // reutilizamos a mesma Promise.
+
+  if (refreshPromise) {
+    return refreshPromise
+  }
+
+
+  refreshPromise = (async () => {
+
+    try {
+
+      const data = await request(
+        `${API_URL}${JWT_TOKEN_COOKIE_PATH}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      )
+
+
+      if (!data?.access_token) {
+
+        throw finalizeError(
+          new ApiError(
+            'O servidor não retornou um access token.',
+            401,
+            'MISSING_ACCESS_TOKEN',
+            data,
+            data?.details ?? null
+          )
+        )
+      }
+
+
+      setAccessToken(
+        data.access_token
+      )
+
+
+      return data
+
+    } finally {
+
+      // Permite que uma próxima tentativa de refresh
+      // seja feita depois que esta terminar.
+
+      refreshPromise = null
+    }
+
+  })()
+
+
+  return refreshPromise
+}
+
+
+// ─── FETCH AUTENTICADO ────────────────────────────────────────
+//
+// Faz a requisição normalmente.
+//
+// Se receber 401:
+//   1. tenta renovar a sessão uma única vez;
+//   2. se conseguir, repete a requisição original;
+//   3. se falhar, limpa o access token;
+//   4. chama o callback global de sessão expirada;
+//   5. devolve a resposta 401 original.
+//
+// O componente não precisa duplicar a lógica de redirecionamento.
+//
+
+export async function authFetch(
+  input,
+  init = {}
+) {
+
+  const buildHeaders = () => {
+
+    const headers =
+      new Headers(init.headers)
+
+
+    if (accessToken) {
+
+      headers.set(
+        'Authorization',
+        `Bearer ${accessToken}`
+      )
+    }
+
+
+    return headers
+  }
+
+
+  let res
+
+  try {
+
+    res = await fetch(
+      `${API_URL}${input}`,
+      {
+        ...init,
+
+        headers:
+          buildHeaders(),
+
+        credentials:
+          'include',
+      }
+    )
+
+  } catch {
+
+    throw finalizeError(
+      new ApiError(
+        'Sem conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
+    )
+  }
+
+
+  // Resposta normal.
+
+  if (res.status !== 401) {
+    return res
+  }
+
+
+  // ─── TOKEN EXPIRADO ─────────────────────────────────────────
+
+  try {
+
+    await refreshSession()
+
+  } catch {
+
+    clearAccessToken()
+
+
+    // Sessão inválida/expirada.
+    //
+    // O aplicativo pode ter configurado:
+    //
+    // setSessionExpiredHandler(() => {
+    //   navigate('/auth/login')
+    // })
+    //
+    // A chamada é centralizada aqui.
+
+    notifySessionExpired()
+
+
+    // Mantemos a resposta 401 original para preservar
+    // o comportamento esperado por quem chama authFetch.
+
+    return res
+  }
+
+
+  // ─── REPETE A REQUISIÇÃO COM TOKEN NOVO ─────────────────────
+
+  try {
+
+    const retryRes = await fetch(
+      `${API_URL}${input}`,
+      {
+        ...init,
+
+        headers:
+          buildHeaders(),
+
+        credentials:
+          'include',
+      }
+    )
+
+
+    // Se mesmo com o token renovado o backend
+    // continuar respondendo 401, não fazemos outro refresh.
+    //
+    // Isso evita um loop infinito.
+
+    if (retryRes.status === 401) {
+
+      clearAccessToken()
+
+      notifySessionExpired()
+    }
+
+
+    return retryRes
+
+  } catch {
+
+    throw finalizeError(
+      new ApiError(
+        'Sem conexão com o servidor.',
+        0,
+        'NETWORK_ERROR',
+        null,
+        null
+      )
+    )
+  }
+}
+
+
+// ─── AUTH: LOGOUT ─────────────────────────────────────────────
+
+export function logout() {
+
+  clearAccessToken()
+}
+
+
+// ─── AUTH: ME ─────────────────────────────────────────────────
+
+export async function getMe() {
+
+  const res =
+    await authFetch(
+      '/auth/me'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível verificar sua sessão.'
+    )
+  }
+
+
+  return data.user
+}
+
+
+// ─── AUTH: EMAIL VERIFY ───────────────────────────────────────
+
+export async function emailVerify(
+  email,
+  code
+) {
+
+  const data = await request(
+    `${API_URL}/auth/email/verify`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      credentials:
+        'include',
+
+      body: JSON.stringify({
+        email,
+        code,
+      }),
+    }
+  )
+
+
+  if (data?.access_token) {
+
+    setAccessToken(
+      data.access_token
+    )
+  }
+
+
+  return data
+}
+
+
+// ─── AUTH: RESEND VERIFICATION ────────────────────────────────
+
+export async function resendVerification(
+  email
+) {
+
+  return request(
+    `${API_URL}/auth/email/resend`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      credentials:
+        'include',
+
+      body: JSON.stringify({
+        email,
+      }),
+    }
+  )
+}
+
+
+// ─── AUTH: FORGOT PASSWORD ───────────────────────────────────
+
+export async function forgotPassword(
+  email
+) {
+
+  return request(
+    `${API_URL}/auth/password/forgot`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      credentials:
+        'include',
+
+      body: JSON.stringify({
+        email,
+      }),
+    }
+  )
+}
+
+
+// ─── AUTH: RESET PASSWORD ────────────────────────────────────
+
+export async function resetPassword(
+  email,
+  code,
+  newPassword
+) {
+
+  return request(
+    `${API_URL}/auth/password/reset`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      credentials:
+        'include',
+
+      body: JSON.stringify({
+        email,
+        code,
+        new_password:
+          newPassword,
+      }),
+    }
+  )
+}
+
+
+// ─── GOALS ────────────────────────────────────────────────────
+
+export async function createGoal(
+  title,
+  settings
+) {
+
+  const res = await authFetch(
+    '/protected/goals',
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify({
+        title,
+        settings,
+      }),
+    }
+  )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível criar seu objetivo.'
+    )
+  }
+
+
+  return data.goal
+}
+
+
+export async function listGoals() {
+
+  const res =
+    await authFetch(
+      '/protected/goals'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar seus objetivos.'
+    )
+  }
+
+
+  return data.goals
+}
+
+
+export async function getGoal(goalId) {
+
+  const res =
+    await authFetch(
+      `/protected/goals/${goalId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar o objetivo.'
+    )
+  }
+
+
+  return data.goal
+}
+
+
+export async function updateGoal(
+  id,
+  title,
+  settings
+) {
+
+  const res = await authFetch(
+    `/protected/goals/${id}`,
+    {
+      method: 'PUT',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify({
+        title,
+        settings,
+      }),
+    }
+  )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível atualizar o objetivo.'
+    )
+  }
+
+
+  return data
+}
+
+
+export async function deleteGoal(
+  id
+) {
+
+  const res = await authFetch(
+    `/protected/goals/${id}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível excluir o objetivo.'
+    )
+  }
+
+
+  return data
+}
+
+
+export async function generateRoadmap(
+  goalId
+) {
+
+  const res =
+    await authFetch(
+      '/protected/roadmap/generate',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          goal_id: goalId,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível gerar a trilha. Tente novamente.'
+    )
+  }
+
+
+  return data.roadmap
+}
+
+
+export async function getRoadmap(
+  goalId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/roadmap/${goalId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar a trilha. Tente novamente.'
+    )
+  }
+
+
+  return data.roadmap
+}
+
+
+export async function generateTask(
+  topicId
+) {
+
+  const res =
+    await authFetch(
+      '/protected/tasks/generate',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          topic_id: topicId,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível gerar a atividade. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+// ─── TASKS: LEITURA ───────────────────────────────────────────
+
+export async function listTasks() {
+
+  const res =
+    await authFetch(
+      '/protected/tasks'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar as atividades.'
+    )
+  }
+
+
+  return data.tasks
+}
+
+
+export async function getTask(taskId) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar a atividade.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+export async function submitAttempt(
+  taskId,
+  type,
+  response
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/attempts`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          type,
+          response,
+
+          metadata: {
+            attempt_source:
+              'web',
+          },
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível enviar sua resposta. Tente novamente.'
+    )
+  }
+
+
+  return data
+}
+
+
+// ─── PLAYER: PASSO A PASSO ────────────────────────────────────
+
+/**
+ * Corrige UM exercício da sessão e devolve o feedback instantâneo
+ * (certo/errado, explicação, XP ganho e combo).
+ *
+ * É idempotente: responder o mesmo passo de novo devolve o mesmo
+ * resultado, sem conceder XP outra vez.
+ */
+export async function answerStep(
+  taskId,
+  stepIndex,
+  answer
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/answer`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          step_index: stepIndex,
+          answer,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível verificar a resposta. Tente novamente.'
+    )
+  }
+
+
+  return data.result
+}
+
+
+/**
+ * Encerra a sessão e devolve o resumo final (score, XP, combo, streak
+ * e se o tópico foi dominado).
+ */
+export async function finishSession(
+  taskId,
+  metadata
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/finish`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          metadata: metadata || {
+            attempt_source: 'web',
+          },
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível finalizar a sessão. Tente novamente.'
+    )
+  }
+
+
+  return data.result
+}
+
+
+// ─── TREINO E REVISÃO ──────────────────────────────────────────
+
+/**
+ * Monta uma sessão de Treino com os exercícios já errados e os que
+ * estão vencidos na revisão. Não chama a IA.
+ */
+export async function createPractice(
+  topicId,
+  count
+) {
+
+  const res =
+    await authFetch(
+      '/protected/tasks/practice',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          topic_id: topicId || null,
+          count: count || 10,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar o treino. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+/**
+ * Monta uma sessão de Revisão com os exercícios que venceram o intervalo
+ * de repetição espaçada.
+ */
+export async function createReview(
+  count
+) {
+  const res =
+    await authFetch(
+      '/protected/tasks/review',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          count: count || 10,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar a revisão. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+/**
+ * Monta uma sessão apenas com os exercícios errados de outra sessão
+ * (o "tentar de novo" do Duolingo).
+ */
+export async function createRetry(
+  taskId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/retry`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({}),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível montar a nova tentativa. Tente novamente.'
+    )
+  }
+
+
+  return data.task
+}
+
+
+// ─── HOJE: META DIÁRIA E STREAK ────────────────────────────────
+
+/**
+ * Resumo do dia: XP de hoje contra a meta, streak, semana e quantos
+ * exercícios estão esperando revisão.
+ */
+export async function getDaily() {
+
+  const res =
+    await authFetch(
+      '/protected/daily'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar o resumo de hoje.'
+    )
+  }
+
+
+  return data.daily
+}
+
+
+export async function updateDailyGoal(
+  dailyGoalXp
+) {
+
+  const res =
+    await authFetch(
+      '/protected/profile/daily-goal',
+      {
+        method: 'PUT',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          daily_goal_xp: dailyGoalXp,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível alterar a meta diária.'
+    )
+  }
+
+
+  return data.profile
+}
+
+
+// ─── TASK ATTEMPTS ────────────────────────────────────────────
+
+export async function listAttemptsByUser() {
+
+  const res =
+    await authFetch(
+      '/protected/task-attempts'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar o histórico de tentativas.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
+export async function listTaskAttempts(taskId) {
+
+  const res =
+    await authFetch(
+      `/protected/tasks/${taskId}/attempts`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar as tentativas da atividade.'
+    )
+  }
+
+
+  return data.task_attempts
+}
+
+
+// ─── CORRECTIONS ──────────────────────────────────────────────
+
+export async function generateCorrection(
+  attemptId
+) {
+
+  const res =
+    await authFetch(
+      `/protected/corrections/quiz/${attemptId}`,
+      {
+        method: 'POST',
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível gerar o feedback.'
+    )
+  }
+
+
+  return data.correction
+}
+
+
+// ─── CORRECTIONS: LEITURA / CRIAÇÃO ──────────────────────────
+
+export async function getCorrectionByAttemptID(attemptId) {
+
+  const res =
+    await authFetch(
+      `/protected/corrections/attempt/${attemptId}`
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar o feedback.'
+    )
+  }
+
+
+  return data.correction
+}
+
+
+export async function createCorrection(
+  attemptId,
+  feedback,
+  score
+) {
+
+  const res =
+    await authFetch(
+      '/protected/corrections',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          attempt_id: attemptId,
+          feedback,
+          score,
+        }),
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível salvar o feedback.'
+    )
+  }
+
+
+  return data.correction
+}
+
+
+// ─── PROGRESSO (resumo agregado) ─────────────────────────────
+
+export async function getProgressSummary() {
+
+  const res = await authFetch(
+    '/protected/profile/progress'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o resumo de progresso.'
+    )
+  }
+
+  return data.progress
+}
+
+
+// ─── SOCIAL: AMIGOS ─────────────────────────────────────────
+//
+// O backend nunca devolve goals/roadmaps de terceiros: a lista de amigos
+// traz só o perfil público (avatar, nível, streak, quando foi a última
+// atividade). A tela de social respeita essa regra.
+
+export async function listFriends() {
+
+  const res = await authFetch(
+    '/protected/social/friends'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar seus amigos.'
+    )
+  }
+
+  return data.friends
+}
+
+
+export async function getSocialSummary() {
+
+  const res = await authFetch(
+    '/protected/social/summary'
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao carregar o resumo social.'
+    )
+  }
+
+  return data.summary
+}
+
+
+export async function searchUsers(term) {
+
+  const res = await authFetch(
+    `/protected/social/search?q=${encodeURIComponent(term)}`
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao buscar usuários.'
+    )
+  }
+
+  return data.candidates
+}
+
+
+// addFriend aceita e-mail OU nome de usuário — o usuário digita o que
+// lembrar e o backend decide o que procurar.
+export async function addFriend(query) {
+
+  const res = await authFetch(
+    '/protected/social/friends',
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify({
+        query,
+      }),
+    }
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao adicionar o amigo.'
+    )
+  }
+
+  return data.friend
+}
+
+
+export async function removeFriend(friendId) {
+
+  const res = await authFetch(
+    `/protected/social/friends/${friendId}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+  const data =
+    await parseResponse(res)
+
+  if (!res.ok) {
+    throw createApiError(
+      data,
+      res.status,
+      'Erro ao remover o amigo.'
+    )
+  }
+
+  return data
+}
+
+
+// ─── PROFILE ──────────────────────────────────────────────────
+
+export async function getProfile() {
+
+  const res =
+    await authFetch(
+      '/protected/profile'
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível carregar seu perfil.'
+    )
+  }
+
+
+  return data.profile
+}
+
+
+// ─── PROFILE: XP ──────────────────────────────────────────────
+
+// O XP é concedido exclusivamente pelo servidor, no momento da
+// resposta. Não existe rota para o cliente somar XP: isso permitiria
+// inflar o próprio progresso chamando a API diretamente.
+//
+// A meta diária é alterada em updateDailyGoal().
+
+
+// ─── PROFILE: AVATAR ──────────────────────────────────────────
+
+export async function uploadAvatar(
+  file
+) {
+
+  const formData =
+    new FormData()
+
+  formData.append(
+    'avatar',
+    file
+  )
+
+
+  const res =
+    await authFetch(
+      '/protected/profile/avatar',
+      {
+        method: 'POST',
+
+        body: formData,
+      }
+    )
+
+
+  const data =
+    await parseResponse(res)
+
+
+  if (!res.ok) {
+
+    throw createApiError(
+      data,
+      res.status,
+      'Não foi possível enviar a imagem. Tente novamente.'
+    )
+  }
+
+
+  return data
+}

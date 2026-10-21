@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	apperrors "github.com/brunoguimas/metapps/backend/internal/shared/error"
 	"github.com/gin-gonic/gin"
@@ -64,6 +65,41 @@ func SeverityForStatus(status int) func(*gin.Context, error, string, int) {
 	return nil
 }
 
+// rootCause percorre toda a cadeia de wraps e devolve o erro de origem.
+// O repositorio/servico embrulham AppError dentro de AppError, entao
+// desembrulhar um unico nivel esconderia a causa real (ex.: erro do driver).
+func rootCause(err error) error {
+	cause := err
+	for {
+		next := errors.Unwrap(cause)
+		if next == nil {
+			return cause
+		}
+		cause = next
+	}
+}
+
+func causeAttrs(err error) []any {
+	root := rootCause(err)
+	if root == nil || root == err {
+		return nil
+	}
+
+	attrs := []any{"cause", root.Error()}
+
+	// com varios niveis de AppError embrulhado, a causa raiz sozinha perde o
+	// contexto de onde o erro nasceu: a cadeia completa ajuda a localizar
+	chain := make([]string, 0, 4)
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		chain = append(chain, e.Error())
+	}
+	if len(chain) > 2 {
+		attrs = append(attrs, "chain", strings.Join(chain, " <- "))
+	}
+
+	return attrs
+}
+
 // LogError logs an error with the given context and status.
 // It should be used for errors that warrant an error-level log.
 func LogError(c *gin.Context, err error, msg string, status int) {
@@ -74,12 +110,8 @@ func LogError(c *gin.Context, err error, msg string, status int) {
 
 		if appErr, ok := apperrors.As(err); ok {
 			attrs = append(attrs, "code", string(appErr.Code()))
-			if cause := appErr.Unwrap(); cause != nil {
-				attrs = append(attrs, "cause", cause.Error())
-			}
-		} else if cause := errors.Unwrap(err); cause != nil {
-			attrs = append(attrs, "cause", cause.Error())
 		}
+		attrs = append(attrs, causeAttrs(err)...)
 	} else {
 		attrs = append(attrs, "error", "no error")
 	}
@@ -97,12 +129,8 @@ func LogWarn(c *gin.Context, err error, msg string, status int) {
 
 		if appErr, ok := apperrors.As(err); ok {
 			attrs = append(attrs, "code", string(appErr.Code()))
-			if cause := appErr.Unwrap(); cause != nil {
-				attrs = append(attrs, "cause", cause.Error())
-			}
-		} else if cause := errors.Unwrap(err); cause != nil {
-			attrs = append(attrs, "cause", cause.Error())
 		}
+		attrs = append(attrs, causeAttrs(err)...)
 	} else {
 		attrs = append(attrs, "error", "no error")
 	}

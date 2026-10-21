@@ -20,10 +20,10 @@ type authService struct {
 	profileService profile.Service
 }
 
-func NewService(r user.Repository, p profile.Service) Service {
+func NewService(r user.Repository, profileService profile.Service) Service {
 	return &authService{
 		userRepo:       r,
-		profileService: p,
+		profileService: profileService,
 	}
 }
 

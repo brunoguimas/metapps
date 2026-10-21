@@ -135,6 +135,18 @@ type ClassroomMembership struct {
 	UpdatedAt   time.Time
 }
 
+type DailyActivity struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	ActivityDate time.Time
+	Xp           int32
+	Exercises    int32
+	Lessons      int32
+	Seconds      int32
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type EmailCode struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
@@ -170,6 +182,13 @@ type FlashcardProgress struct {
 	UpdatedAt      time.Time
 }
 
+type Friendship struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	FriendID  uuid.UUID
+	CreatedAt time.Time
+}
+
 type Goal struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -195,6 +214,7 @@ type Profile struct {
 	AvatarUrl        sql.NullString
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	DailyGoalXp      int32
 }
 
 type RefreshToken struct {
@@ -206,15 +226,38 @@ type RefreshToken struct {
 	CreatedAt sql.NullTime
 }
 
+type ReviewItem struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	TaskID       uuid.UUID
+	StepIndex    int32
+	QuestionHash string
+	Ease         float64
+	IntervalDays int32
+	Lapses       int32
+	DueAt        time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type Task struct {
-	ID        uuid.UUID
-	UserID    uuid.NullUUID
-	Content   json.RawMessage
-	Type      string
-	Done      bool
-	DoneAt    sql.NullTime
-	CreatedAt sql.NullTime
-	TopicID   uuid.UUID
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Content    json.RawMessage
+	Type       string
+	Done       bool
+	DoneAt     sql.NullTime
+	CreatedAt  sql.NullTime
+	TopicID    uuid.UUID
+	Version    int32
+	Source     string
+	Status     string
+	StepCursor int32
+	MaxCombo   int32
+	Score      sql.NullString
+	XpGained   int32
+	LastStepAt sql.NullTime
+	UpdatedAt  time.Time
 }
 
 type TaskAttempt struct {
@@ -236,6 +279,17 @@ type TaskCorrection struct {
 	Status    string
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
+}
+
+type TaskStepAttempt struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TaskID     uuid.UUID
+	StepIndex  int32
+	Answer     json.RawMessage
+	Correct    bool
+	XpAwarded  int32
+	AnsweredAt time.Time
 }
 
 type Topic struct {
